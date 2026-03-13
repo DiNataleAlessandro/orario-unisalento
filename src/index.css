@@ -1,1 +1,95 @@
 @import "tailwindcss";
+
+/* =========================================
+   OVERRIDE DEFINITIVO REACT-DAY-PICKER
+   ========================================= */
+
+/* Variabili di base e reset totale */
+body .rdp {
+  --rdp-accent-color: #c48e12 !important;
+  --rdp-background-color: #333333 !important;
+  --rdp-accent-color-dark: #c48e12 !important;
+  --rdp-background-color-dark: #333333 !important;
+  --rdp-outline: none !important;
+  --rdp-outline-selected: none !important;
+  margin: 0 !important;
+}
+
+/* 1. TITOLO (Mese e Anno) */
+body .rdp-caption_label {
+  color: #ffffff !important;
+  font-weight: 900 !important;
+  text-transform: capitalize !important;
+}
+
+/* 2. INTESTAZIONE GIORNI (lun, mar, mer...) - Usando la classe scovata! */
+body .rdp-weekday {
+  color: #9ca3af !important;
+  font-weight: bold !important;
+  text-transform: lowercase !important;
+  font-size: 0.85rem !important;
+  padding-bottom: 10px !important;
+}
+
+/* 3. FRECCE NAVIGAZIONE */
+body .rdp-button_previous, 
+body .rdp-button_next,
+body .rdp-button_previous svg,
+body .rdp-button_next svg,
+body .rdp-chevron {
+  color: #c48e12 !important;
+  fill: #c48e12 !important;
+  stroke: #c48e12 !important; 
+}
+
+/* 4. GIORNO SELEZIONATO VS OGGI (Distinzione visiva) */
+
+/* OGGI: Solo bordo oro e testo oro (stile outline) */
+body .rdp-day_today .rdp-day_button,
+body .rdp-today .rdp-day_button {
+  background-color: transparent !important;
+  color: #c48e12 !important;
+  border: 2px solid #c48e12 !important;
+  font-weight: 900 !important;
+  border-radius: 50% !important;
+}
+
+/* SELEZIONATO: Oro pieno (vince su tutto) */
+body .rdp-day_selected .rdp-day_button,
+body .rdp-selected .rdp-day_button {
+  background-color: #c48e12 !important;
+  color: #121212 !important;
+  border: 2px solid #c48e12 !important; /* Manteniamo il bordo per coerenza di dimensioni */
+  font-weight: 900 !important;
+  border-radius: 50% !important;
+  box-shadow: 0 4px 15px rgba(196, 142, 18, 0.3) !important; /* Un leggero bagliore oro */
+}
+/* 5. NUMERI DEI GIORNI NORMALI */
+body .rdp-day_button {
+  color: #ffffff !important;
+}
+
+/* 6. HOVER SUI GIORNI NORMALI */
+body .rdp-day_button:hover:not(.rdp-day_selected .rdp-day_button):not(.rdp-selected .rdp-day_button):not(.rdp-day_today .rdp-day_button) {
+  background-color: #333333 !important;
+  border-radius: 50% !important;
+}
+
+/* 7. RESET TOTALE ANNELLI BLU E FOCUS */
+body .rdp button,
+body .rdp .rdp-day_button,
+body .rdp .rdp-day_button:focus,
+body .rdp .rdp-day_button:focus-visible,
+body .rdp .rdp-day_button:active {
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  border: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* 8. RIMOZIONE PSEUDO-ELEMENTI RESIDUI */
+body .rdp-day_button::after, 
+body .rdp-day_button::before {
+  display: none !important;
+}

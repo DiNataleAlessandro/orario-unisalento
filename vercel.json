@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api-unisalento/:path*",
+      "destination": "https://logistica.unisalento.it/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

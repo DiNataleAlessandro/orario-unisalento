@@ -19,8 +19,8 @@ export default defineConfig({
         name: 'Orario Unisalento',
         short_name: 'OrarioUni',
         description: 'La tua agenda intelligente per le lezioni',
-        theme_color: '#2563eb', // Il colore blu della nostra app
-        background_color: '#f9fafb',
+        theme_color: '#121212', // <-- AGGIORNATO AL DARK THEME
+        background_color: '#121212', // <-- AGGIORNATO AL DARK THEME
         display: 'standalone', // Fa sparire la barra di Safari!
         orientation: 'portrait',
         start_url: '/',  // <-- MAGIA APPLE 1: Il recinto inizia dalla root
@@ -36,4 +36,14 @@ export default defineConfig({
       }
     })
   ],
+  // <-- NUOVA MAGIA: Il ponte proxy per testare l'app in locale senza errori CORS
+  server: {
+    proxy: {
+      '/api-unisalento': {
+        target: 'https://logistica.unisalento.it',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api-unisalento/, '')
+      }
+    }
+  }
 })
