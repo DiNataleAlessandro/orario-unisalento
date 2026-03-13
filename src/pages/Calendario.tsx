@@ -4,19 +4,7 @@ import { DayPicker } from 'react-day-picker';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import 'react-day-picker/dist/style.css';
-
-interface Lezione {
-  id: string;
-  nome_insegnamento: string;
-  docente: string;
-  orario: string;
-  aula: string;
-  nome_giorno: string;
-  data: string;
-  inizioDateObj?: Date;
-  fineDateObj?: Date;
-  mail_docente?: string; 
-}
+import CardLezione, { type Lezione } from '../components/CardLezione';
 
 const formattaDataAPI = (data: Date) => {
   const g = String(data.getDate()).padStart(2, '0');
@@ -35,8 +23,6 @@ export default function Calendario() {
   const [errore, setErrore] = useState<string | null>(null);
 
   const [dataSelezionata, setDataSelezionata] = useState<Date>(new Date());
-  
-  const [profPopup, setProfPopup] = useState<{nome: string, mail: string} | null>(null);
 
   const resettaImpostazioni = () => {
     localStorage.clear();
@@ -104,7 +90,6 @@ export default function Calendario() {
             const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
             const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
             
-            // PULIZIA MULTI-MAIL AVANZATA
             const mailPulita = lezione.mail_docente 
               ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',')
               : '';
@@ -187,95 +172,14 @@ export default function Calendario() {
         {!inCaricamento && lezioniGiorno.length > 0 && (
           <div className="grid gap-4">
             {lezioniGiorno.map((lezione, index) => (
-              <div key={index} className="bg-[#212121] p-5 rounded-2xl shadow-lg border border-[#333] flex flex-col gap-2 relative overflow-hidden">
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#333] rounded-l-2xl"></div>
-                  <div className="flex justify-between items-start pl-2">
-                      <h2 className="font-bold text-white text-lg leading-tight w-3/4">
-                      {lezione.nome_insegnamento.replace(/<[^>]+>/g, '')}
-                      </h2>
-                      <span className="bg-[#1a1a1a] text-[#c48e12] border border-[#333] text-xs font-bold px-2 py-1 rounded-lg shrink-0 text-center">
-                      {lezione.orario}
-                      </span>
-                  </div>
-                  <div className="pl-2 flex flex-col gap-1.5 mt-2 text-sm text-gray-400">
-                      <p className="flex items-center gap-2">
-                      <span className="opacity-70">📍</span> <span className="font-medium text-gray-200">{lezione.aula.replace(/<[^>]+>/g, '')}</span>
-                      </p>
-                      <p className="flex items-center gap-2">
-                      <span className="opacity-70">👨‍🏫</span> 
-                      {lezione.docente ? (
-                        <button 
-                          onClick={() => lezione.mail_docente && setProfPopup({ nome: lezione.docente, mail: lezione.mail_docente })}
-                          disabled={!lezione.mail_docente}
-                          className={`font-medium transition-colors text-left ${lezione.mail_docente ? 'text-[#c48e12] hover:text-white underline decoration-[#c48e12]/30 hover:decoration-white decoration-2 underline-offset-4' : 'text-gray-300 cursor-default'}`}
-                        >
-                          {lezione.docente.replace(/<[^>]+>/g, '')}
-                        </button>
-                      ) : (
-                        <span className="text-gray-500 italic">Docente non assegnato</span>
-                      )}
-                    </p>
-                  </div>
-              </div>
+              <CardLezione key={index} lezione={lezione} />
             ))}
           </div>
         )}
       </div>
 
-      {/* POPUP PROFESSORE MULTIPLO RISOLTO */}
-      {profPopup && (
-        <div 
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-opacity" 
-          onClick={() => setProfPopup(null)}
-        >
-          <div 
-            className="bg-[#212121] border border-[#333] p-6 rounded-3xl shadow-2xl w-full max-w-sm transform transition-all scale-100" 
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="text-center mb-6">
-              <div className="bg-[#1a1a1a] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-[#c48e12]/30 shadow-[0_0_15px_rgba(196,142,18,0.2)]">
-                <span className="text-2xl">👨‍🏫</span>
-              </div>
-              <h3 className="text-xl font-bold text-white leading-tight mb-2">
-                {profPopup.nome.replace(/<[^>]+>/g, '')}
-              </h3>
-              <p className="text-gray-400 text-sm mt-1">Docente Unisalento</p>
-            </div>
-
-            <div className="bg-[#1a1a1a] p-4 rounded-2xl border border-[#333] mb-6 flex flex-col items-center gap-2">
-              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Email Ufficiale</span>
-              
-              <div className="flex flex-col gap-1 w-full">
-                {profPopup.mail.split(',').map((email, i) => (
-                  <span key={i} className="text-[#c48e12] font-medium break-all text-center block">
-                    {email}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button 
-                onClick={() => setProfPopup(null)}
-                className="flex-1 py-3 rounded-xl font-bold text-gray-400 bg-[#1a1a1a] border border-[#333] active:scale-95 transition-all"
-              >
-                Chiudi
-              </button>
-              <a 
-                href={`mailto:${profPopup.mail}`}
-                className="flex-1 py-3 rounded-xl font-black text-[#121212] bg-[#c48e12] active:scale-95 transition-all text-center flex items-center justify-center gap-2 shadow-lg shadow-[#c48e12]/20"
-              >
-                <span>Invia Mail</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Navigation Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/80 backdrop-blur-xl border-t border-[#333] pb-safe shadow-[0_-4px_30px_rgba(0,0,0,0.5)] z-50">
         <div className="max-w-md mx-auto flex justify-around items-center p-2 mt-1">
-          
           <button onClick={() => navigate('/')} className="flex flex-col items-center p-2 text-gray-500 hover:text-gray-300 transition-colors active:scale-95">
             <svg className="w-6 h-6 mb-1" fill="none" viewBox="0 0 20 20" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
@@ -289,7 +193,6 @@ export default function Calendario() {
             </svg>
             <span className="text-[10px] font-bold tracking-wider">CALENDARIO</span>
           </button>
-
         </div>
       </div>
     </div>

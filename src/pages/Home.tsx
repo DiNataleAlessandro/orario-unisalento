@@ -1,18 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-interface Lezione {
-  id: string;
-  nome_insegnamento: string;
-  docente: string;
-  orario: string;
-  aula: string;
-  nome_giorno: string;
-  data: string;
-  inizioDateObj?: Date;
-  fineDateObj?: Date;
-  mail_docente?: string;
-}
+import CardLezione, { type Lezione } from '../components/CardLezione';
 
 const formattaDataAPI = (data: Date) => {
   const g = String(data.getDate()).padStart(2, '0');
@@ -26,13 +14,10 @@ export default function Home() {
   const corsoCodice = localStorage.getItem('corsoCodice') || '';
   const annoCodice = localStorage.getItem('annoCodice') || '';
   const corsoNome = localStorage.getItem('corsoNome') || '';
-  const annoNome = localStorage.getItem('annoNome') || '';
 
   const [lezioni, setLezioni] = useState<Lezione[]>([]);
   const [inCaricamento, setInCaricamento] = useState(true);
   const [errore, setErrore] = useState<string | null>(null);
-  
-  const [profPopup, setProfPopup] = useState<{nome: string, mail: string} | null>(null);
 
   const dataRiferimento = new Date(); 
   const [fineSettimanaCorrente, setFineSettimanaCorrente] = useState<Date | null>(null);
@@ -128,7 +113,6 @@ export default function Home() {
             const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
             const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
 
-            // PULIZIA MULTI-MAIL AVANZATA: divide per virgola, pulisce gli spazi e rimuove le vuote
             const mailPulita = lezione.mail_docente 
               ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',')
               : '';
@@ -172,42 +156,6 @@ export default function Home() {
 
   const lezioniQuestaSettimana = lezioniFuture.filter(l => !fineSettimanaCorrente || l.inizioDateObj! <= fineSettimanaCorrente);
   const lezioniProssimaSettimana = lezioniFuture.filter(l => fineSettimanaCorrente && l.inizioDateObj! > fineSettimanaCorrente);
-
-  const CardLezione = ({ lezione }: { lezione: Lezione }) => (
-    <div className="bg-[#212121] p-5 rounded-2xl shadow-lg border border-[#333] flex flex-col gap-2 relative overflow-hidden">
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#333] rounded-l-2xl"></div>
-        <div className="flex justify-between items-start pl-2">
-            <h2 className="font-bold text-white text-lg leading-tight w-3/4">
-            {lezione.nome_insegnamento.replace(/<[^>]+>/g, '')}
-            </h2>
-            <span className="bg-[#1a1a1a] text-[#c48e12] border border-[#333] text-xs font-bold px-2 py-1 rounded-lg shrink-0 text-center">
-            {lezione.nome_giorno}<br/>{lezione.data}
-            </span>
-        </div>
-        <div className="pl-2 flex flex-col gap-1.5 mt-2 text-sm text-gray-400">
-            <p className="flex items-center gap-2">
-            <span className="opacity-70">🕒</span> <span className="font-medium text-gray-200">{lezione.orario}</span>
-            </p>
-            <p className="flex items-center gap-2">
-            <span className="opacity-70">📍</span> <span className="font-medium">{lezione.aula.replace(/<[^>]+>/g, '')}</span>
-            </p>
-            <p className="flex items-center gap-2">
-            <span className="opacity-70">👨‍🏫</span> 
-            {lezione.docente ? (
-                <button 
-                  onClick={() => lezione.mail_docente && setProfPopup({ nome: lezione.docente, mail: lezione.mail_docente })}
-                  disabled={!lezione.mail_docente}
-                  className={`font-medium transition-colors text-left ${lezione.mail_docente ? 'text-[#c48e12] hover:text-white underline decoration-[#c48e12]/30 hover:decoration-white decoration-2 underline-offset-4' : 'text-gray-300 cursor-default'}`}
-                >
-                  {lezione.docente.replace(/<[^>]+>/g, '')}
-                </button>
-            ) : (
-                <span className="text-gray-500 italic">Docente non assegnato</span>
-            )}
-            </p>
-        </div>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-[#121212] p-4 pb-28 relative">
@@ -254,41 +202,7 @@ export default function Home() {
                     </span>
                     In Corso Ora
                 </h3>
-                <div className="bg-gradient-to-br from-[#2a2215] to-[#1a150c] p-5 rounded-2xl shadow-xl flex flex-col gap-2 relative overflow-hidden border border-[#c48e12]/30 transform transition-transform hover:scale-[1.02]">
-                    <div className="flex justify-between items-start pl-2">
-                    <h2 className="font-bold text-white text-xl leading-tight w-3/4">
-                        {lezioneLive.nome_insegnamento.replace(/<[^>]+>/g, '')}
-                    </h2>
-                    <span className="bg-black/40 text-[#c48e12] text-xs font-bold px-2 py-1 rounded-lg shrink-0 text-center border border-[#c48e12]/20">
-                        {lezioneLive.nome_giorno}<br/>{lezioneLive.data}
-                    </span>
-                    </div>
-
-                    <div className="pl-2 flex flex-col gap-1.5 mt-2 text-sm text-[#e8d5a5]">
-                    <p className="flex items-center gap-2">
-                        <span className="opacity-80">🕒</span> <span className="font-bold text-[#c48e12]">{lezioneLive.orario}</span>
-                    </p>
-                    <p className="flex items-center gap-2">
-                        <span className="opacity-80">📍</span> <span className="font-medium">
-                        {lezioneLive.aula.replace(/<[^>]+>/g, '')}
-                        </span>
-                    </p>
-                    <p className="flex items-center gap-2">
-                        <span className="opacity-80">👨‍🏫</span> 
-                        {lezioneLive.docente ? (
-                            <button 
-                              onClick={() => lezioneLive.mail_docente && setProfPopup({ nome: lezioneLive.docente, mail: lezioneLive.mail_docente })}
-                              disabled={!lezioneLive.mail_docente}
-                              className={`font-medium transition-colors text-left ${lezioneLive.mail_docente ? 'text-[#c48e12] hover:text-white underline decoration-[#c48e12]/30 hover:decoration-white decoration-2 underline-offset-4' : 'text-gray-300 cursor-default'}`}
-                            >
-                              {lezioneLive.docente.replace(/<[^>]+>/g, '')}
-                            </button>
-                        ) : (
-                            <span className="text-gray-500 italic">Docente non assegnato</span>
-                        )}
-                    </p>
-                    </div>
-                </div>
+                <CardLezione lezione={lezioneLive} isLive={true} />
             </div>
         )}
 
@@ -314,65 +228,13 @@ export default function Home() {
             </div>
             <div className="grid gap-4 mt-6">
                 {lezioniProssimaSettimana.map((lezione, index) => (
-                <CardLezione key={index} lezione={lezione} />
+                  <CardLezione key={index} lezione={lezione} />
                 ))}
             </div>
           </div>
         )}
       </div>
 
-      {/* POPUP PROFESSORE MULTIPLO RISOLTO */}
-      {profPopup && (
-        <div 
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-opacity" 
-          onClick={() => setProfPopup(null)}
-        >
-          <div 
-            className="bg-[#212121] border border-[#333] p-6 rounded-3xl shadow-2xl w-full max-w-sm transform transition-all scale-100" 
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="text-center mb-6">
-              <div className="bg-[#1a1a1a] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-[#c48e12]/30 shadow-[0_0_15px_rgba(196,142,18,0.2)]">
-                <span className="text-2xl">👨‍🏫</span>
-              </div>
-              <h3 className="text-xl font-bold text-white leading-tight mb-2">
-                {profPopup.nome.replace(/<[^>]+>/g, '')}
-              </h3>
-              <p className="text-gray-400 text-sm mt-1">Docente Unisalento</p>
-            </div>
-
-            <div className="bg-[#1a1a1a] p-4 rounded-2xl border border-[#333] mb-6 flex flex-col items-center gap-2">
-              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Email Ufficiale</span>
-              
-              {/* Le mail vengono separate e messe una sotto l'altra */}
-              <div className="flex flex-col gap-1 w-full">
-                {profPopup.mail.split(',').map((email, i) => (
-                  <span key={i} className="text-[#c48e12] font-medium break-all text-center block">
-                    {email}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button 
-                onClick={() => setProfPopup(null)}
-                className="flex-1 py-3 rounded-xl font-bold text-gray-400 bg-[#1a1a1a] border border-[#333] active:scale-95 transition-all"
-              >
-                Chiudi
-              </button>
-              <a 
-                href={`mailto:${profPopup.mail}`}
-                className="flex-1 py-3 rounded-xl font-black text-[#121212] bg-[#c48e12] active:scale-95 transition-all text-center flex items-center justify-center gap-2 shadow-lg shadow-[#c48e12]/20"
-              >
-                <span>Invia Mail</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Navigation Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/80 backdrop-blur-xl border-t border-[#333] pb-safe shadow-[0_-4px_30px_rgba(0,0,0,0.5)] z-50">
         <div className="max-w-md mx-auto flex justify-around items-center p-2 mt-1">
           <button className="flex flex-col items-center p-2 text-[#c48e12] transition-transform active:scale-95">
