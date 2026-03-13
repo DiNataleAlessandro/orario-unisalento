@@ -144,7 +144,7 @@ export default function PianoDiStudi() {
       <header className="flex justify-between items-center mb-6 bg-[#212121] p-5 rounded-2xl shadow-lg border border-[#333]">
         <div>
           <h1 className="text-2xl font-black text-[#c48e12] tracking-tight">Piano di Studi</h1>
-          <p className="text-[10px] font-bold text-gray-500 mt-1 uppercase tracking-widest line-clamp-1">Personalizza la tua agenda</p>
+          <p className="text-[10px] font-bold text-gray-500 mt-1 uppercase tracking-widest line-clamp-1">Personalizza le tue lezioni</p>
         </div>
       </header>
 
@@ -228,7 +228,7 @@ export default function PianoDiStudi() {
                   disabled={materieSpuntate.length === 0}
                   className={`w-full py-4 rounded-xl font-bold text-sm transition-all shadow-lg ${materieSpuntate.length === 0 ? 'bg-[#333] text-gray-500 cursor-not-allowed' : 'bg-[#c48e12] text-[#121212] active:scale-95 shadow-[#c48e12]/20'}`}
                 >
-                  Aggiungi {materieSpuntate.length > 0 ? materieSpuntate.length : ''} in Agenda
+                  Aggiungi {materieSpuntate.length > 0 ? materieSpuntate.length : ''} alle Lezioni
                 </button>
               </div>
             )}
@@ -240,7 +240,7 @@ export default function PianoDiStudi() {
 
       {/* MATERIE EXTRA GIA' AGGIUNTE (Ora in basso) */}
       <div className="mb-8">
-        <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 ml-2">Esami Extra in Agenda</h3>
+        <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 ml-2">Esami a scelta selezionati</h3>
         {materieSalvate.length === 0 ? (
           <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-[#333] text-center shadow-inner">
             <p className="text-sm text-gray-500 font-medium">Nessuna materia aggiuntiva inserita.</p>
@@ -269,7 +269,7 @@ export default function PianoDiStudi() {
             <svg className="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
             </svg>
-            <span className="text-[10px] font-bold tracking-wider">AGENDA</span>
+            <span className="text-[10px] font-bold tracking-wider">LEZIONI</span>
           </button>
           
           <button className="flex-1 flex flex-col items-center p-2 text-[#c48e12] transition-transform active:scale-95">

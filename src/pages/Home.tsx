@@ -241,7 +241,7 @@ export default function Home() {
     <div className="min-h-screen bg-[#121212] px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1rem)] relative">
       <header className="flex justify-between items-center mb-4 bg-[#212121] p-5 rounded-2xl shadow-lg border border-[#333]">
         <div className="flex-1 pr-2">
-          <h1 className="text-2xl font-black text-[#c48e12] tracking-tight">L'Agenda</h1>
+          <h1 className="text-2xl font-black text-[#c48e12] tracking-tight">Lezioni</h1>
           <p className="text-[10px] font-bold text-gray-500 mt-1 uppercase tracking-widest line-clamp-1">
             {corsoNome}
           </p>
@@ -392,7 +392,7 @@ export default function Home() {
             <div className="p-6 border-b border-[#333] flex justify-between items-center bg-[#1a1a1a]">
               <div>
                 <h2 className="text-xl font-black text-white">Nascondi Materie</h2>
-                <p className="text-xs text-gray-400 mt-1 font-medium">Tocca una materia per nasconderla dall'agenda.</p>
+                <p className="text-xs text-gray-400 mt-1 font-medium">Tocca una materia per nasconderla dalle lezioni.</p>
               </div>
               <button onClick={() => setShowBlacklist(false)} className="bg-[#2a2a2a] p-2 rounded-full text-gray-400 hover:text-white active:scale-95 border border-[#444]">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
@@ -454,7 +454,7 @@ export default function Home() {
             <svg className="w-6 h-6 mb-1 drop-shadow-[0_0_8px_rgba(196,142,18,0.4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
             </svg>
-            <span className="text-[10px] font-bold tracking-wider">AGENDA</span>
+            <span className="text-[10px] font-bold tracking-wider">LEZIONI</span>
           </button>
           
           <button onClick={() => navigate('/piano-di-studi')} className="flex-1 flex flex-col items-center p-2 text-gray-500 hover:text-gray-300 transition-colors active:scale-95">
