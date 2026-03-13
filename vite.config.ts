@@ -27,8 +27,7 @@ export default defineConfig({
         scope: '/',      // <-- MAGIA APPLE 2: Il recinto vale per tutte le pagine
         icons: [
           {
-            // Un'icona provvisoria a forma di tocco di laurea
-            src: 'https://cdn-icons-png.flaticon.com/512/2232/2232688.png',
+            src: '/icona.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
