@@ -4,11 +4,19 @@ import { elenco_corsi } from '../corsiData';
 import logoUnisalento from '../assets/icona.png'; 
 
 export default function Onboarding() {
+  // Ora 'corso' salverà il NOME del corso, non il suo codice, 
+  // perché il codice dipende dall'anno scelto!
   const [corso, setCorso] = useState('');
   const [anno, setAnno] = useState('');
-  // Aggiornato il tipo per includere "tutti_gli_anni"
-  const [listaCorsi, setListaCorsi] = useState<{valore: string, etichetta: string, tutti_gli_anni: any[]}[]>([]);
-  const [listaAnni, setListaAnni] = useState<{label: string, valore: string}[]>([]);
+  
+  const [listaCorsi, setListaCorsi] = useState<{
+    etichetta: string, 
+    tutti_gli_anni: { label: string, valore: string, codiceCorsoReale: string }[]
+  }[]>([]);
+  
+  const [listaAnni, setListaAnni] = useState<{
+    label: string, valore: string, codiceCorsoReale: string
+  }[]>([]);
 
   const [ricerca, setRicerca] = useState('');
   const [tendinaAperta, setTendinaAperta] = useState(false);
@@ -16,29 +24,35 @@ export default function Onboarding() {
 
   const navigate = useNavigate();
 
-  // 1. MOTORE DI FUSIONE DEI CORSI DUPLICATI
+  // 1. MOTORE DI FUSIONE 2.0 (Salva i codici reali per ogni coorte)
   useEffect(() => {
-    const corsiUnificati = new Map<string, { valore: string, etichetta: string, tutti_gli_anni: any[] }>();
+    const corsiUnificati = new Map<string, { etichetta: string, tutti_gli_anni: any[] }>();
 
     elenco_corsi.forEach((item: any) => {
       const chiave = `${item.label} (${item.tipo})`;
       
       if (!corsiUnificati.has(chiave)) {
         corsiUnificati.set(chiave, {
-          valore: item.valore, 
           etichetta: chiave,
-          tutti_gli_anni: [...(item.elenco_anni || [])]
+          tutti_gli_anni: []
         });
-      } else {
-        const corsoEsistente = corsiUnificati.get(chiave)!;
-        const anniEsistenti = new Set(corsoEsistente.tutti_gli_anni.map(a => a.valore));
+      } 
+      
+      const corsoEsistente = corsiUnificati.get(chiave)!;
+      
+      (item.elenco_anni || []).forEach((annoNuovo: any) => {
+        // Controlliamo se abbiamo già questo anno per non sdoppiare le voci nel menu
+        const annoEsistente = corsoEsistente.tutti_gli_anni.find(a => a.label === annoNuovo.label);
         
-        (item.elenco_anni || []).forEach((annoNuovo: any) => {
-          if (!anniEsistenti.has(annoNuovo.valore)) {
-            corsoEsistente.tutti_gli_anni.push(annoNuovo);
-          }
-        });
-      }
+        if (!annoEsistente) {
+          // LA MAGIA: Salviamo l'anno legandolo indissolubilmente al SUO codice corso originale!
+          corsoEsistente.tutti_gli_anni.push({
+            label: annoNuovo.label,
+            valore: annoNuovo.valore,
+            codiceCorsoReale: item.valore // (Es. LB55R per il 1° anno, LB55 per il 2°)
+          });
+        }
+      });
     });
 
     const mappati = Array.from(corsiUnificati.values());
@@ -57,10 +71,10 @@ export default function Onboarding() {
     return () => document.removeEventListener("mousedown", gestisciClickFuori);
   }, []);
 
-  // 2. CARICAMENTO ANNI UNIFICATI QUANDO SI SCEGLIE IL CORSO
+  // 2. CARICAMENTO ANNI
   useEffect(() => {
     if (corso) {
-      const corsoIntero = listaCorsi.find(c => c.valore === corso);
+      const corsoIntero = listaCorsi.find(c => c.etichetta === corso);
       if (corsoIntero && corsoIntero.tutti_gli_anni) {
         const anniOrdinati = [...corsoIntero.tutti_gli_anni].sort((a: any, b: any) => 
           a.label.localeCompare(b.label)
@@ -79,8 +93,8 @@ export default function Onboarding() {
     c.etichetta.toLowerCase().includes(ricerca.toLowerCase())
   );
 
-  const selezionaCorso = (valoreCorso: string, nomeCorso: string) => {
-    setCorso(valoreCorso);
+  const selezionaCorso = (nomeCorso: string) => {
+    setCorso(nomeCorso);
     setRicerca(nomeCorso); 
     setTendinaAperta(false); 
   };
@@ -97,39 +111,39 @@ export default function Onboarding() {
       return;
     }
     
-    const corsoScelto = listaCorsi.find(c => c.valore === corso);
     const annoScelto = listaAnni.find(a => a.valore === anno);
+    if (!annoScelto) return;
     
-    localStorage.setItem('corsoCodice', corso);
-    localStorage.setItem('annoCodice', anno);
-    localStorage.setItem('corsoNome', corsoScelto?.etichetta || '');
-    localStorage.setItem('annoNome', annoScelto?.label || ''); 
+    // IL TOCCO FINALE: Passiamo alla Home il codice reale specifico di quell'anno!
+    localStorage.setItem('corsoCodice', annoScelto.codiceCorsoReale);
+    localStorage.setItem('annoCodice', annoScelto.valore);
+    localStorage.setItem('corsoNome', corso);
+    localStorage.setItem('annoNome', annoScelto.label); 
     
-    sessionStorage.clear();
+    // Pulizia per forzare lo scaricamento dei dati nuovi
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('orario_')) {
+            localStorage.removeItem(key);
+        }
+    }
+    localStorage.removeItem('ultimoAggiornamento');
+    
     navigate('/'); 
   };
 
   return (
-    // Sfondo principale Dark
     <div className="min-h-screen bg-[#121212] flex flex-col items-center justify-center p-6 font-sans">
-      
-      {/* Card centrale Dark Premium */}
       <div className="bg-[#212121] p-8 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-[#333333]">
         <div className="text-center mb-8">
-          
-          {/* Contenitore Logo */}
           <div className="bg-[#1a1a1a] border border-[#333] w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-5 overflow-hidden shadow-inner">
             <img src={logoUnisalento} alt="Logo UniSalento" className="w-14 h-14 object-contain opacity-90" />
           </div>
-          
           <h1 className="text-3xl font-black text-white tracking-tight">Benvenuto!</h1>
-          {/* Testo d'accento in Oro Opaco */}
           <p className="text-[#c48e12] mt-2 font-bold tracking-wide text-sm uppercase">Configura il tuo piano di studi</p>
         </div>
 
         <div className="space-y-6">
-          
-          {/* BARRA DI RICERCA CORSO */}
           <div className="space-y-2 relative" ref={tendinaRef}>
             <label className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em] ml-1">Cerca il tuo Corso</label>
             <input 
@@ -140,15 +154,13 @@ export default function Onboarding() {
               onChange={gestisciRicerca}
               onClick={() => setTendinaAperta(true)}
             />
-            
-            {/* Tendina dei risultati */}
             {tendinaAperta && (
               <ul className="absolute z-50 w-full mt-2 bg-[#2a2a2a] border border-[#444] rounded-2xl shadow-2xl max-h-60 overflow-y-auto">
                 {corsiFiltrati.length > 0 ? (
                   corsiFiltrati.map((c, i) => (
                     <li 
                       key={i} 
-                      onClick={() => selezionaCorso(c.valore, c.etichetta)}
+                      onClick={() => selezionaCorso(c.etichetta)}
                       className="p-4 hover:bg-[#383838] cursor-pointer border-b border-[#333] last:border-none text-sm font-medium text-gray-300 transition-colors"
                     >
                       {c.etichetta}
@@ -161,7 +173,6 @@ export default function Onboarding() {
             )}
           </div>
 
-          {/* TENDINA 2: ANNO / INDIRIZZO */}
           <div className="space-y-2">
             <label className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em] ml-1">Anno e Indirizzo</label>
             <select 
@@ -180,7 +191,6 @@ export default function Onboarding() {
             </select>
           </div>
 
-          {/* BOTTONE FINALE */}
           <button 
             onClick={salvaImpostazioni}
             className="w-full font-black py-5 rounded-2xl mt-4 transition-all shadow-lg active:scale-95 bg-[#c48e12] text-[#121212] hover:bg-[#d89e17] shadow-[#c48e12]/20"
