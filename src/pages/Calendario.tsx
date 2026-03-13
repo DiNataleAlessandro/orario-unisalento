@@ -126,31 +126,44 @@ export default function Calendario() {
 
   return (
     <div className="min-h-screen bg-[#121212] p-4 pb-28 relative">
+      {/* MAGIA CSS SUPER-POTENZIATA PER IL CALENDARIO DARK */}
       <style>{`
-        .rdp {
+        .custom-calendar-wrapper .rdp {
           --rdp-cell-size: 40px;
           --rdp-accent-color: #c48e12;
-          --rdp-background-color: #212121;
+          --rdp-background-color: #333333;
+          --rdp-outline: 2px solid #c48e12;
           margin: 0;
         }
-        /* Forziamo il bianco morbido su tutto, bottoni compresi! */
-        .rdp, .rdp-button {
-          color: #e5e7eb !important; 
+        /* Testo bianco puro per mese, anni e numeri dei giorni */
+        .custom-calendar-wrapper .rdp-caption_label,
+        .custom-calendar-wrapper .rdp-nav_button,
+        .custom-calendar-wrapper .rdp-button {
+          color: #ffffff !important; 
         }
-        /* Intestazione giorni (L, M, M...) in grigio per fare gerarchia */
-        .rdp-head_cell {
-          color: #9ca3af !important; 
+        /* Intestazione giorni (lun, mar, mer...) in grigio */
+        .custom-calendar-wrapper .rdp-head_cell {
+          color: #9ca3af !important;
           font-weight: bold;
         }
-        /* Giorno selezionato: sfondo oro, testo nero scuro per massimizzare il contrasto */
-        .rdp-day_selected, .rdp-day_selected:focus-visible, .rdp-day_selected:hover {
+        /* Giorno selezionato: sfondo oro, testo nero scuro */
+        .custom-calendar-wrapper .rdp-day_selected, 
+        .custom-calendar-wrapper .rdp-day_selected:focus-visible, 
+        .custom-calendar-wrapper .rdp-day_selected:hover {
           color: #121212 !important;
           background-color: #c48e12 !important;
-          font-weight: 900;
+          font-weight: 900 !important;
+          border: none !important;
+          outline: none !important;
         }
         /* Hover sui giorni normali */
-        .rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
+        .custom-calendar-wrapper .rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
           background-color: #333333 !important;
+        }
+        /* Giorno di oggi (se non selezionato) spicca in oro */
+        .custom-calendar-wrapper .rdp-day_today:not(.rdp-day_selected) {
+          color: #c48e12 !important;
+          font-weight: 900 !important;
         }
       `}</style>
 
@@ -168,8 +181,8 @@ export default function Calendario() {
         </button>
       </header>
 
-      {/* Contenitore Calendario */}
-      <div className="bg-[#1a1a1a] p-4 rounded-3xl shadow-inner border border-[#333] mb-6 flex justify-center overflow-hidden">
+      {/* Contenitore Calendario con la classe personalizzata e sfondo scavato */}
+      <div className="custom-calendar-wrapper bg-[#1a1a1a] p-4 rounded-3xl shadow-inner border border-[#333] mb-6 flex justify-center overflow-hidden">
         <DayPicker 
           mode="single" 
           selected={dataSelezionata} 
@@ -231,7 +244,7 @@ export default function Calendario() {
         )}
       </div>
 
-      {/* Navigation Bar Dark Glassmorphism - STATO INVERTITO */}
+      {/* Navigation Bar Dark Glassmorphism */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/80 backdrop-blur-xl border-t border-[#333] pb-safe shadow-[0_-4px_30px_rgba(0,0,0,0.5)] z-50">
         <div className="max-w-md mx-auto flex justify-around items-center p-2 mt-1">
           
