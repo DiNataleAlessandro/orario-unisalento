@@ -134,16 +134,16 @@ export default function Onboarding() {
             <div className="bg-[#1a1a1a] border border-[#333] w-24 h-24 rounded-[1.5rem] flex items-center justify-center shrink-0 shadow-inner overflow-hidden">
               <img src={logoUnisalento} alt="Logo UniSalento" className="w-[4.5rem] h-[4.5rem] object-contain opacity-90" />
             </div>
-            {/* Effetto Neon/Glow applicato qui con drop-shadow */}
+            {/* Effetto Neon/Glow SOLO sul titolo */}
             <h1 className="text-[1.75rem] font-black text-[#c48e12] leading-tight tracking-tight drop-shadow-[0_0_12px_rgba(196,142,18,0.7)]">
               NextLesson<br/>UniSalento
             </h1>
           </div>
           
-          {/* Testi Ingranditi e spostati più in alto */}
           <div className="text-left mt-2">
             <h2 className="text-2xl font-black text-white tracking-tight">Benvenuto!</h2>
-            <p className="text-[#c48e12] mt-1 font-bold tracking-widest text-xs uppercase drop-shadow-[0_0_8px_rgba(196,142,18,0.3)]">
+            {/* Niente glow qui, solo testo pulito e opaco */}
+            <p className="text-[#c48e12] mt-1 font-bold tracking-widest text-xs uppercase">
               Configura il tuo piano di studi
             </p>
           </div>
