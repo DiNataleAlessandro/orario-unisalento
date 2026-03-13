@@ -126,53 +126,72 @@ export default function Calendario() {
 
   return (
     <div className="min-h-screen bg-[#121212] p-4 pb-28 relative">
+      {/* MAGIA CSS: L'ARMA FINALE (Distruzione Totale Default) */}
       <style>{`
-        /* Variabili globali del calendario forzate */
-        div.custom-calendar-wrapper .rdp {
-          --rdp-accent-color: #c48e12;
-          --rdp-background-color: #333333;
-          --rdp-accent-color-dark: #c48e12;
-          --rdp-background-color-dark: #333333;
-          --rdp-outline: 2px solid #c48e12;
-          --rdp-outline-selected: 2px solid #c48e12;
+        /* 1. Distruggiamo le variabili native alla radice */
+        .rdp {
+          --rdp-cell-size: 40px !important;
+          --rdp-accent-color: #c48e12 !important;
+          --rdp-background-color: #333333 !important;
+          --rdp-accent-color-dark: #c48e12 !important;
+          --rdp-background-color-dark: #333333 !important;
+          --rdp-outline: 2px solid transparent !important; /* Addio anello blu di focus */
+          --rdp-outline-selected: 2px solid transparent !important;
+          margin: 0 !important;
         }
-        
-        /* Colore dei numeri (tutti i giorni) */
-        div.custom-calendar-wrapper .rdp-day {
+
+        /* 2. Titolo (Mese e Anno) in bianco puro per spiccare */
+        .rdp-caption_label {
           color: #ffffff !important;
+          font-weight: 900 !important;
+          font-size: 1.25rem !important;
+          text-transform: capitalize;
         }
-        
-        /* Colore intestazione giorni della settimana (lun, mar...) */
-        div.custom-calendar-wrapper .rdp-head_cell {
-          color: #9ca3af !important;
-        }
-        
-        /* Freccette dei mesi (rese oro) */
-        div.custom-calendar-wrapper .rdp-nav_button {
+
+        /* 3. Frecce dei mesi forzate in oro scuro, prendendo di mira sia il bottone che l'icona SVG */
+        .rdp-nav_button {
           color: #c48e12 !important;
         }
-        
-        /* Il giorno SELEZIONATO o OGGI (via il blu, dentro l'oro) */
-        div.custom-calendar-wrapper .rdp-day_selected,
-        div.custom-calendar-wrapper .rdp-day_today,
-        div.custom-calendar-wrapper .rdp-day_selected:hover {
+        .rdp-nav_button svg {
+          fill: #c48e12 !important;
+        }
+
+        /* 4. Intestazione giorni (lun, mar, mer) in grigio visibile ma secondario */
+        .rdp-head_cell {
+          color: #6b7280 !important;
+          font-weight: bold !important;
+          text-transform: uppercase !important;
+          font-size: 0.8rem !important;
+        }
+
+        /* 5. Tutti i giorni standard in bianco puro */
+        .rdp-day {
+          color: #ffffff !important;
+        }
+
+        /* 6. I giorni fuori dal mese corrente (ex. 24, 25 del mese prima) in grigio spento */
+        .rdp-day_outside {
+          color: #4b5563 !important;
+          opacity: 0.6 !important;
+        }
+
+        /* 7. Il Giorno Selezionato o il Giorno Odierno (Addio anello blu, benvenuto sfondo oro) */
+        .rdp-day_today,
+        .rdp-day_selected,
+        .rdp-day_selected:focus-visible,
+        .rdp-day_selected:hover {
           background-color: #c48e12 !important;
           color: #121212 !important;
           font-weight: 900 !important;
           border: none !important;
-          border-radius: 100%;
+          outline: none !important;
+          border-radius: 50% !important;
         }
 
-        /* Rimuove eventuali bordi blu residui dal click/focus */
-        div.custom-calendar-wrapper .rdp-button:focus,
-        div.custom-calendar-wrapper .rdp-button:focus-visible {
-          outline: 2px solid #c48e12 !important;
-          outline-offset: 2px;
-        }
-        
-        /* Hover sui giorni normali */
-        div.custom-calendar-wrapper .rdp-day:hover:not(.rdp-day_selected) {
+        /* 8. Effetto hover sui giorni normali (cerchietto grigio scuro) */
+        .rdp-button:hover:not([disabled]):not(.rdp-day_selected):not(.rdp-day_today) {
           background-color: #333333 !important;
+          border-radius: 50% !important;
         }
       `}</style>
 
@@ -190,8 +209,8 @@ export default function Calendario() {
         </button>
       </header>
 
-      {/* Contenitore Calendario con la classe personalizzata e sfondo scavato */}
-      <div className="custom-calendar-wrapper bg-[#1a1a1a] p-4 rounded-3xl shadow-inner border border-[#333] mb-6 flex justify-center overflow-hidden">
+      {/* Contenitore Calendario */}
+      <div className="bg-[#1a1a1a] p-4 rounded-3xl shadow-inner border border-[#333] mb-6 flex justify-center overflow-hidden">
         <DayPicker 
           mode="single" 
           selected={dataSelezionata} 
@@ -253,7 +272,7 @@ export default function Calendario() {
         )}
       </div>
 
-      {/* Navigation Bar Dark Glassmorphism */}
+      {/* Navigation Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/80 backdrop-blur-xl border-t border-[#333] pb-safe shadow-[0_-4px_30px_rgba(0,0,0,0.5)] z-50">
         <div className="max-w-md mx-auto flex justify-around items-center p-2 mt-1">
           
