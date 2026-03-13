@@ -131,16 +131,26 @@ export default function Calendario() {
           --rdp-cell-size: 40px;
           --rdp-accent-color: #c48e12;
           --rdp-background-color: #212121;
-          color: #ffffff; /* <-- ECCOLO! Da #e5e7eb a bianco puro (#ffffff) */
           margin: 0;
         }
-        .rdp-day_selected, .rdp-day_selected:focus-visible, .rdp-day_selected:hover {
-          color: #121212;
-          background-color: #c48e12;
+        /* Forziamo il bianco morbido su tutto, bottoni compresi! */
+        .rdp, .rdp-button {
+          color: #e5e7eb !important; 
+        }
+        /* Intestazione giorni (L, M, M...) in grigio per fare gerarchia */
+        .rdp-head_cell {
+          color: #9ca3af !important; 
           font-weight: bold;
         }
+        /* Giorno selezionato: sfondo oro, testo nero scuro per massimizzare il contrasto */
+        .rdp-day_selected, .rdp-day_selected:focus-visible, .rdp-day_selected:hover {
+          color: #121212 !important;
+          background-color: #c48e12 !important;
+          font-weight: 900;
+        }
+        /* Hover sui giorni normali */
         .rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
-          background-color: #333333;
+          background-color: #333333 !important;
         }
       `}</style>
 
