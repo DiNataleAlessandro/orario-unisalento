@@ -1,6 +1,25 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+// Funzione per generare la mail Unisalento
+const generaEmailProf = (nomeGrezzo: string) => {
+  if (!nomeGrezzo) return '';
+  
+  // 1. Togliamo HTML, spazi extra e titoli inutili
+  let pulito = nomeGrezzo.replace(/<[^>]+>/g, '')
+                         .replace(/Prof\.ssa|Prof\.|Dott\.ssa|Dott\./gi, '')
+                         .trim()
+                         .toLowerCase();
+                         
+  // 2. Rimuoviamo apostrofi o accenti che rompono la mail (es. D'Amico -> damico)
+  pulito = pulito.replace(/[']/g, '')
+                 .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
+                 
+  // 3. Uniamo le parole rimaste con il punto
+  const parti = pulito.split(/\s+/);
+  return `${parti.join('.')}@unisalento.it`;
+};
+
 interface Lezione {
   id: string;
   nome_insegnamento: string;

@@ -5,6 +5,25 @@ import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import 'react-day-picker/dist/style.css';
 
+// Funzione per generare la mail Unisalento
+const generaEmailProf = (nomeGrezzo: string) => {
+  if (!nomeGrezzo) return '';
+  
+  // 1. Togliamo HTML, spazi extra e titoli inutili
+  let pulito = nomeGrezzo.replace(/<[^>]+>/g, '')
+                         .replace(/Prof\.ssa|Prof\.|Dott\.ssa|Dott\./gi, '')
+                         .trim()
+                         .toLowerCase();
+                         
+  // 2. Rimuoviamo apostrofi o accenti che rompono la mail (es. D'Amico -> damico)
+  pulito = pulito.replace(/[']/g, '')
+                 .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
+                 
+  // 3. Uniamo le parole rimaste con il punto
+  const parti = pulito.split(/\s+/);
+  return `${parti.join('.')}@unisalento.it`;
+};
+
 interface Lezione {
   id: string;
   nome_insegnamento: string;
@@ -194,8 +213,19 @@ export default function Calendario() {
                       <span className="opacity-70">📍</span> <span className="font-medium text-gray-200">{lezione.aula.replace(/<[^>]+>/g, '')}</span>
                       </p>
                       <p className="flex items-center gap-2">
-                      <span className="opacity-70">👨‍🏫</span> <span>{lezione.docente.replace(/<[^>]+>/g, '')}</span>
-                      </p>
+                      <span className="opacity-70">👨‍🏫</span> 
+                      {lezione.docente ? (
+                        <a 
+                          href={`mailto:${generaEmailProf(lezione.docente)}`}
+                          className="text-[#c48e12] font-medium hover:text-white transition-colors underline decoration-[#c48e12]/30 hover:decoration-white decoration-2 underline-offset-4"
+                          title={`Invia un'email a ${generaEmailProf(lezione.docente)}`}
+                        >
+                          {lezione.docente.replace(/<[^>]+>/g, '')} ✉️
+                        </a>
+                      ) : (
+                        <span className="text-gray-500 italic">Docente non assegnato</span>
+                      )}
+                    </p>
                   </div>
               </div>
             ))}
