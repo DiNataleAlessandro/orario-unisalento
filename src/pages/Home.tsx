@@ -22,7 +22,6 @@ const formattaDataAPI = (data: Date) => {
 
 export default function Home() {
   const navigate = useNavigate();
-  // Leggiamo i codici veri!
   const corsoCodice = localStorage.getItem('corsoCodice') || '';
   const annoCodice = localStorage.getItem('annoCodice') || '';
   const corsoNome = localStorage.getItem('corsoNome') || '';
@@ -38,7 +37,7 @@ export default function Home() {
 
   const resettaImpostazioni = () => {
     localStorage.clear();
-    sessionStorage.clear(); // Puliamo la cache!
+    sessionStorage.clear(); 
     navigate('/onboarding');
   };
 
@@ -58,14 +57,11 @@ export default function Home() {
         const urlAPI = '/api-unisalento/PortaleStudenti/grid_call.php';
 
         const fetchSettimana = async (dataTarget: Date) => {
-          // SISTEMA DI CACHE: Controlliamo se abbiamo già scaricato questi dati
           const dataStr = formattaDataAPI(dataTarget);
           const cacheKey = `orario_${corsoCodice}_${annoCodice}_${dataStr}`;
           const cachedData = sessionStorage.getItem(cacheKey);
           
-          if (cachedData) {
-            return JSON.parse(cachedData); // Risposta istantanea!
-          }
+          if (cachedData) return JSON.parse(cachedData); 
 
           const datiModulo = new URLSearchParams();
           datiModulo.append('view', 'easycourse');
@@ -98,7 +94,6 @@ export default function Home() {
           if (!response.ok) throw new Error(`Errore server: ${response.status}`);
           
           const result = await response.json();
-          // Salviamo in cache per la prossima volta
           sessionStorage.setItem(cacheKey, JSON.stringify(result));
           return result;
         };
@@ -112,7 +107,6 @@ export default function Home() {
         ]);
 
         let tutteLeCelle: any[] = [];
-        
         if (datiSettimanaCorrente?.celle) tutteLeCelle = [...tutteLeCelle, ...datiSettimanaCorrente.celle];
         if (datiSettimanaProssima?.celle) tutteLeCelle = [...tutteLeCelle, ...datiSettimanaProssima.celle];
 
@@ -135,7 +129,6 @@ export default function Home() {
           });
 
           const lezioniUniche = Array.from(new Map(lezioniElaborate.map(l => [l.id, l])).values());
-          
           lezioniUniche.sort((a, b) => {
              if (!a.inizioDateObj || !b.inizioDateObj) return 0;
              return a.inizioDateObj.getTime() - b.inizioDateObj.getTime();
@@ -173,94 +166,97 @@ export default function Home() {
   const lezioniProssimaSettimana = lezioniFuture.filter(l => fineSettimanaCorrente && l.inizioDateObj! > fineSettimanaCorrente);
 
   const CardLezione = ({ lezione }: { lezione: Lezione }) => (
-    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-2 relative overflow-hidden">
-        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-500 rounded-l-2xl"></div>
+    <div className="bg-[#212121] p-5 rounded-2xl shadow-lg border border-[#333] flex flex-col gap-2 relative overflow-hidden">
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#333] rounded-l-2xl"></div>
         <div className="flex justify-between items-start pl-2">
-            <h2 className="font-bold text-gray-800 text-lg leading-tight w-3/4">
+            <h2 className="font-bold text-white text-lg leading-tight w-3/4">
             {lezione.nome_insegnamento.replace(/<[^>]+>/g, '')}
             </h2>
-            <span className="bg-blue-50 text-blue-700 text-xs font-bold px-2 py-1 rounded-lg shrink-0 text-center">
+            <span className="bg-[#1a1a1a] text-[#c48e12] border border-[#333] text-xs font-bold px-2 py-1 rounded-lg shrink-0 text-center">
             {lezione.nome_giorno}<br/>{lezione.data}
             </span>
         </div>
-        <div className="pl-2 flex flex-col gap-1 mt-2 text-sm text-gray-600">
+        <div className="pl-2 flex flex-col gap-1.5 mt-2 text-sm text-gray-400">
             <p className="flex items-center gap-2">
-            <span>🕒</span> <span className="font-medium">{lezione.orario}</span>
+            <span className="opacity-70">🕒</span> <span className="font-medium text-gray-200">{lezione.orario}</span>
             </p>
             <p className="flex items-center gap-2">
-            <span>📍</span> <span className="font-medium">{lezione.aula.replace(/<[^>]+>/g, '')}</span>
+            <span className="opacity-70">📍</span> <span className="font-medium">{lezione.aula.replace(/<[^>]+>/g, '')}</span>
             </p>
             <p className="flex items-center gap-2">
-            <span>👨‍🏫</span> <span>{lezione.docente.replace(/<[^>]+>/g, '')}</span>
+            <span className="opacity-70">👨‍🏫</span> <span>{lezione.docente.replace(/<[^>]+>/g, '')}</span>
             </p>
         </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-28 relative">
-      <header className="flex justify-between items-center mb-6 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+    <div className="min-h-screen bg-[#121212] p-4 pb-28 relative">
+      <header className="flex justify-between items-center mb-6 bg-[#212121] p-5 rounded-2xl shadow-lg border border-[#333]">
         <div>
-          <h1 className="text-2xl font-extrabold text-blue-600">Lezioni</h1>
-          <p className="text-xs font-medium text-gray-500 mt-1 uppercase tracking-wider">
-            {corsoNome} • {annoNome}
+          <h1 className="text-2xl font-black text-[#c48e12] tracking-tight">L'Agenda</h1>
+          <p className="text-[10px] font-bold text-gray-500 mt-1 uppercase tracking-widest line-clamp-1">
+            {corsoNome}
           </p>
         </div>
-        <button onClick={resettaImpostazioni} className="bg-gray-100 p-3 rounded-full hover:bg-gray-200 transition-colors text-xl">
-          ⚙️
+        <button onClick={resettaImpostazioni} className="bg-[#1a1a1a] border border-[#333] p-3 rounded-xl hover:bg-[#2a2a2a] transition-colors text-gray-300 active:scale-95">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+          </svg>
         </button>
       </header>
 
       <div className="space-y-4">
         {inCaricamento && (
-          <div className="text-center p-10 text-gray-500 font-medium animate-pulse">
-            ⏳ Aggiornamento dati...
+          <div className="text-center p-10 text-[#c48e12] font-bold text-sm uppercase tracking-widest animate-pulse">
+            ⏳ Sincronizzazione...
           </div>
         )}
 
         {errore && (
-          <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 text-center font-medium">
+          <div className="bg-red-900/20 text-red-400 p-4 rounded-xl border border-red-900/50 text-center font-medium text-sm">
             ⚠️ {errore}
           </div>
         )}
 
         {!inCaricamento && !errore && !lezioneLive && lezioniFuture.length === 0 && (
-          <div className="text-center p-10 text-gray-500 font-medium bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3">
-            <span className="text-4xl">🎉</span>
-            <p>Nessuna lezione in programma a breve termine!</p>
+          <div className="text-center p-10 text-gray-500 font-medium bg-[#212121] rounded-2xl shadow-lg border border-[#333] flex flex-col items-center justify-center gap-3">
+            <span className="text-4xl opacity-50">🥂</span>
+            <p className="text-sm">Nessuna lezione in programma a breve termine.</p>
           </div>
         )}
 
         {!inCaricamento && lezioneLive && (
             <div className="mb-6">
-                <h3 className="text-sm font-bold text-red-500 uppercase tracking-widest mb-3 pl-2 flex items-center gap-2">
-                    <span className="relative flex h-3 w-3">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                <h3 className="text-xs font-bold text-[#c48e12] uppercase tracking-[0.2em] mb-3 pl-2 flex items-center gap-2">
+                    <span className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#c48e12] opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#c48e12]"></span>
                     </span>
                     In Corso Ora
                 </h3>
-                <div className="bg-gradient-to-br from-red-500 to-orange-500 p-5 rounded-2xl shadow-lg flex flex-col gap-2 relative overflow-hidden text-white transform transition-transform hover:scale-[1.02]">
+                {/* Card Lezione Live con stile Premium */}
+                <div className="bg-gradient-to-br from-[#2a2215] to-[#1a150c] p-5 rounded-2xl shadow-xl flex flex-col gap-2 relative overflow-hidden border border-[#c48e12]/30 transform transition-transform hover:scale-[1.02]">
                     <div className="flex justify-between items-start pl-2">
-                    <h2 className="font-bold text-xl leading-tight w-3/4">
+                    <h2 className="font-bold text-white text-xl leading-tight w-3/4">
                         {lezioneLive.nome_insegnamento.replace(/<[^>]+>/g, '')}
                     </h2>
-                    <span className="bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-2 py-1 rounded-lg shrink-0 text-center border border-white/30">
+                    <span className="bg-black/40 text-[#c48e12] text-xs font-bold px-2 py-1 rounded-lg shrink-0 text-center border border-[#c48e12]/20">
                         {lezioneLive.nome_giorno}<br/>{lezioneLive.data}
                     </span>
                     </div>
 
-                    <div className="pl-2 flex flex-col gap-1 mt-2 text-sm text-red-50">
+                    <div className="pl-2 flex flex-col gap-1.5 mt-2 text-sm text-[#e8d5a5]">
                     <p className="flex items-center gap-2">
-                        <span>🕒</span> <span className="font-bold">{lezioneLive.orario}</span>
+                        <span className="opacity-80">🕒</span> <span className="font-bold text-[#c48e12]">{lezioneLive.orario}</span>
                     </p>
                     <p className="flex items-center gap-2">
-                        <span>📍</span> <span className="font-medium">
+                        <span className="opacity-80">📍</span> <span className="font-medium">
                         {lezioneLive.aula.replace(/<[^>]+>/g, '')}
                         </span>
                     </p>
                     <p className="flex items-center gap-2">
-                        <span>👨‍🏫</span> <span>
+                        <span className="opacity-80">👨‍🏫</span> <span className="text-gray-300">
                         {lezioneLive.docente.replace(/<[^>]+>/g, '')}
                         </span>
                     </p>
@@ -271,8 +267,8 @@ export default function Home() {
 
         {!inCaricamento && lezioniQuestaSettimana.length > 0 && (
           <div className="grid gap-4">
-             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pl-2 mt-2">
-                 {lezioneLive ? "Altre lezioni in arrivo" : "In arrivo"}
+             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em] pl-2 mt-2">
+                 {lezioneLive ? "Prossime Oggi" : "In Arrivo"}
              </h3>
             {lezioniQuestaSettimana.map((lezione, index) => (
               <CardLezione key={index} lezione={lezione} />
@@ -283,11 +279,11 @@ export default function Home() {
         {!inCaricamento && lezioniProssimaSettimana.length > 0 && (
           <div className="mt-8 mb-4">
             <div className="flex items-center gap-4">
-                <div className="flex-1 h-px bg-gray-300 rounded-full"></div>
-                <span className="text-xs font-extrabold text-gray-400 uppercase tracking-widest bg-gray-50 px-2 rounded-md">
+                <div className="flex-1 h-px bg-[#333] rounded-full"></div>
+                <span className="text-[10px] font-black text-[#c48e12] uppercase tracking-[0.2em] bg-[#1a1a1a] border border-[#333] px-3 py-1 rounded-lg">
                     Prossima Settimana
                 </span>
-                <div className="flex-1 h-px bg-gray-300 rounded-full"></div>
+                <div className="flex-1 h-px bg-[#333] rounded-full"></div>
             </div>
             <div className="grid gap-4 mt-6">
                 {lezioniProssimaSettimana.map((lezione, index) => (
@@ -298,19 +294,20 @@ export default function Home() {
         )}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-200 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-50">
-        <div className="max-w-md mx-auto flex justify-around items-center p-3">
-          <button className="flex flex-col items-center p-2 text-blue-600 transition-transform active:scale-95">
-            <svg className="w-6 h-6 mb-1" fill="currentColor" viewBox="0 0 20 20">
+      {/* Navigation Bar Dark Glassmorphism */}
+      <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/80 backdrop-blur-xl border-t border-[#333] pb-safe shadow-[0_-4px_30px_rgba(0,0,0,0.5)] z-50">
+        <div className="max-w-md mx-auto flex justify-around items-center p-2 mt-1">
+          <button className="flex flex-col items-center p-2 text-[#c48e12] transition-transform active:scale-95">
+            <svg className="w-6 h-6 mb-1 drop-shadow-[0_0_8px_rgba(196,142,18,0.4)]" fill="currentColor" viewBox="0 0 20 20">
               <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
             </svg>
-            <span className="text-[10px] font-bold">Agenda</span>
+            <span className="text-[10px] font-bold tracking-wider">AGENDA</span>
           </button>
-          <button onClick={() => navigate('/calendario')} className="flex flex-col items-center p-2 text-gray-400 hover:text-gray-600 transition-transform active:scale-95">
+          <button onClick={() => navigate('/calendario')} className="flex flex-col items-center p-2 text-gray-500 hover:text-gray-300 transition-colors active:scale-95">
             <svg className="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <span className="text-[10px] font-bold">Calendario</span>
+            <span className="text-[10px] font-bold tracking-wider">CALENDARIO</span>
           </button>
         </div>
       </div>
