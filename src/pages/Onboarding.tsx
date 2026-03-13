@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { elenco_corsi } from '../corsiData'; 
 
@@ -6,9 +6,12 @@ export default function Onboarding() {
   const [corso, setCorso] = useState('');
   const [anno, setAnno] = useState('');
   const [listaCorsi, setListaCorsi] = useState<{valore: string, etichetta: string}[]>([]);
-  
-  // NUOVO STATO: La lista dinamica degli anni/indirizzi
   const [listaAnni, setListaAnni] = useState<{label: string, valore: string}[]>([]);
+
+  // NUOVI STATI PER LA RICERCA
+  const [ricerca, setRicerca] = useState('');
+  const [tendinaAperta, setTendinaAperta] = useState(false);
+  const tendinaRef = useRef<HTMLDivElement>(null);
 
   const navigate = useNavigate();
 
@@ -22,13 +25,21 @@ export default function Onboarding() {
     setListaCorsi(mappati);
   }, []);
 
-  // 2. EFFETTO MAGICO DINAMICO: Quando l'utente sceglie un corso, aggiorniamo gli anni!
+  // 2. Chiusura della tendina se si clicca fuori
+  useEffect(() => {
+    function gestisciClickFuori(event: MouseEvent) {
+      if (tendinaRef.current && !tendinaRef.current.contains(event.target as Node)) {
+        setTendinaAperta(false);
+      }
+    }
+    document.addEventListener("mousedown", gestisciClickFuori);
+    return () => document.removeEventListener("mousedown", gestisciClickFuori);
+  }, []);
+
+  // 3. EFFETTO MAGICO DINAMICO: Quando l'utente sceglie un corso, aggiorniamo gli anni!
   useEffect(() => {
     if (corso) {
-      // Troviamo il corso completo nel nostro database
       const corsoIntero = elenco_corsi.find((c: any) => c.valore === corso);
-      
-      // Estraiamo i suoi anni/indirizzi specifici (se ne ha)
       if (corsoIntero && corsoIntero.elenco_anni) {
         setListaAnni(corsoIntero.elenco_anni);
       } else {
@@ -37,9 +48,26 @@ export default function Onboarding() {
     } else {
       setListaAnni([]);
     }
-    // Azzeriamo la tendina dell'anno ogni volta che cambia corso
     setAnno('');
   }, [corso]);
+
+  // Filtra i corsi in base a ciò che l'utente sta scrivendo
+  const corsiFiltrati = listaCorsi.filter(c => 
+    c.etichetta.toLowerCase().includes(ricerca.toLowerCase())
+  );
+
+  const selezionaCorso = (valoreCorso: string, nomeCorso: string) => {
+    setCorso(valoreCorso);
+    setRicerca(nomeCorso); // Scrive il nome completo nella barra
+    setTendinaAperta(false); // Chiude la tendina
+  };
+
+  const gestisciRicerca = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setRicerca(e.target.value);
+    setTendinaAperta(true);
+    // Se l'utente cancella o modifica il testo, resettiamo il corso selezionato
+    if (corso) setCorso('');
+  };
 
   const salvaImpostazioni = () => {
     if (!corso || !anno) {
@@ -47,14 +75,13 @@ export default function Onboarding() {
       return;
     }
     
-    // Invece di leggere l'HTML, peschiamo i nomi esatti dai nostri dati
     const corsoScelto = listaCorsi.find(c => c.valore === corso);
     const annoScelto = listaAnni.find(a => a.valore === anno);
     
     localStorage.setItem('corsoCodice', corso);
     localStorage.setItem('annoCodice', anno);
     localStorage.setItem('corsoNome', corsoScelto?.etichetta || '');
-    localStorage.setItem('annoNome', annoScelto?.label || ''); // Salverà roba tipo "1 - INDIRIZZO STORICO"
+    localStorage.setItem('annoNome', annoScelto?.label || ''); 
     
     sessionStorage.clear();
     navigate('/'); 
@@ -72,23 +99,40 @@ export default function Onboarding() {
         </div>
 
         <div className="space-y-6">
-          {/* TENDINA 1: CORSO */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] ml-1">Corso di Laurea</label>
-            <select 
-              id="select-corso"
+          
+          {/* BARRA DI RICERCA CORSO (Il nuovo componente intelligente) */}
+          <div className="space-y-2 relative" ref={tendinaRef}>
+            <label className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] ml-1">Cerca il tuo Corso</label>
+            <input 
+              type="text"
+              placeholder="Es. Ingegneria Informatica..."
               className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl p-4 outline-none transition-all font-bold text-gray-700 shadow-sm text-sm"
-              value={corso}
-              onChange={(e) => setCorso(e.target.value)}
-            >
-              <option value="">Scegli il tuo corso</option>
-              {listaCorsi.map((c, i) => (
-                <option key={i} value={c.valore}>{c.etichetta}</option>
-              ))}
-            </select>
+              value={ricerca}
+              onChange={gestisciRicerca}
+              onClick={() => setTendinaAperta(true)}
+            />
+            
+            {/* La tendina volante dei risultati */}
+            {tendinaAperta && (
+              <ul className="absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-2xl max-h-60 overflow-y-auto">
+                {corsiFiltrati.length > 0 ? (
+                  corsiFiltrati.map((c, i) => (
+                    <li 
+                      key={i} 
+                      onClick={() => selezionaCorso(c.valore, c.etichetta)}
+                      className="p-4 hover:bg-blue-50 cursor-pointer border-b border-gray-50 last:border-none text-sm font-medium text-gray-700 transition-colors"
+                    >
+                      {c.etichetta}
+                    </li>
+                  ))
+                ) : (
+                  <li className="p-4 text-sm text-gray-400 text-center font-medium">Nessun corso trovato</li>
+                )}
+              </ul>
+            )}
           </div>
 
-          {/* TENDINA 2: ANNO / INDIRIZZO (Ora è Dinamica!) */}
+          {/* TENDINA 2: ANNO / INDIRIZZO */}
           <div className="space-y-2">
             <label className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] ml-1">Anno e Indirizzo</label>
             <select 
