@@ -109,11 +109,9 @@ export default function Home() {
         };
 
         const fetchTuttiCorsiPerData = async (dataTarget: Date) => {
-          // 1. Scarica Corso Principale
           const resPrincipale = await fetchSettimanaSingola(dataTarget, corsoCodice, annoCodice);
           let celleUnite: any[] = resPrincipale?.celle ? [...resPrincipale.celle] : [];
 
-          // 2. Scarica Corsi Extra e Filtra "Col Bisturi"
           const materieExtra = JSON.parse(localStorage.getItem('materieExtra') || '[]');
           const corsiDaScaricare = new Map();
           
@@ -288,30 +286,19 @@ export default function Home() {
         </button>
       </div>
 
-      {/* PILLOLE DI NAVIGAZIONE E FILTRI */}
-      <div className="mb-6 flex justify-between items-center gap-3">
-        <button 
-          onClick={() => navigate('/piano-di-studi')} 
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-full border border-[#c48e12] bg-[#c48e12]/10 text-[#c48e12] text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm hover:bg-[#c48e12]/20"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Piano di Studi
-        </button>
-
+      <div className="mb-6 flex justify-end">
         <button 
           onClick={() => setShowBlacklist(true)} 
-          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-full border text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm ${
             blacklist.length > 0 
               ? 'bg-[#c48e12]/10 border-[#c48e12]/40 text-[#c48e12]' 
               : 'bg-[#1a1a1a] border-[#333] text-gray-400 hover:bg-[#212121] hover:text-gray-300'
           }`}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
           </svg>
-          {blacklist.length > 0 ? `${blacklist.length} Filtri` : 'Nascondi'}
+          {blacklist.length > 0 ? `${blacklist.length} Filtri` : 'Nascondi Materie'}
         </button>
       </div>
 
@@ -399,7 +386,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* POPUP BLACKLIST */}
       {showBlacklist && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex flex-col p-4 transition-opacity">
           <div className="bg-[#212121] border border-[#333] rounded-[2rem] shadow-2xl w-full max-w-md mx-auto flex flex-col h-[85vh] overflow-hidden mt-8">
@@ -461,7 +447,8 @@ export default function Home() {
         </div>
       )}
 
-      <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/80 backdrop-blur-xl border-t border-[#333] pb-safe shadow-[0_-4px_30px_rgba(0,0,0,0.5)] z-50">
+      {/* NUOVA NAVBAR A 3 VOCI */}
+      <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/90 backdrop-blur-xl border-t border-[#333] pb-safe shadow-[0_-4px_30px_rgba(0,0,0,0.7)] z-50">
         <div className="max-w-md mx-auto flex justify-around items-center p-2 mt-1">
           <button className="flex flex-col items-center p-2 text-[#c48e12] transition-transform active:scale-95">
             <svg className="w-6 h-6 mb-1 drop-shadow-[0_0_8px_rgba(196,142,18,0.4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -469,6 +456,14 @@ export default function Home() {
             </svg>
             <span className="text-[10px] font-bold tracking-wider">AGENDA</span>
           </button>
+          
+          <button onClick={() => navigate('/piano-di-studi')} className="flex flex-col items-center p-2 text-gray-500 hover:text-gray-300 transition-colors active:scale-95">
+            <svg className="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+            </svg>
+            <span className="text-[10px] font-bold tracking-wider">CORSI</span>
+          </button>
+
           <button onClick={() => navigate('/calendario')} className="flex flex-col items-center p-2 text-gray-500 hover:text-gray-300 transition-colors active:scale-95">
             <svg className="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zM14.25 15h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zM16.5 15h.008v.008H16.5V15zm0 2.25h.008v.008H16.5v-.008z" />

@@ -124,7 +124,6 @@ export default function PianoDiStudi() {
     setMaterieSalvate(nuovoStato);
     localStorage.setItem('materieExtra', JSON.stringify(nuovoStato));
     
-    // Reset form
     setCorsoSelezionato(null);
     setAnnoSelezionato('');
     setRicerca('');
@@ -141,30 +140,25 @@ export default function PianoDiStudi() {
   const corsiFiltratiSearch = listaCorsiGlobali.filter(c => c.etichetta.toLowerCase().includes(ricerca.toLowerCase()));
 
   return (
-    <div className="min-h-screen bg-[#121212] px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1rem)] relative">
+    <div className="min-h-screen bg-[#121212] px-4 pb-32 pt-[calc(env(safe-area-inset-top)+1rem)] relative">
       <header className="flex justify-between items-center mb-6 bg-[#212121] p-5 rounded-2xl shadow-lg border border-[#333]">
         <div>
           <h1 className="text-2xl font-black text-[#c48e12] tracking-tight">Piano di Studi</h1>
           <p className="text-[10px] font-bold text-gray-500 mt-1 uppercase tracking-widest line-clamp-1">Personalizza la tua agenda</p>
         </div>
-        <button onClick={() => navigate('/')} className="bg-[#1a1a1a] border border-[#333] p-3 rounded-xl hover:bg-[#2a2a2a] transition-colors text-gray-300 active:scale-95">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
       </header>
 
       {/* MATERIE EXTRA GIA' AGGIUNTE */}
       <div className="mb-8">
         <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 ml-2">Esami Extra in Agenda</h3>
         {materieSalvate.length === 0 ? (
-          <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-[#333] text-center">
+          <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-[#333] text-center shadow-inner">
             <p className="text-sm text-gray-500 font-medium">Nessuna materia aggiuntiva inserita.</p>
           </div>
         ) : (
           <div className="space-y-3">
             {materieSalvate.map(m => (
-              <div key={m.id} className="p-4 rounded-2xl bg-[#1a1a1a] border border-[#444] flex items-center justify-between">
+              <div key={m.id} className="p-4 rounded-2xl bg-[#1a1a1a] border border-[#333] flex items-center justify-between shadow-md">
                 <div className="pr-4">
                   <p className="text-sm text-white font-bold leading-tight mb-1">{m.materiaNome}</p>
                   <p className="text-[10px] text-[#c48e12] font-bold uppercase line-clamp-1">{m.corsoNome}</p>
@@ -178,7 +172,7 @@ export default function PianoDiStudi() {
         )}
       </div>
 
-      <div className="w-full h-px bg-[#333] mb-8"></div>
+      <div className="w-full h-px bg-gradient-to-r from-transparent via-[#333] to-transparent mb-8"></div>
 
       {/* MOTORE DI RICERCA CORSI */}
       <div>
@@ -189,7 +183,7 @@ export default function PianoDiStudi() {
             <input 
               type="text"
               placeholder="Cerca la facoltà dell'esame..."
-              className="w-full bg-[#1a1a1a] border border-[#444] focus:border-[#c48e12] rounded-xl p-4 outline-none transition-all font-bold text-white placeholder-gray-600 text-sm"
+              className="w-full bg-[#1a1a1a] border border-[#444] focus:border-[#c48e12] rounded-xl p-4 outline-none transition-all font-bold text-white placeholder-gray-600 text-sm shadow-inner"
               value={ricerca}
               onChange={(e) => { setRicerca(e.target.value); setTendinaAperta(true); }}
               onClick={() => setTendinaAperta(true)}
@@ -209,10 +203,10 @@ export default function PianoDiStudi() {
             )}
           </div>
         ) : (
-          <div className="bg-[#1a1a1a] border border-[#c48e12]/50 p-5 rounded-2xl">
+          <div className="bg-[#1a1a1a] border border-[#c48e12]/50 p-5 rounded-2xl shadow-lg">
             <div className="flex justify-between items-start mb-4">
               <p className="text-sm text-white font-bold leading-tight pr-2">{corsoSelezionato.etichetta}</p>
-              <button onClick={() => {setCorsoSelezionato(null); setMaterieTrovate([]);}} className="text-gray-500 hover:text-white p-1"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+              <button onClick={() => {setCorsoSelezionato(null); setMaterieTrovate([]);}} className="text-gray-500 hover:text-white p-1 bg-[#2a2a2a] rounded-full"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
             
             <select 
@@ -226,9 +220,8 @@ export default function PianoDiStudi() {
               ))}
             </select>
 
-            {/* PULSANTE RICERCA MATERIE */}
             {annoSelezionato && materieTrovate.length === 0 && !inCaricamento && (
-              <button onClick={cercaMaterieNelCorso} className="w-full py-4 rounded-xl font-bold text-sm bg-[#c48e12] text-[#121212] transition-transform active:scale-95">
+              <button onClick={cercaMaterieNelCorso} className="w-full py-4 rounded-xl font-bold text-sm bg-[#212121] border border-[#c48e12] text-[#c48e12] hover:bg-[#c48e12]/10 transition-colors active:scale-95">
                 Trova Materie
               </button>
             )}
@@ -239,7 +232,6 @@ export default function PianoDiStudi() {
                </div>
             )}
 
-            {/* LISTA CHECKBOX MATERIE */}
             {materieTrovate.length > 0 && (
               <div className="mt-4 border-t border-[#333] pt-4">
                 <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-3">Seleziona le materie da seguire:</p>
@@ -268,6 +260,32 @@ export default function PianoDiStudi() {
             )}
           </div>
         )}
+      </div>
+
+      {/* NAVBAR A 3 VOCI */}
+      <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/90 backdrop-blur-xl border-t border-[#333] pb-safe shadow-[0_-4px_30px_rgba(0,0,0,0.7)] z-50">
+        <div className="max-w-md mx-auto flex justify-around items-center p-2 mt-1">
+          <button onClick={() => navigate('/')} className="flex flex-col items-center p-2 text-gray-500 hover:text-gray-300 transition-colors active:scale-95">
+            <svg className="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+            </svg>
+            <span className="text-[10px] font-bold tracking-wider">AGENDA</span>
+          </button>
+          
+          <button className="flex flex-col items-center p-2 text-[#c48e12] transition-transform active:scale-95">
+            <svg className="w-6 h-6 mb-1 drop-shadow-[0_0_8px_rgba(196,142,18,0.4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+            </svg>
+            <span className="text-[10px] font-bold tracking-wider">CORSI</span>
+          </button>
+
+          <button onClick={() => navigate('/calendario')} className="flex flex-col items-center p-2 text-gray-500 hover:text-gray-300 transition-colors active:scale-95">
+            <svg className="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zM14.25 15h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zM16.5 15h.008v.008H16.5V15zm0 2.25h.008v.008H16.5v-.008z" />
+            </svg>
+            <span className="text-[10px] font-bold tracking-wider">CALENDARIO</span>
+          </button>
+        </div>
       </div>
     </div>
   );
