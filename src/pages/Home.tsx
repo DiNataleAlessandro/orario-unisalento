@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CardLezione, { type Lezione } from '../components/CardLezione';
+import { elenco_corsi } from '../corsiData';
 
 const formattaDataAPI = (data: Date) => {
   const g = String(data.getDate()).padStart(2, '0');
@@ -25,6 +26,16 @@ export default function Home() {
 
   const [showBlacklist, setShowBlacklist] = useState(false);
   const [blacklist, setBlacklist] = useState<string[]>(JSON.parse(localStorage.getItem('blacklist_materie') || '[]'));
+
+  // NUOVI STATI PER IL PIANO DI STUDI EXTRA
+  const [corsiExtra, setCorsiExtra] = useState<{ id: string, corsoCodice: string, annoCodice: string, nome: string, annoNome: string }[]>(JSON.parse(localStorage.getItem('corsiExtra') || '[]'));
+  const [showPianoStudi, setShowPianoStudi] = useState(false);
+  const [listaCorsiGlobali, setListaCorsiGlobali] = useState<any[]>([]);
+  const [ricercaExtra, setRicercaExtra] = useState('');
+  const [corsoSelezionato, setCorsoSelezionato] = useState<any>(null);
+  const [annoSelezionato, setAnnoSelezionato] = useState('');
+  const [tendinaAperta, setTendinaAperta] = useState(false);
+  const tendinaRef = useRef<HTMLDivElement>(null);
 
   const dataRiferimento = new Date(); 
   const [fineSettimanaCorrente, setFineSettimanaCorrente] = useState<Date | null>(null);
@@ -54,27 +65,51 @@ export default function Home() {
     return () => clearInterval(timerId);
   }, []);
 
+  // Preparazione lista corsi per il search
+  useEffect(() => {
+    const corsiMap = new Map();
+    elenco_corsi.forEach((item: any) => {
+      const chiave = `${item.label} (${item.tipo})`;
+      if (!corsiMap.has(chiave)) corsiMap.set(chiave, { etichetta: chiave, anni: [] });
+      const corso = corsiMap.get(chiave);
+      (item.elenco_anni || []).forEach((a: any) => {
+        if (!corso.anni.find((x: any) => x.label === a.label)) {
+          corso.anni.push({ label: a.label, valore: a.valore, codiceReale: item.valore });
+        }
+      });
+    });
+    setListaCorsiGlobali(Array.from(corsiMap.values()).sort((a,b) => a.etichetta.localeCompare(b.etichetta)));
+  }, []);
+
+  useEffect(() => {
+    function gestisciClickFuori(e: MouseEvent) {
+      if (tendinaRef.current && !tendinaRef.current.contains(e.target as Node)) {
+        setTendinaAperta(false);
+      }
+    }
+    document.addEventListener("mousedown", gestisciClickFuori);
+    return () => document.removeEventListener("mousedown", gestisciClickFuori);
+  }, []);
+
+  // MOTORE DI FUSIONE 3.0 (Scarica Principale + Extra)
   useEffect(() => {
     const scaricaOrariMultipli = async () => {
       try {
         setInCaricamento(true);
         setErrore(null);
         const isForced = refreshCount > 0; 
-
         const urlAPI = '/api-unisalento/PortaleStudenti/grid_call.php';
 
-        const fetchSettimana = async (dataTarget: Date) => {
+        const fetchSettimanaSingola = async (dataTarget: Date, cCodice: string, aCodice: string) => {
           const dataStr = formattaDataAPI(dataTarget);
-          const cacheKey = `orario_${corsoCodice}_${annoCodice}_${dataStr}`;
+          const cacheKey = `orario_${cCodice}_${aCodice}_${dataStr}`;
           const cachedData = localStorage.getItem(cacheKey); 
           
-          if (cachedData && !isForced) {
-            return JSON.parse(cachedData); 
-          }
+          if (cachedData && !isForced) return JSON.parse(cachedData); 
 
           if (!navigator.onLine) {
             if (cachedData) return JSON.parse(cachedData);
-            throw new Error("Sei offline e non ci sono dati salvati in memoria.");
+            return { celle: [] }; // Se offline e manca la cache di un corso extra, ignoriamo per non bloccare tutto
           }
 
           const datiModulo = new URLSearchParams();
@@ -83,8 +118,8 @@ export default function Home() {
           datiModulo.append('include', 'corso');
           datiModulo.append('txtcurr', '1 - Percorso comune');
           datiModulo.append('anno', '2025'); 
-          datiModulo.append('corso', corsoCodice); 
-          datiModulo.append('anno2[]', annoCodice); 
+          datiModulo.append('corso', cCodice); 
+          datiModulo.append('anno2[]', aCodice); 
           datiModulo.append('visualizzazione_orario', 'cal');
           datiModulo.append('date', dataStr); 
           datiModulo.append('_lang', 'it');
@@ -97,16 +132,10 @@ export default function Home() {
           datiModulo.append('faculty_group', '0');
 
           const response = await fetch(urlAPI, {
-            method: 'POST',
-            body: datiModulo,
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-              'Accept': 'application/json'
-            },
+            method: 'POST', body: datiModulo, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' }
           });
 
           if (!response.ok) throw new Error(`Errore server: ${response.status}`);
-          
           const result = await response.json();
           localStorage.setItem(cacheKey, JSON.stringify(result));
           
@@ -117,12 +146,22 @@ export default function Home() {
           return result;
         };
 
+        const fetchTuttiCorsiPerData = async (dataTarget: Date) => {
+          // Lista di tutti i corsi: il principale + tutti gli extra
+          const listaTarget = [{ corsoCodice, annoCodice }, ...corsiExtra];
+          const risultati = await Promise.all(listaTarget.map(c => fetchSettimanaSingola(dataTarget, c.corsoCodice, c.annoCodice)));
+          
+          let celleUnite: any[] = [];
+          risultati.forEach(r => { if(r?.celle) celleUnite = [...celleUnite, ...r.celle] });
+          return { celle: celleUnite, last_day: risultati[0]?.last_day };
+        };
+
         const dataProssimaSettimana = new Date(dataRiferimento);
         dataProssimaSettimana.setDate(dataProssimaSettimana.getDate() + 7);
 
         const [datiSettimanaCorrente, datiSettimanaProssima] = await Promise.all([
-          fetchSettimana(dataRiferimento),
-          fetchSettimana(dataProssimaSettimana)
+          fetchTuttiCorsiPerData(dataRiferimento),
+          fetchTuttiCorsiPerData(dataProssimaSettimana)
         ]);
 
         let tutteLeCelle: any[] = [];
@@ -144,13 +183,12 @@ export default function Home() {
             const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
             const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
 
-            const mailPulita = lezione.mail_docente 
-              ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',')
-              : '';
+            const mailPulita = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
 
             return { ...lezione, inizioDateObj, fineDateObj, mail_docente: mailPulita };
           });
 
+          // Rimuoviamo i duplicati (stesso ID lezione)
           const lezioniUniche = Array.from(new Map(lezioniElaborate.map(l => [l.id, l])).values());
           lezioniUniche.sort((a, b) => {
              if (!a.inizioDateObj || !b.inizioDateObj) return 0;
@@ -170,7 +208,7 @@ export default function Home() {
 
     scaricaOrariMultipli();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [corsoCodice, annoCodice, refreshCount]);
+  }, [corsoCodice, annoCodice, refreshCount, corsiExtra]); // corsiExtra come dipendenza!
 
   const materieUniche = Array.from(new Set(lezioni.map(l => l.nome_insegnamento.replace(/<[^>]+>/g, '')))).sort();
 
@@ -184,6 +222,35 @@ export default function Home() {
     setBlacklist(nuovaBlacklist);
     localStorage.setItem('blacklist_materie', JSON.stringify(nuovaBlacklist));
   };
+
+  const aggiungiCorsoExtra = () => {
+    if (!corsoSelezionato || !annoSelezionato) return;
+    const annoObj = corsoSelezionato.anni.find((a: any) => a.valore === annoSelezionato);
+    if (!annoObj) return;
+
+    const nuovoCorso = {
+      id: Date.now().toString(),
+      corsoCodice: annoObj.codiceReale,
+      annoCodice: annoObj.valore,
+      nome: corsoSelezionato.etichetta,
+      annoNome: annoObj.label
+    };
+
+    const nuoviCorsi = [...corsiExtra, nuovoCorso];
+    setCorsiExtra(nuoviCorsi);
+    localStorage.setItem('corsiExtra', JSON.stringify(nuoviCorsi));
+    setCorsoSelezionato(null);
+    setAnnoSelezionato('');
+    setRicercaExtra('');
+  };
+
+  const rimuoviCorsoExtra = (id: string) => {
+    const nuoviCorsi = corsiExtra.filter(c => c.id !== id);
+    setCorsiExtra(nuoviCorsi);
+    localStorage.setItem('corsiExtra', JSON.stringify(nuoviCorsi));
+  };
+
+  const corsiFiltratiSearch = listaCorsiGlobali.filter(c => c.etichetta.toLowerCase().includes(ricercaExtra.toLowerCase()));
 
   const lezioniFiltrate = lezioni.filter(l => !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '')));
 
@@ -225,9 +292,9 @@ export default function Home() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button onClick={resettaImpostazioni} className="bg-[#1a1a1a] border border-[#333] w-12 h-12 rounded-xl flex items-center justify-center hover:bg-[#2a2a2a] transition-colors text-gray-300 active:scale-95 shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+          <button onClick={resettaImpostazioni} className="bg-[#1a1a1a] border border-[#333] p-3 rounded-xl hover:bg-[#2a2a2a] transition-colors text-gray-300 active:scale-95">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
             </svg>
           </button>
         </div>
@@ -264,10 +331,25 @@ export default function Home() {
         </button>
       </div>
 
-      <div className="mb-6 flex justify-end">
+      {/* LE DUE PILLOLE: Piano di Studi & Filtri */}
+      <div className="mb-6 flex justify-between items-center gap-2">
+        <button 
+          onClick={() => setShowPianoStudi(true)} 
+          className={`flex items-center justify-center gap-2 flex-1 py-2 rounded-full border text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm ${
+            corsiExtra.length > 0 
+              ? 'bg-[#c48e12] border-[#c48e12] text-[#121212]' 
+              : 'bg-[#1a1a1a] border-[#333] text-gray-400 hover:bg-[#212121] hover:text-gray-300'
+          }`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Piano di Studi
+        </button>
+
         <button 
           onClick={() => setShowBlacklist(true)} 
-          className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm ${
+          className={`flex items-center justify-center gap-2 flex-1 py-2 rounded-full border text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm ${
             blacklist.length > 0 
               ? 'bg-[#c48e12]/10 border-[#c48e12]/40 text-[#c48e12]' 
               : 'bg-[#1a1a1a] border-[#333] text-gray-400 hover:bg-[#212121] hover:text-gray-300'
@@ -276,7 +358,7 @@ export default function Home() {
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
           </svg>
-          {blacklist.length > 0 ? `${blacklist.length} Filtri Attivi` : 'Nascondi Materie'}
+          {blacklist.length > 0 ? `${blacklist.length} Filtri` : 'Nascondi'}
         </button>
       </div>
 
@@ -364,13 +446,14 @@ export default function Home() {
         )}
       </div>
 
+      {/* POPUP BLACKLIST */}
       {showBlacklist && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex flex-col p-4 transition-opacity">
           <div className="bg-[#212121] border border-[#333] rounded-[2rem] shadow-2xl w-full max-w-md mx-auto flex flex-col h-[85vh] overflow-hidden mt-8">
             <div className="p-6 border-b border-[#333] flex justify-between items-center bg-[#1a1a1a]">
               <div>
                 <h2 className="text-xl font-black text-white">Nascondi Materie</h2>
-                <p className="text-xs text-gray-400 mt-1 font-medium">Tocca una materia per nasconderla dall'agenda.</p>
+                <p className="text-xs text-gray-400 mt-1 font-medium">Tocca una materia per nasconderla.</p>
               </div>
               <button onClick={() => setShowBlacklist(false)} className="bg-[#2a2a2a] p-2 rounded-full text-gray-400 hover:text-white active:scale-95 border border-[#444]">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
@@ -386,27 +469,12 @@ export default function Home() {
                 materieUniche.map((materia, idx) => {
                   const isNascosta = blacklist.includes(materia);
                   return (
-                    <button 
-                      key={idx}
-                      onClick={() => toggleMateria(materia)}
-                      className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all active:scale-[0.98] text-left ${
-                        isNascosta 
-                          ? 'bg-[#1a1a1a] border-[#333] opacity-60' 
-                          : 'bg-gradient-to-r from-[#2a2215] to-[#212121] border-[#c48e12]/30 shadow-md'
-                      }`}
-                    >
-                      <span className={`font-bold pr-4 ${isNascosta ? 'text-gray-500 line-through' : 'text-white'}`}>
-                        {materia}
-                      </span>
+                    <button key={idx} onClick={() => toggleMateria(materia)} className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all active:scale-[0.98] text-left ${isNascosta ? 'bg-[#1a1a1a] border-[#333] opacity-60' : 'bg-gradient-to-r from-[#2a2215] to-[#212121] border-[#c48e12]/30 shadow-md'}`}>
+                      <span className={`font-bold pr-4 ${isNascosta ? 'text-gray-500 line-through' : 'text-white'}`}>{materia}</span>
                       {isNascosta ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6 text-gray-600 shrink-0">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-                        </svg>
+                        <svg className="w-6 h-6 text-gray-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
                       ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6 text-[#c48e12] shrink-0">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
+                        <svg className="w-6 h-6 text-[#c48e12] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                       )}
                     </button>
                   );
@@ -414,17 +482,121 @@ export default function Home() {
               )}
             </div>
             <div className="p-4 bg-[#1a1a1a] border-t border-[#333]">
-              <button 
-                onClick={() => setShowBlacklist(false)}
-                className="w-full font-black py-4 rounded-xl transition-all shadow-lg active:scale-95 bg-[#c48e12] text-[#121212] shadow-[#c48e12]/20"
-              >
-                Applica Filtri
-              </button>
+              <button onClick={() => setShowBlacklist(false)} className="w-full font-black py-4 rounded-xl transition-all shadow-lg active:scale-95 bg-[#c48e12] text-[#121212] shadow-[#c48e12]/20">Chiudi</button>
             </div>
           </div>
         </div>
       )}
 
+      {/* POPUP PIANO DI STUDI EXTRA */}
+      {showPianoStudi && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex flex-col p-4 transition-opacity">
+          <div className="bg-[#212121] border border-[#333] rounded-[2rem] shadow-2xl w-full max-w-md mx-auto flex flex-col h-[85vh] overflow-hidden mt-8">
+            <div className="p-6 border-b border-[#333] flex justify-between items-center bg-[#1a1a1a]">
+              <div>
+                <h2 className="text-xl font-black text-white">Piano di Studi</h2>
+                <p className="text-xs text-gray-400 mt-1 font-medium">Aggiungi esami da altri corsi.</p>
+              </div>
+              <button onClick={() => { setShowPianoStudi(false); setCorsoSelezionato(null); setRicercaExtra(''); }} className="bg-[#2a2a2a] p-2 rounded-full text-gray-400 hover:text-white active:scale-95 border border-[#444]">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+              
+              {/* LISTA CORSI ATTIVI */}
+              <div>
+                <h3 className="text-[10px] font-black text-[#c48e12] uppercase tracking-[0.2em] mb-3 ml-1">Corsi in Agenda</h3>
+                <div className="space-y-2">
+                  <div className="p-4 rounded-2xl bg-[#1a1a1a] border border-[#333] flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-[#c48e12] font-bold uppercase mb-1">Corso Principale</p>
+                      <p className="text-sm text-white font-bold leading-tight">{corsoNome}</p>
+                    </div>
+                  </div>
+                  
+                  {corsiExtra.map(c => (
+                    <div key={c.id} className="p-4 rounded-2xl bg-[#1a1a1a] border border-[#444] flex items-center justify-between">
+                      <div className="pr-4">
+                        <p className="text-[10px] text-gray-400 font-bold uppercase mb-1 line-clamp-1">{c.nome}</p>
+                        <p className="text-sm text-white font-bold leading-tight">{c.annoNome}</p>
+                      </div>
+                      <button onClick={() => rimuoviCorsoExtra(c.id)} className="p-2 bg-red-900/20 text-red-500 rounded-xl hover:bg-red-900/40 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="w-full h-px bg-[#333]"></div>
+
+              {/* AGGIUNGI NUOVO CORSO */}
+              <div>
+                <h3 className="text-[10px] font-black text-[#c48e12] uppercase tracking-[0.2em] mb-3 ml-1">Aggiungi Materie (Es. Scelta Libera)</h3>
+                
+                {!corsoSelezionato ? (
+                  <div className="space-y-2 relative" ref={tendinaRef}>
+                    <input 
+                      type="text"
+                      placeholder="Cerca il corso di laurea..."
+                      className="w-full bg-[#1a1a1a] border border-[#444] focus:border-[#c48e12] rounded-xl p-3 outline-none transition-all font-bold text-white placeholder-gray-600 text-sm"
+                      value={ricercaExtra}
+                      onChange={(e) => { setRicercaExtra(e.target.value); setTendinaAperta(true); }}
+                      onClick={() => setTendinaAperta(true)}
+                    />
+                    {tendinaAperta && ricercaExtra && (
+                      <ul className="absolute z-50 w-full mt-2 bg-[#2a2a2a] border border-[#444] rounded-2xl shadow-2xl max-h-48 overflow-y-auto">
+                        {corsiFiltratiSearch.length > 0 ? (
+                          corsiFiltratiSearch.map((c, i) => (
+                            <li key={i} onClick={() => { setCorsoSelezionato(c); setTendinaAperta(false); }} className="p-3 hover:bg-[#383838] cursor-pointer border-b border-[#333] last:border-none text-xs font-medium text-gray-300">
+                              {c.etichetta}
+                            </li>
+                          ))
+                        ) : (
+                          <li className="p-3 text-xs text-gray-500 text-center font-medium">Nessun corso trovato</li>
+                        )}
+                      </ul>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-[#1a1a1a] border border-[#c48e12]/30 p-4 rounded-xl">
+                    <div className="flex justify-between items-start mb-4">
+                      <p className="text-xs text-white font-bold leading-tight pr-2">{corsoSelezionato.etichetta}</p>
+                      <button onClick={() => setCorsoSelezionato(null)} className="text-gray-500 hover:text-white"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                    </div>
+                    <select 
+                      className="w-full bg-[#2a2a2a] border border-[#444] focus:border-[#c48e12] rounded-lg p-3 outline-none transition-all font-bold text-xs text-white appearance-none mb-4"
+                      value={annoSelezionato}
+                      onChange={(e) => setAnnoSelezionato(e.target.value)}
+                    >
+                      <option value="" className="text-gray-500">Scegli l'anno in cui si trova l'esame</option>
+                      {corsoSelezionato.anni.map((a: any, i: number) => (
+                        <option key={i} value={a.valore}>{a.label}</option>
+                      ))}
+                    </select>
+                    <button 
+                      onClick={aggiungiCorsoExtra}
+                      disabled={!annoSelezionato}
+                      className={`w-full py-3 rounded-lg font-bold text-xs transition-all ${!annoSelezionato ? 'bg-[#333] text-gray-500 cursor-not-allowed' : 'bg-[#c48e12] text-[#121212] hover:scale-[1.02]'}`}
+                    >
+                      Unisci all'Agenda
+                    </button>
+                  </div>
+                )}
+              </div>
+
+            </div>
+            <div className="p-4 bg-[#1a1a1a] border-t border-[#333]">
+              <button onClick={() => setShowPianoStudi(false)} className="w-full font-black py-4 rounded-xl transition-all shadow-lg active:scale-95 bg-[#333] text-white">Chiudi</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Navigation Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/80 backdrop-blur-xl border-t border-[#333] pb-safe shadow-[0_-4px_30px_rgba(0,0,0,0.5)] z-50">
         <div className="max-w-md mx-auto flex justify-around items-center p-2 mt-1">
           <button className="flex flex-col items-center p-2 text-[#c48e12] transition-transform active:scale-95">
