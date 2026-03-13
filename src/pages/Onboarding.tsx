@@ -92,7 +92,7 @@ export default function Onboarding() {
       <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-gray-100">
         <div className="text-center mb-8">
           <div className="bg-blue-50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-3xl">🎓</span>
+            <img src="/icona.png" alt="Logo UniSalento" className="w-12 h-12" />
           </div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Benvenuto!</h1>
           <p className="text-gray-500 mt-2 font-medium">Configura il tuo piano di studi</p>
