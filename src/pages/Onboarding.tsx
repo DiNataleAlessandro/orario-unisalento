@@ -127,17 +127,29 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen bg-[#121212] flex flex-col items-center justify-center p-6 font-sans">
       <div className="bg-[#212121] p-8 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-[#333333]">
-        <div className="text-center mb-8">
-          <div className="bg-[#1a1a1a] border border-[#333] w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-5 overflow-hidden shadow-inner">
-            <img src={logoUnisalento} alt="Logo UniSalento" className="w-14 h-14 object-contain opacity-90" />
+        
+        {/* HEADER CON LOGO E TITOLO BRANDIZZATO */}
+        <div className="mb-8">
+          <div className="flex items-center gap-5 mb-8">
+            <div className="bg-[#1a1a1a] border border-[#333] w-24 h-24 rounded-[1.5rem] flex items-center justify-center shrink-0 shadow-inner overflow-hidden">
+              <img src={logoUnisalento} alt="Logo UniSalento" className="w-[4.5rem] h-[4.5rem] object-contain opacity-90" />
+            </div>
+            <h1 className="text-[1.75rem] font-black text-[#c48e12] leading-tight tracking-tight">
+              NextLesson<br/>UniSalento
+            </h1>
           </div>
-          <h1 className="text-3xl font-black text-white tracking-tight">Benvenuto!</h1>
-          <p className="text-[#c48e12] mt-2 font-bold tracking-wide text-sm uppercase">Configura il tuo piano di studi</p>
+          
+          <div className="text-left">
+            <h2 className="text-[1.35rem] font-black text-white tracking-tight">Benvenuto!</h2>
+            <p className="text-[#c48e12] mt-1 font-bold tracking-widest text-[10px] uppercase">
+              Configura il tuo piano di studi
+            </p>
+          </div>
         </div>
 
         <div className="space-y-6">
           <div className="space-y-2 relative" ref={tendinaRef}>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em] ml-1">Cerca il tuo Corso</label>
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] ml-1">Cerca il tuo Corso</label>
             <input 
               type="text"
               placeholder="Es. Ingegneria Informatica..."
@@ -166,7 +178,7 @@ export default function Onboarding() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em] ml-1">Anno e Indirizzo</label>
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] ml-1">Anno e Indirizzo</label>
             <select 
               className={`w-full bg-[#1a1a1a] border-2 border-transparent focus:border-[#c48e12] focus:bg-[#2a2a2a] rounded-2xl p-4 outline-none transition-all font-bold text-sm shadow-inner appearance-none
                 ${!corso ? 'text-gray-600 cursor-not-allowed' : 'text-white'}`}
