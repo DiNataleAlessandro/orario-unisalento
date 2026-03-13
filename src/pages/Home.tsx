@@ -11,7 +11,7 @@ interface Lezione {
   data: string;
   inizioDateObj?: Date;
   fineDateObj?: Date;
-  mail_docente?: string; // <-- Il campo segreto sbloccato!
+  mail_docente?: string;
 }
 
 const formattaDataAPI = (data: Date) => {
@@ -31,6 +31,9 @@ export default function Home() {
   const [lezioni, setLezioni] = useState<Lezione[]>([]);
   const [inCaricamento, setInCaricamento] = useState(true);
   const [errore, setErrore] = useState<string | null>(null);
+  
+  // STATO PER IL POPUP DEL PROFESSORE
+  const [profPopup, setProfPopup] = useState<{nome: string, mail: string} | null>(null);
 
   const dataRiferimento = new Date(); 
   const [fineSettimanaCorrente, setFineSettimanaCorrente] = useState<Date | null>(null);
@@ -126,7 +129,6 @@ export default function Home() {
             const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
             const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
 
-            // Pulizia chirurgica della mail: togliamo la virgola e gli spazi iniziali
             const mailPulita = lezione.mail_docente ? lezione.mail_docente.replace(/^,\s*/, '').trim() : '';
 
             return { ...lezione, inizioDateObj, fineDateObj, mail_docente: mailPulita };
@@ -190,13 +192,13 @@ export default function Home() {
             <p className="flex items-center gap-2">
             <span className="opacity-70">👨‍🏫</span> 
             {lezione.docente ? (
-                <a 
-                href={lezione.mail_docente ? `mailto:${lezione.mail_docente}` : '#'}
-                className={`font-medium transition-colors ${lezione.mail_docente ? 'text-[#c48e12] hover:text-white underline decoration-[#c48e12]/30 hover:decoration-white decoration-2 underline-offset-4' : 'text-gray-300'}`}
-                title={lezione.mail_docente ? `Invia un'email a ${lezione.mail_docente}` : ''}
+                <button 
+                  onClick={() => lezione.mail_docente && setProfPopup({ nome: lezione.docente, mail: lezione.mail_docente })}
+                  disabled={!lezione.mail_docente}
+                  className={`font-medium transition-colors text-left ${lezione.mail_docente ? 'text-[#c48e12] hover:text-white underline decoration-[#c48e12]/30 hover:decoration-white decoration-2 underline-offset-4' : 'text-gray-300 cursor-default'}`}
                 >
-                {lezione.docente.replace(/<[^>]+>/g, '')} {lezione.mail_docente && '✉️'}
-                </a>
+                  {lezione.docente.replace(/<[^>]+>/g, '')}
+                </button>
             ) : (
                 <span className="text-gray-500 italic">Docente non assegnato</span>
             )}
@@ -273,13 +275,13 @@ export default function Home() {
                     <p className="flex items-center gap-2">
                         <span className="opacity-80">👨‍🏫</span> 
                         {lezioneLive.docente ? (
-                            <a 
-                            href={lezioneLive.mail_docente ? `mailto:${lezioneLive.mail_docente}` : '#'}
-                            className={`font-medium transition-colors ${lezioneLive.mail_docente ? 'text-[#c48e12] hover:text-white underline decoration-[#c48e12]/30 hover:decoration-white decoration-2 underline-offset-4' : 'text-gray-300'}`}
-                            title={lezioneLive.mail_docente ? `Invia un'email a ${lezioneLive.mail_docente}` : ''}
+                            <button 
+                              onClick={() => lezioneLive.mail_docente && setProfPopup({ nome: lezioneLive.docente, mail: lezioneLive.mail_docente })}
+                              disabled={!lezioneLive.mail_docente}
+                              className={`font-medium transition-colors text-left ${lezioneLive.mail_docente ? 'text-[#c48e12] hover:text-white underline decoration-[#c48e12]/30 hover:decoration-white decoration-2 underline-offset-4' : 'text-gray-300 cursor-default'}`}
                             >
-                            {lezioneLive.docente.replace(/<[^>]+>/g, '')} {lezioneLive.mail_docente && '✉️'}
-                            </a>
+                              {lezioneLive.docente.replace(/<[^>]+>/g, '')}
+                            </button>
                         ) : (
                             <span className="text-gray-500 italic">Docente non assegnato</span>
                         )}
@@ -317,6 +319,47 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* POPUP PROFESSORE (Stile Premium) */}
+      {profPopup && (
+        <div 
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-opacity" 
+          onClick={() => setProfPopup(null)}
+        >
+          <div 
+            className="bg-[#212121] border border-[#333] p-6 rounded-3xl shadow-2xl w-full max-w-sm transform transition-all scale-100" 
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="text-center mb-6">
+              <div className="bg-[#1a1a1a] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-[#c48e12]/30 shadow-[0_0_15px_rgba(196,142,18,0.2)]">
+                <span className="text-2xl">👨‍🏫</span>
+              </div>
+              <h3 className="text-xl font-bold text-white">{profPopup.nome.replace(/<[^>]+>/g, '')}</h3>
+              <p className="text-gray-400 text-sm mt-1">Docente Unisalento</p>
+            </div>
+
+            <div className="bg-[#1a1a1a] p-4 rounded-2xl border border-[#333] mb-6 flex flex-col items-center">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Email Ufficiale</span>
+              <span className="text-[#c48e12] font-medium break-all text-center">{profPopup.mail}</span>
+            </div>
+
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setProfPopup(null)}
+                className="flex-1 py-3 rounded-xl font-bold text-gray-400 bg-[#1a1a1a] border border-[#333] active:scale-95 transition-all"
+              >
+                Chiudi
+              </button>
+              <a 
+                href={`mailto:${profPopup.mail}`}
+                className="flex-1 py-3 rounded-xl font-black text-[#121212] bg-[#c48e12] active:scale-95 transition-all text-center flex items-center justify-center gap-2 shadow-lg shadow-[#c48e12]/20"
+              >
+                <span>Invia Mail</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Navigation Bar Dark Glassmorphism */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/80 backdrop-blur-xl border-t border-[#333] pb-safe shadow-[0_-4px_30px_rgba(0,0,0,0.5)] z-50">

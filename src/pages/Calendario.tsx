@@ -15,7 +15,7 @@ interface Lezione {
   data: string;
   inizioDateObj?: Date;
   fineDateObj?: Date;
-  mail_docente?: string; // <-- Campo segreto sbloccato anche qui!
+  mail_docente?: string; 
 }
 
 const formattaDataAPI = (data: Date) => {
@@ -35,6 +35,9 @@ export default function Calendario() {
   const [errore, setErrore] = useState<string | null>(null);
 
   const [dataSelezionata, setDataSelezionata] = useState<Date>(new Date());
+  
+  // STATO PER IL POPUP DEL PROFESSORE
+  const [profPopup, setProfPopup] = useState<{nome: string, mail: string} | null>(null);
 
   const resettaImpostazioni = () => {
     localStorage.clear();
@@ -102,7 +105,6 @@ export default function Calendario() {
             const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
             const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
             
-            // Pulizia chirurgica della mail
             const mailPulita = lezione.mail_docente ? lezione.mail_docente.replace(/^,\s*/, '').trim() : '';
             
             return { ...lezione, inizioDateObj, fineDateObj, mail_docente: mailPulita };
@@ -201,13 +203,13 @@ export default function Calendario() {
                       <p className="flex items-center gap-2">
                       <span className="opacity-70">👨‍🏫</span> 
                       {lezione.docente ? (
-                        <a 
-                          href={lezione.mail_docente ? `mailto:${lezione.mail_docente}` : '#'}
-                          className={`font-medium transition-colors ${lezione.mail_docente ? 'text-[#c48e12] hover:text-white underline decoration-[#c48e12]/30 hover:decoration-white decoration-2 underline-offset-4' : 'text-gray-300'}`}
-                          title={lezione.mail_docente ? `Invia un'email a ${lezione.mail_docente}` : ''}
+                        <button 
+                          onClick={() => lezione.mail_docente && setProfPopup({ nome: lezione.docente, mail: lezione.mail_docente })}
+                          disabled={!lezione.mail_docente}
+                          className={`font-medium transition-colors text-left ${lezione.mail_docente ? 'text-[#c48e12] hover:text-white underline decoration-[#c48e12]/30 hover:decoration-white decoration-2 underline-offset-4' : 'text-gray-300 cursor-default'}`}
                         >
-                          {lezione.docente.replace(/<[^>]+>/g, '')} {lezione.mail_docente && '✉️'}
-                        </a>
+                          {lezione.docente.replace(/<[^>]+>/g, '')}
+                        </button>
                       ) : (
                         <span className="text-gray-500 italic">Docente non assegnato</span>
                       )}
@@ -219,13 +221,54 @@ export default function Calendario() {
         )}
       </div>
 
+      {/* POPUP PROFESSORE (Stile Premium) */}
+      {profPopup && (
+        <div 
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-opacity" 
+          onClick={() => setProfPopup(null)}
+        >
+          <div 
+            className="bg-[#212121] border border-[#333] p-6 rounded-3xl shadow-2xl w-full max-w-sm transform transition-all scale-100" 
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="text-center mb-6">
+              <div className="bg-[#1a1a1a] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-[#c48e12]/30 shadow-[0_0_15px_rgba(196,142,18,0.2)]">
+                <span className="text-2xl">👨‍🏫</span>
+              </div>
+              <h3 className="text-xl font-bold text-white">{profPopup.nome.replace(/<[^>]+>/g, '')}</h3>
+              <p className="text-gray-400 text-sm mt-1">Docente Unisalento</p>
+            </div>
+
+            <div className="bg-[#1a1a1a] p-4 rounded-2xl border border-[#333] mb-6 flex flex-col items-center">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Email Ufficiale</span>
+              <span className="text-[#c48e12] font-medium break-all text-center">{profPopup.mail}</span>
+            </div>
+
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setProfPopup(null)}
+                className="flex-1 py-3 rounded-xl font-bold text-gray-400 bg-[#1a1a1a] border border-[#333] active:scale-95 transition-all"
+              >
+                Chiudi
+              </button>
+              <a 
+                href={`mailto:${profPopup.mail}`}
+                className="flex-1 py-3 rounded-xl font-black text-[#121212] bg-[#c48e12] active:scale-95 transition-all text-center flex items-center justify-center gap-2 shadow-lg shadow-[#c48e12]/20"
+              >
+                <span>Invia Mail</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Navigation Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/80 backdrop-blur-xl border-t border-[#333] pb-safe shadow-[0_-4px_30px_rgba(0,0,0,0.5)] z-50">
         <div className="max-w-md mx-auto flex justify-around items-center p-2 mt-1">
           
           <button onClick={() => navigate('/')} className="flex flex-col items-center p-2 text-gray-500 hover:text-gray-300 transition-colors active:scale-95">
             <svg className="w-6 h-6 mb-1" fill="none" viewBox="0 0 20 20" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
             </svg>
             <span className="text-[10px] font-bold tracking-wider">AGENDA</span>
           </button>
