@@ -18,19 +18,36 @@ interface CardLezioneProps {
   isLive?: boolean; 
 }
 
+// IL FALLBACK INTELLIGENTE (Inverte Cognome e Nome)
 const generaEmailProf = (nomeGrezzo: string) => {
   if (!nomeGrezzo) return '';
   
-  let pulito = nomeGrezzo.replace(/<[^>]+>/g, '')
-                         .replace(/Prof\.ssa|Prof\.|Dott\.ssa|Dott\./gi, '')
-                         .trim()
-                         .toLowerCase();
-                         
-  pulito = pulito.replace(/[']/g, '')
-                 .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
-                 
-  const parti = pulito.split(/\s+/);
-  return `${parti.join('.')}@unisalento.it`;
+  // Se ci sono più professori separati da virgola, li gestiamo singolarmente
+  const professori = nomeGrezzo.split(',').map(prof => prof.trim()).filter(Boolean);
+  
+  const emailGenerate = professori.map(prof => {
+      let pulito = prof.replace(/<[^>]+>/g, '')
+                       .replace(/Prof\.ssa|Prof\.|Dott\.ssa|Dott\./gi, '')
+                       .trim()
+                       .toLowerCase();
+                       
+      // Rimuoviamo accenti e apostrofi
+      pulito = pulito.replace(/[']/g, '')
+                     .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
+                     
+      const parti = pulito.split(/\s+/);
+      
+      // Il formato UniSalento è "Cognome Nome". 
+      // Prendiamo l'ultima parola (Nome) e la portiamo all'inizio.
+      if (parti.length >= 2) {
+        const nome = parti.pop();
+        if (nome) parti.unshift(nome);
+      }
+      
+      return `${parti.join('.')}@unisalento.it`;
+  });
+  
+  return emailGenerate.join(',');
 };
 
 export default function CardLezione({ lezione, isLive = false }: CardLezioneProps) {
