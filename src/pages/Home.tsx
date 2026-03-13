@@ -23,7 +23,6 @@ export default function Home() {
   const [ultimoAggiornamento, setUltimoAggiornamento] = useState<string | null>(localStorage.getItem('ultimoAggiornamento'));
   const [refreshCount, setRefreshCount] = useState(0);
 
-  // NUOVI STATI PER LA BLACKLIST
   const [showBlacklist, setShowBlacklist] = useState(false);
   const [blacklist, setBlacklist] = useState<string[]>(JSON.parse(localStorage.getItem('blacklist_materie') || '[]'));
 
@@ -173,10 +172,8 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [corsoCodice, annoCodice, refreshCount]);
 
-  // ESTRAZIONE MATERIE UNICHE PER IL POPUP BLACKLIST
   const materieUniche = Array.from(new Set(lezioni.map(l => l.nome_insegnamento.replace(/<[^>]+>/g, '')))).sort();
 
-  // TOGGLE MATERIA (Aggiungi/Rimuovi dalla blacklist)
   const toggleMateria = (materia: string) => {
     let nuovaBlacklist = [...blacklist];
     if (nuovaBlacklist.includes(materia)) {
@@ -188,7 +185,6 @@ export default function Home() {
     localStorage.setItem('blacklist_materie', JSON.stringify(nuovaBlacklist));
   };
 
-  // 1. FILTRIAMO LE LEZIONI CON LA BLACKLIST PRIMA DI FARE QUALSIASI CALCOLO
   const lezioniFiltrate = lezioni.filter(l => !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '')));
 
   const lezioneLiveIndex = lezioniFiltrate.findIndex(lezione => {
@@ -229,18 +225,6 @@ export default function Home() {
           </p>
         </div>
         <div className="flex gap-2">
-          {/* TASTO FILTRI (BLACKLIST) */}
-          <button onClick={() => setShowBlacklist(true)} className="bg-[#1a1a1a] border border-[#333] p-3 rounded-xl hover:bg-[#2a2a2a] transition-colors text-gray-300 active:scale-95 relative">
-            {blacklist.length > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#c48e12] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-[#c48e12]"></span>
-              </span>
-            )}
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
-            </svg>
-          </button>
           <button onClick={resettaImpostazioni} className="bg-[#1a1a1a] border border-[#333] p-3 rounded-xl hover:bg-[#2a2a2a] transition-colors text-gray-300 active:scale-95">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
@@ -249,7 +233,23 @@ export default function Home() {
         </div>
       </header>
 
-      {/* BANNER OFFLINE ESTREMA */}
+      {/* LA PILLOLA FILTRI (Apple Style) */}
+      <div className="mb-4 flex justify-start">
+        <button 
+          onClick={() => setShowBlacklist(true)} 
+          className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm ${
+            blacklist.length > 0 
+              ? 'bg-[#c48e12]/10 border-[#c48e12]/40 text-[#c48e12]' 
+              : 'bg-[#1a1a1a] border-[#333] text-gray-400 hover:bg-[#212121] hover:text-gray-300'
+          }`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+          </svg>
+          {blacklist.length > 0 ? `${blacklist.length} Filtri Attivi` : 'Nascondi Materie'}
+        </button>
+      </div>
+
       <div className="mb-6 flex items-center justify-between bg-[#1a1a1a] border border-[#333] p-3 rounded-xl shadow-inner">
         <div className="flex items-center gap-3">
           <div className="relative flex h-3 w-3">
@@ -365,7 +365,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* POPUP BLACKLIST */}
       {showBlacklist && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex flex-col p-4 transition-opacity">
           <div className="bg-[#212121] border border-[#333] rounded-[2rem] shadow-2xl w-full max-w-md mx-auto flex flex-col h-[85vh] overflow-hidden mt-8">
@@ -427,7 +426,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Navigation Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/80 backdrop-blur-xl border-t border-[#333] pb-safe shadow-[0_-4px_30px_rgba(0,0,0,0.5)] z-50">
         <div className="max-w-md mx-auto flex justify-around items-center p-2 mt-1">
           <button className="flex flex-col items-center p-2 text-[#c48e12] transition-transform active:scale-95">
