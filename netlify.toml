@@ -1,0 +1,11 @@
+[build]
+  # Il comando per "cucinare" l'app
+  command = "npm run build"
+  # La cartella del prodotto finito da servire al pubblico!
+  publish = "dist"
+
+# Questo risolve il problema del refresh delle pagine con React Router
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
