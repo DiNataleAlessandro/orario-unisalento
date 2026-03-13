@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { elenco_corsi } from '../corsiData'; 
-import logoUnisalento from '../assets/icona.png'; // <-- Il nostro import infallibile!
+import logoUnisalento from '../assets/icona.png'; 
 
 export default function Onboarding() {
   const [corso, setCorso] = useState('');
   const [anno, setAnno] = useState('');
-  const [listaCorsi, setListaCorsi] = useState<{valore: string, etichetta: string}[]>([]);
+  // Aggiornato il tipo per includere "tutti_gli_anni"
+  const [listaCorsi, setListaCorsi] = useState<{valore: string, etichetta: string, tutti_gli_anni: any[]}[]>([]);
   const [listaAnni, setListaAnni] = useState<{label: string, valore: string}[]>([]);
 
   const [ricerca, setRicerca] = useState('');
@@ -15,12 +16,34 @@ export default function Onboarding() {
 
   const navigate = useNavigate();
 
+  // 1. MOTORE DI FUSIONE DEI CORSI DUPLICATI
   useEffect(() => {
-    const mappati = elenco_corsi.map((item: any) => ({
-      valore: item.valore,
-      etichetta: `${item.label} (${item.tipo})` 
-    }));
+    const corsiUnificati = new Map<string, { valore: string, etichetta: string, tutti_gli_anni: any[] }>();
+
+    elenco_corsi.forEach((item: any) => {
+      const chiave = `${item.label} (${item.tipo})`;
+      
+      if (!corsiUnificati.has(chiave)) {
+        corsiUnificati.set(chiave, {
+          valore: item.valore, 
+          etichetta: chiave,
+          tutti_gli_anni: [...(item.elenco_anni || [])]
+        });
+      } else {
+        const corsoEsistente = corsiUnificati.get(chiave)!;
+        const anniEsistenti = new Set(corsoEsistente.tutti_gli_anni.map(a => a.valore));
+        
+        (item.elenco_anni || []).forEach((annoNuovo: any) => {
+          if (!anniEsistenti.has(annoNuovo.valore)) {
+            corsoEsistente.tutti_gli_anni.push(annoNuovo);
+          }
+        });
+      }
+    });
+
+    const mappati = Array.from(corsiUnificati.values());
     mappati.sort((a: any, b: any) => a.etichetta.localeCompare(b.etichetta));
+    
     setListaCorsi(mappati);
   }, []);
 
@@ -34,11 +57,15 @@ export default function Onboarding() {
     return () => document.removeEventListener("mousedown", gestisciClickFuori);
   }, []);
 
+  // 2. CARICAMENTO ANNI UNIFICATI QUANDO SI SCEGLIE IL CORSO
   useEffect(() => {
     if (corso) {
-      const corsoIntero = elenco_corsi.find((c: any) => c.valore === corso);
-      if (corsoIntero && corsoIntero.elenco_anni) {
-        setListaAnni(corsoIntero.elenco_anni);
+      const corsoIntero = listaCorsi.find(c => c.valore === corso);
+      if (corsoIntero && corsoIntero.tutti_gli_anni) {
+        const anniOrdinati = [...corsoIntero.tutti_gli_anni].sort((a: any, b: any) => 
+          a.label.localeCompare(b.label)
+        );
+        setListaAnni(anniOrdinati);
       } else {
         setListaAnni([]);
       }
@@ -46,7 +73,7 @@ export default function Onboarding() {
       setListaAnni([]);
     }
     setAnno('');
-  }, [corso]);
+  }, [corso, listaCorsi]);
 
   const corsiFiltrati = listaCorsi.filter(c => 
     c.etichetta.toLowerCase().includes(ricerca.toLowerCase())
