@@ -13,7 +13,6 @@ const formattaDataAPI = (data: Date) => {
   return `${g}-${m}-${a}`;
 };
 
-// Funzione helper per trasformare le date "gg-mm-aaaa" in numeri per poterle confrontare
 const parseDataString = (dStr: string) => {
   if (!dStr) return 0;
   const [g, m, a] = dStr.split('-');
@@ -45,56 +44,59 @@ export default function Calendario() {
 
         const dataStr = formattaDataAPI(dataSelezionata);
         const cacheKeyEsatta = `orario_${corsoCodice}_${annoCodice}_${dataStr}`;
-        
-        // 1. Cerchiamo la cache specifica di questa data (se l'avevamo già aperta)
         const cachedData = localStorage.getItem(cacheKeyEsatta);
 
         let datiJSON = null;
+        let datiTrovatiInCache = false;
 
+        // 1. Controllo cache specifica
         if (cachedData) {
           datiJSON = JSON.parse(cachedData);
+          datiTrovatiInCache = true;
         } else {
-          // 2. LA MAGIA: Non c'è la cache esatta. Spazzoliamo TUTTA la memoria 
-          // per vedere se la "Home" ha già scaricato la settimana che contiene questa data.
+          // 2. Ricerca granulare nei pacchetti settimanali della Home
           const prefisso = `orario_${corsoCodice}_${annoCodice}_`;
           let celleTrovate: any[] = [];
-          let rangeCopertoDaHome = false;
           
           const targetTime = parseDataString(dataStr);
 
-          // Controlliamo in ogni file salvato nel localStorage
           for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             if (key && key.startsWith(prefisso)) {
               try {
-                const data = JSON.parse(localStorage.getItem(key) || '{}');
-                // L'API Unisalento ci dice sempre quando inizia e finisce la settimana scaricata
-                if (data.first_day && data.last_day) {
-                  const startTime = parseDataString(data.first_day);
-                  const endTime = parseDataString(data.last_day);
+                const dataRaw = localStorage.getItem(key);
+                if (!dataRaw) continue;
+                const dataObj = JSON.parse(dataRaw);
+                
+                if (dataObj.first_day && dataObj.last_day) {
+                  const startTime = parseDataString(dataObj.first_day);
+                  const endTime = parseDataString(dataObj.last_day);
                   
-                  // Se la nostra data cliccata è compresa in questa settimana...
                   if (targetTime >= startTime && targetTime <= endTime) {
-                    rangeCopertoDaHome = true;
-                    if (data.celle) {
-                      // ...estraiamo solo le lezioni di quel singolo giorno!
-                      const celleDelGiorno = data.celle.filter((c: any) => c.data === dataStr);
+                    datiTrovatiInCache = true; // ABBIAMO COPERTURA!
+                    if (dataObj.celle) {
+                      const celleDelGiorno = dataObj.celle.filter((c: any) => c.data === dataStr);
                       celleTrovate = [...celleTrovate, ...celleDelGiorno];
                     }
                   }
                 }
-              } catch(e) {} // Ignoriamo errori di parsing su file corrotti
+              } catch(e) {}
             }
           }
 
-          if (rangeCopertoDaHome || !navigator.onLine) {
-            // Se la Home aveva già scaricato questa settimana, o se siamo OFFLINE, 
-            // mostriamo i dati che abbiamo trovato in memoria (anche se sono vuoti, significa che non c'è lezione)
+          if (datiTrovatiInCache) {
             datiJSON = { celle: celleTrovate };
-          } else {
-            // 3. Se siamo ONLINE e non c'è traccia di questa data da nessuna parte, facciamo la chiamata al server.
-            const urlAPI = '/api-unisalento/PortaleStudenti/grid_call.php';
+          }
+        }
 
+        // 3. Gestione finale: scarico o errore
+        if (!datiTrovatiInCache) {
+          if (!navigator.onLine) {
+            // SE SIAMO OFFLINE E NON ABBIAMO TROVATO NULLA IN NESSUNA CACHE
+            throw new Error("Dati non disponibili offline per questa data. Connettiti per scaricarli.");
+          } else {
+            // Online e senza cache: scarichiamo
+            const urlAPI = '/api-unisalento/PortaleStudenti/grid_call.php';
             const datiModulo = new URLSearchParams();
             datiModulo.append('view', 'easycourse');
             datiModulo.append('form-type', 'corso');
@@ -125,13 +127,10 @@ export default function Calendario() {
 
             if (!response.ok) throw new Error(`Errore server: ${response.status}`);
             datiJSON = await response.json();
-            
-            // Salviamo per la prossima volta
             localStorage.setItem(cacheKeyEsatta, JSON.stringify(datiJSON));
           }
         }
 
-        // --- ELABORAZIONE E STAMPA DELLE LEZIONI ---
         if (datiJSON && datiJSON.celle) {
           const lezioniElaborate: Lezione[] = datiJSON.celle.map((lezione: any) => {
             const [oraInizioStr, oraFineStr] = lezione.orario.split(' - ');
@@ -149,8 +148,6 @@ export default function Calendario() {
           });
 
           const lezioniDelGiorno = lezioniElaborate.filter(l => l.data === dataStr);
-
-          // Rimuoviamo eventuali duplicati e ordiniamo per orario
           const lezioniUniche = Array.from(new Map(lezioniDelGiorno.map(l => [l.id, l])).values());
           lezioniUniche.sort((a, b) => {
              if (!a.inizioDateObj || !b.inizioDateObj) return 0;
@@ -162,7 +159,7 @@ export default function Calendario() {
           setLezioniGiorno([]);
         }
       } catch (err: any) {
-        setErrore(err.message || "Impossibile caricare l'orario.");
+        setErrore(err.message);
       } finally {
         setInCaricamento(false);
       }
@@ -231,10 +228,9 @@ export default function Calendario() {
         )}
       </div>
 
-      {/* Navigation Bar Dark Glassmorphism */}
+      {/* Navigation Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/80 backdrop-blur-xl border-t border-[#333] pb-safe shadow-[0_-4px_30px_rgba(0,0,0,0.5)] z-50">
         <div className="max-w-md mx-auto flex justify-around items-center p-2 mt-1">
-          
           <button onClick={() => navigate('/')} className="flex flex-col items-center p-2 text-gray-500 hover:text-gray-300 transition-colors active:scale-95">
             <svg className="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
