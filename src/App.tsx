@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Onboarding from './pages/Onboarding';
 import Home from './pages/Home';
 import Calendario from './pages/Calendario';
+import PianoDiStudi from './pages/PianoDiStudi';
 
 // Ora controlliamo "corsoCodice" invece del vecchio nome
 const ProteggiRotta = ({ children }: { children: React.ReactNode }) => {
@@ -23,6 +24,10 @@ function App() {
         <Route 
           path="/calendario" 
           element={<ProteggiRotta><Calendario /></ProteggiRotta>} 
+        />
+        <Route 
+          path="/piano-di-studi" 
+          element={<ProteggiRotta><PianoDiStudi /></ProteggiRotta>} 
         />
       </Routes>
     </BrowserRouter>
