@@ -125,7 +125,7 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="min-h-screen bg-[#121212] flex flex-col items-center justify-center px-6 pb-6 pt-[calc(env(safe-area-inset-top)+1.5rem)] font-sans">
+    <div className="min-h-screen bg-[#121212] flex flex-col items-center justify-center p-6 font-sans">
       <div className="bg-[#212121] p-8 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-[#333333]">
         <div className="text-center mb-8">
           <div className="bg-[#1a1a1a] border border-[#333] w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-5 overflow-hidden shadow-inner">
