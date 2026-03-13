@@ -262,18 +262,18 @@ export default function PianoDiStudi() {
         )}
       </div>
 
-      {/* NUOVA NAVBAR A 3 VOCI CENTRATA */}
+      {/* NAVBAR A 3 VOCI (Centrata con flex-1) */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/90 backdrop-blur-xl border-t border-[#333] pb-safe shadow-[0_-4px_30px_rgba(0,0,0,0.7)] z-50">
         <div className="max-w-md mx-auto flex items-center p-2 mt-1">
-          <button className="flex-1 flex flex-col items-center p-2 text-[#c48e12] transition-transform active:scale-95">
-            <svg className="w-6 h-6 mb-1 drop-shadow-[0_0_8px_rgba(196,142,18,0.4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <button onClick={() => navigate('/')} className="flex-1 flex flex-col items-center p-2 text-gray-500 hover:text-gray-300 transition-colors active:scale-95">
+            <svg className="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
             </svg>
             <span className="text-[10px] font-bold tracking-wider">LEZIONI</span>
           </button>
           
-          <button onClick={() => navigate('/piano-di-studi')} className="flex-1 flex flex-col items-center p-2 text-gray-500 hover:text-gray-300 transition-colors active:scale-95">
-            <svg className="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <button className="flex-1 flex flex-col items-center p-2 text-[#c48e12] transition-transform active:scale-95">
+            <svg className="w-6 h-6 mb-1 drop-shadow-[0_0_8px_rgba(196,142,18,0.4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
             </svg>
             <span className="text-[10px] font-bold tracking-wider">CORSI</span>
