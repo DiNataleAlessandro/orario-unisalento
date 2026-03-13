@@ -201,7 +201,7 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50 p-4 pb-28 relative">
       <header className="flex justify-between items-center mb-6 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
         <div>
-          <h1 className="text-2xl font-extrabold text-blue-600">L'Agenda</h1>
+          <h1 className="text-2xl font-extrabold text-blue-600">Lezioni</h1>
           <p className="text-xs font-medium text-gray-500 mt-1 uppercase tracking-wider">
             {corsoNome} • {annoNome}
           </p>
