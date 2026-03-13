@@ -1,25 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// Funzione per generare la mail Unisalento
-const generaEmailProf = (nomeGrezzo: string) => {
-  if (!nomeGrezzo) return '';
-  
-  // 1. Togliamo HTML, spazi extra e titoli inutili
-  let pulito = nomeGrezzo.replace(/<[^>]+>/g, '')
-                         .replace(/Prof\.ssa|Prof\.|Dott\.ssa|Dott\./gi, '')
-                         .trim()
-                         .toLowerCase();
-                         
-  // 2. Rimuoviamo apostrofi o accenti che rompono la mail (es. D'Amico -> damico)
-  pulito = pulito.replace(/[']/g, '')
-                 .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
-                 
-  // 3. Uniamo le parole rimaste con il punto
-  const parti = pulito.split(/\s+/);
-  return `${parti.join('.')}@unisalento.it`;
-};
-
 interface Lezione {
   id: string;
   nome_insegnamento: string;
@@ -30,6 +11,7 @@ interface Lezione {
   data: string;
   inizioDateObj?: Date;
   fineDateObj?: Date;
+  mail_docente?: string; // <-- Il campo segreto sbloccato!
 }
 
 const formattaDataAPI = (data: Date) => {
@@ -144,7 +126,10 @@ export default function Home() {
             const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
             const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
 
-            return { ...lezione, inizioDateObj, fineDateObj };
+            // Pulizia chirurgica della mail: togliamo la virgola e gli spazi iniziali
+            const mailPulita = lezione.mail_docente ? lezione.mail_docente.replace(/^,\s*/, '').trim() : '';
+
+            return { ...lezione, inizioDateObj, fineDateObj, mail_docente: mailPulita };
           });
 
           const lezioniUniche = Array.from(new Map(lezioniElaborate.map(l => [l.id, l])).values());
@@ -203,7 +188,18 @@ export default function Home() {
             <span className="opacity-70">📍</span> <span className="font-medium">{lezione.aula.replace(/<[^>]+>/g, '')}</span>
             </p>
             <p className="flex items-center gap-2">
-            <span className="opacity-70">👨‍🏫</span> <span>{lezione.docente.replace(/<[^>]+>/g, '')}</span>
+            <span className="opacity-70">👨‍🏫</span> 
+            {lezione.docente ? (
+                <a 
+                href={lezione.mail_docente ? `mailto:${lezione.mail_docente}` : '#'}
+                className={`font-medium transition-colors ${lezione.mail_docente ? 'text-[#c48e12] hover:text-white underline decoration-[#c48e12]/30 hover:decoration-white decoration-2 underline-offset-4' : 'text-gray-300'}`}
+                title={lezione.mail_docente ? `Invia un'email a ${lezione.mail_docente}` : ''}
+                >
+                {lezione.docente.replace(/<[^>]+>/g, '')} {lezione.mail_docente && '✉️'}
+                </a>
+            ) : (
+                <span className="text-gray-500 italic">Docente non assegnato</span>
+            )}
             </p>
         </div>
     </div>
@@ -275,9 +271,18 @@ export default function Home() {
                         </span>
                     </p>
                     <p className="flex items-center gap-2">
-                        <span className="opacity-80">👨‍🏫</span> <span className="text-gray-300">
-                        {lezioneLive.docente.replace(/<[^>]+>/g, '')}
-                        </span>
+                        <span className="opacity-80">👨‍🏫</span> 
+                        {lezioneLive.docente ? (
+                            <a 
+                            href={lezioneLive.mail_docente ? `mailto:${lezioneLive.mail_docente}` : '#'}
+                            className={`font-medium transition-colors ${lezioneLive.mail_docente ? 'text-[#c48e12] hover:text-white underline decoration-[#c48e12]/30 hover:decoration-white decoration-2 underline-offset-4' : 'text-gray-300'}`}
+                            title={lezioneLive.mail_docente ? `Invia un'email a ${lezioneLive.mail_docente}` : ''}
+                            >
+                            {lezioneLive.docente.replace(/<[^>]+>/g, '')} {lezioneLive.mail_docente && '✉️'}
+                            </a>
+                        ) : (
+                            <span className="text-gray-500 italic">Docente non assegnato</span>
+                        )}
                     </p>
                     </div>
                 </div>
@@ -318,7 +323,7 @@ export default function Home() {
         <div className="max-w-md mx-auto flex justify-around items-center p-2 mt-1">
           <button className="flex flex-col items-center p-2 text-[#c48e12] transition-transform active:scale-95">
             <svg className="w-6 h-6 mb-1 drop-shadow-[0_0_8px_rgba(196,142,18,0.4)]" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+              <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
             </svg>
             <span className="text-[10px] font-bold tracking-wider">AGENDA</span>
           </button>
