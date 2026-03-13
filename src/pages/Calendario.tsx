@@ -13,6 +13,13 @@ const formattaDataAPI = (data: Date) => {
   return `${g}-${m}-${a}`;
 };
 
+// Funzione helper per trasformare le date "gg-mm-aaaa" in numeri per poterle confrontare
+const parseDataString = (dStr: string) => {
+  if (!dStr) return 0;
+  const [g, m, a] = dStr.split('-');
+  return new Date(Number(a), Number(m)-1, Number(g)).getTime();
+};
+
 export default function Calendario() {
   const navigate = useNavigate();
   const corsoCodice = localStorage.getItem('corsoCodice') || '';
@@ -37,58 +44,94 @@ export default function Calendario() {
         setErrore(null);
 
         const dataStr = formattaDataAPI(dataSelezionata);
-        const cacheKey = `orario_${corsoCodice}_${annoCodice}_${dataStr}`;
+        const cacheKeyEsatta = `orario_${corsoCodice}_${annoCodice}_${dataStr}`;
         
-        // LETTURA DA LOCALSTORAGE PER OFFLINE ESTREMA
-        const cachedData = localStorage.getItem(cacheKey);
+        // 1. Cerchiamo la cache specifica di questa data (se l'avevamo già aperta)
+        const cachedData = localStorage.getItem(cacheKeyEsatta);
 
-        let datiJSON;
+        let datiJSON = null;
 
         if (cachedData) {
-          // Se abbiamo i dati in memoria, li usiamo istantaneamente
           datiJSON = JSON.parse(cachedData);
-        } else if (!navigator.onLine) {
-          // Se siamo offline e NON abbiamo dati per questa data specifica
-          throw new Error("Sei offline e non ci sono dati salvati per questa data.");
         } else {
-          // Nessuna cache e siamo online: scarichiamo i dati freschi
-          const urlAPI = '/api-unisalento/PortaleStudenti/grid_call.php';
-
-          const datiModulo = new URLSearchParams();
-          datiModulo.append('view', 'easycourse');
-          datiModulo.append('form-type', 'corso');
-          datiModulo.append('include', 'corso');
-          datiModulo.append('txtcurr', '1 - Percorso comune');
-          datiModulo.append('anno', '2025'); 
-          datiModulo.append('corso', corsoCodice); 
-          datiModulo.append('anno2[]', annoCodice); 
-          datiModulo.append('visualizzazione_orario', 'cal');
-          datiModulo.append('date', dataStr); 
-          datiModulo.append('_lang', 'it');
-          datiModulo.append('week_grid_type', '-1');
-          datiModulo.append('col_cells', '0');
-          datiModulo.append('empty_box', '0');
-          datiModulo.append('only_grid', '0');
-          datiModulo.append('highlighted_date', '0');
-          datiModulo.append('all_events', '0');
-          datiModulo.append('faculty_group', '0');
-
-          const response = await fetch(urlAPI, {
-            method: 'POST',
-            body: datiModulo,
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-              'Accept': 'application/json'
-            },
-          });
-
-          if (!response.ok) throw new Error(`Errore server: ${response.status}`);
-          datiJSON = await response.json();
+          // 2. LA MAGIA: Non c'è la cache esatta. Spazzoliamo TUTTA la memoria 
+          // per vedere se la "Home" ha già scaricato la settimana che contiene questa data.
+          const prefisso = `orario_${corsoCodice}_${annoCodice}_`;
+          let celleTrovate: any[] = [];
+          let rangeCopertoDaHome = false;
           
-          // SALVATAGGIO IN LOCALSTORAGE PER LE PROSSIME VOLTE
-          localStorage.setItem(cacheKey, JSON.stringify(datiJSON));
+          const targetTime = parseDataString(dataStr);
+
+          // Controlliamo in ogni file salvato nel localStorage
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(prefisso)) {
+              try {
+                const data = JSON.parse(localStorage.getItem(key) || '{}');
+                // L'API Unisalento ci dice sempre quando inizia e finisce la settimana scaricata
+                if (data.first_day && data.last_day) {
+                  const startTime = parseDataString(data.first_day);
+                  const endTime = parseDataString(data.last_day);
+                  
+                  // Se la nostra data cliccata è compresa in questa settimana...
+                  if (targetTime >= startTime && targetTime <= endTime) {
+                    rangeCopertoDaHome = true;
+                    if (data.celle) {
+                      // ...estraiamo solo le lezioni di quel singolo giorno!
+                      const celleDelGiorno = data.celle.filter((c: any) => c.data === dataStr);
+                      celleTrovate = [...celleTrovate, ...celleDelGiorno];
+                    }
+                  }
+                }
+              } catch(e) {} // Ignoriamo errori di parsing su file corrotti
+            }
+          }
+
+          if (rangeCopertoDaHome || !navigator.onLine) {
+            // Se la Home aveva già scaricato questa settimana, o se siamo OFFLINE, 
+            // mostriamo i dati che abbiamo trovato in memoria (anche se sono vuoti, significa che non c'è lezione)
+            datiJSON = { celle: celleTrovate };
+          } else {
+            // 3. Se siamo ONLINE e non c'è traccia di questa data da nessuna parte, facciamo la chiamata al server.
+            const urlAPI = '/api-unisalento/PortaleStudenti/grid_call.php';
+
+            const datiModulo = new URLSearchParams();
+            datiModulo.append('view', 'easycourse');
+            datiModulo.append('form-type', 'corso');
+            datiModulo.append('include', 'corso');
+            datiModulo.append('txtcurr', '1 - Percorso comune');
+            datiModulo.append('anno', '2025'); 
+            datiModulo.append('corso', corsoCodice); 
+            datiModulo.append('anno2[]', annoCodice); 
+            datiModulo.append('visualizzazione_orario', 'cal');
+            datiModulo.append('date', dataStr); 
+            datiModulo.append('_lang', 'it');
+            datiModulo.append('week_grid_type', '-1');
+            datiModulo.append('col_cells', '0');
+            datiModulo.append('empty_box', '0');
+            datiModulo.append('only_grid', '0');
+            datiModulo.append('highlighted_date', '0');
+            datiModulo.append('all_events', '0');
+            datiModulo.append('faculty_group', '0');
+
+            const response = await fetch(urlAPI, {
+              method: 'POST',
+              body: datiModulo,
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json'
+              },
+            });
+
+            if (!response.ok) throw new Error(`Errore server: ${response.status}`);
+            datiJSON = await response.json();
+            
+            // Salviamo per la prossima volta
+            localStorage.setItem(cacheKeyEsatta, JSON.stringify(datiJSON));
+          }
         }
 
+        // --- ELABORAZIONE E STAMPA DELLE LEZIONI ---
         if (datiJSON && datiJSON.celle) {
           const lezioniElaborate: Lezione[] = datiJSON.celle.map((lezione: any) => {
             const [oraInizioStr, oraFineStr] = lezione.orario.split(' - ');
@@ -107,12 +150,14 @@ export default function Calendario() {
 
           const lezioniDelGiorno = lezioniElaborate.filter(l => l.data === dataStr);
 
-          lezioniDelGiorno.sort((a, b) => {
+          // Rimuoviamo eventuali duplicati e ordiniamo per orario
+          const lezioniUniche = Array.from(new Map(lezioniDelGiorno.map(l => [l.id, l])).values());
+          lezioniUniche.sort((a, b) => {
              if (!a.inizioDateObj || !b.inizioDateObj) return 0;
              return a.inizioDateObj.getTime() - b.inizioDateObj.getTime();
           });
 
-          setLezioniGiorno(lezioniDelGiorno);
+          setLezioniGiorno(lezioniUniche);
         } else {
           setLezioniGiorno([]);
         }
