@@ -126,13 +126,12 @@ export default function Calendario() {
 
   return (
     <div className="min-h-screen bg-[#121212] p-4 pb-28 relative">
-      {/* MAGIA CSS PER IL CALENDARIO DARK */}
       <style>{`
         .rdp {
           --rdp-cell-size: 40px;
           --rdp-accent-color: #c48e12;
-          --rdp-background-color: #212121
-          color: #e5e7eb;
+          --rdp-background-color: #212121;
+          color: #ffffff; /* <-- ECCOLO! Da #e5e7eb a bianco puro (#ffffff) */
           margin: 0;
         }
         .rdp-day_selected, .rdp-day_selected:focus-visible, .rdp-day_selected:hover {
