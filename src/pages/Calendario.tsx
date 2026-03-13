@@ -131,7 +131,7 @@ export default function Calendario() {
         .rdp {
           --rdp-cell-size: 40px;
           --rdp-accent-color: #c48e12;
-          --rdp-background-color: #2a2a2a;
+          --rdp-background-color: #212121
           color: #e5e7eb;
           margin: 0;
         }
@@ -160,7 +160,7 @@ export default function Calendario() {
       </header>
 
       {/* Contenitore Calendario */}
-      <div className="bg-[#212121] p-4 rounded-3xl shadow-lg border border-[#333] mb-6 flex justify-center overflow-hidden">
+      <div className="bg-[#1a1a1a] p-4 rounded-3xl shadow-inner border border-[#333] mb-6 flex justify-center overflow-hidden">
         <DayPicker 
           mode="single" 
           selected={dataSelezionata} 
