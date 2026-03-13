@@ -216,7 +216,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#121212] p-4 pb-28 relative">
+    <div className="min-h-screen bg-[#121212] px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1rem)] relative">
       <header className="flex justify-between items-center mb-4 bg-[#212121] p-5 rounded-2xl shadow-lg border border-[#333]">
         <div className="flex-1 pr-2">
           <h1 className="text-2xl font-black text-[#c48e12] tracking-tight">L'Agenda</h1>
@@ -233,7 +233,6 @@ export default function Home() {
         </div>
       </header>
 
-      {/* BANNER OFFLINE ESTREMA */}
       <div className="mb-4 flex items-center justify-between bg-[#1a1a1a] border border-[#333] p-3 rounded-xl shadow-inner">
         <div className="flex items-center gap-3">
           <div className="relative flex h-3 w-3">
@@ -265,7 +264,6 @@ export default function Home() {
         </button>
       </div>
 
-      {/* LA PILLOLA FILTRI (Spostata a destra) */}
       <div className="mb-6 flex justify-end">
         <button 
           onClick={() => setShowBlacklist(true)} 

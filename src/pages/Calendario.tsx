@@ -30,7 +30,6 @@ export default function Calendario() {
 
   const [dataSelezionata, setDataSelezionata] = useState<Date>(new Date());
 
-  // LEGGIAMO LA BLACKLIST SALVATA DALLA HOME
   const blacklist = JSON.parse(localStorage.getItem('blacklist_materie') || '[]');
 
   const resettaImpostazioni = () => {
@@ -144,7 +143,6 @@ export default function Calendario() {
             return { ...lezione, inizioDateObj, fineDateObj, mail_docente: mailPulita };
           });
 
-          // FILTRAGGIO BLACKLIST: Scartiamo le lezioni che l'utente ha nascosto nella Home
           const lezioniDelGiorno = lezioniElaborate.filter(l => 
             l.data === dataStr && !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, ''))
           );
@@ -171,7 +169,7 @@ export default function Calendario() {
   }, [corsoCodice, annoCodice, dataSelezionata]);
 
   return (
-    <div className="min-h-screen bg-[#121212] p-4 pb-28 relative">
+    <div className="min-h-screen bg-[#121212] px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1rem)] relative">
       <header className="flex justify-between items-center mb-6 bg-[#212121] p-5 rounded-2xl shadow-lg border border-[#333]">
         <div>
           <h1 className="text-2xl font-black text-[#c48e12] tracking-tight">Calendario</h1>
@@ -230,7 +228,6 @@ export default function Calendario() {
         )}
       </div>
 
-      {/* Navigation Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/80 backdrop-blur-xl border-t border-[#333] pb-safe shadow-[0_-4px_30px_rgba(0,0,0,0.5)] z-50">
         <div className="max-w-md mx-auto flex justify-around items-center p-2 mt-1">
           <button onClick={() => navigate('/')} className="flex flex-col items-center p-2 text-gray-500 hover:text-gray-300 transition-colors active:scale-95">

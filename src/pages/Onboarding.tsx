@@ -4,8 +4,6 @@ import { elenco_corsi } from '../corsiData';
 import logoUnisalento from '../assets/icona.png'; 
 
 export default function Onboarding() {
-  // Ora 'corso' salverà il NOME del corso, non il suo codice, 
-  // perché il codice dipende dall'anno scelto!
   const [corso, setCorso] = useState('');
   const [anno, setAnno] = useState('');
   
@@ -24,7 +22,6 @@ export default function Onboarding() {
 
   const navigate = useNavigate();
 
-  // 1. MOTORE DI FUSIONE 2.0 (Salva i codici reali per ogni coorte)
   useEffect(() => {
     const corsiUnificati = new Map<string, { etichetta: string, tutti_gli_anni: any[] }>();
 
@@ -41,15 +38,13 @@ export default function Onboarding() {
       const corsoEsistente = corsiUnificati.get(chiave)!;
       
       (item.elenco_anni || []).forEach((annoNuovo: any) => {
-        // Controlliamo se abbiamo già questo anno per non sdoppiare le voci nel menu
         const annoEsistente = corsoEsistente.tutti_gli_anni.find(a => a.label === annoNuovo.label);
         
         if (!annoEsistente) {
-          // LA MAGIA: Salviamo l'anno legandolo indissolubilmente al SUO codice corso originale!
           corsoEsistente.tutti_gli_anni.push({
             label: annoNuovo.label,
             valore: annoNuovo.valore,
-            codiceCorsoReale: item.valore // (Es. LB55R per il 1° anno, LB55 per il 2°)
+            codiceCorsoReale: item.valore 
           });
         }
       });
@@ -71,7 +66,6 @@ export default function Onboarding() {
     return () => document.removeEventListener("mousedown", gestisciClickFuori);
   }, []);
 
-  // 2. CARICAMENTO ANNI
   useEffect(() => {
     if (corso) {
       const corsoIntero = listaCorsi.find(c => c.etichetta === corso);
@@ -114,13 +108,11 @@ export default function Onboarding() {
     const annoScelto = listaAnni.find(a => a.valore === anno);
     if (!annoScelto) return;
     
-    // IL TOCCO FINALE: Passiamo alla Home il codice reale specifico di quell'anno!
     localStorage.setItem('corsoCodice', annoScelto.codiceCorsoReale);
     localStorage.setItem('annoCodice', annoScelto.valore);
     localStorage.setItem('corsoNome', corso);
     localStorage.setItem('annoNome', annoScelto.label); 
     
-    // Pulizia per forzare lo scaricamento dei dati nuovi
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith('orario_')) {
@@ -133,7 +125,7 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="min-h-screen bg-[#121212] flex flex-col items-center justify-center p-6 font-sans">
+    <div className="min-h-screen bg-[#121212] flex flex-col items-center justify-center px-6 pb-6 pt-[calc(env(safe-area-inset-top)+1.5rem)] font-sans">
       <div className="bg-[#212121] p-8 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-[#333333]">
         <div className="text-center mb-8">
           <div className="bg-[#1a1a1a] border border-[#333] w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-5 overflow-hidden shadow-inner">
