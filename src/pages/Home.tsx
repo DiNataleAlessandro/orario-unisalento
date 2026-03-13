@@ -19,6 +19,11 @@ export default function Home() {
   const [inCaricamento, setInCaricamento] = useState(true);
   const [errore, setErrore] = useState<string | null>(null);
 
+  // STATI PER LA MODALITÀ OFFLINE ESTREMA
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [ultimoAggiornamento, setUltimoAggiornamento] = useState<string | null>(localStorage.getItem('ultimoAggiornamento'));
+  const [refreshCount, setRefreshCount] = useState(0);
+
   const dataRiferimento = new Date(); 
   const [fineSettimanaCorrente, setFineSettimanaCorrente] = useState<Date | null>(null);
   const [oraAttuale, setOraAttuale] = useState(new Date());
@@ -28,6 +33,18 @@ export default function Home() {
     sessionStorage.clear(); 
     navigate('/onboarding');
   };
+
+  // Listener per la connessione di rete
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     const timerId = setInterval(() => {
@@ -41,15 +58,27 @@ export default function Home() {
       try {
         setInCaricamento(true);
         setErrore(null);
+        const isForced = refreshCount > 0; // Se l'utente ha premuto il tasto Sync
 
         const urlAPI = '/api-unisalento/PortaleStudenti/grid_call.php';
 
         const fetchSettimana = async (dataTarget: Date) => {
           const dataStr = formattaDataAPI(dataTarget);
           const cacheKey = `orario_${corsoCodice}_${annoCodice}_${dataStr}`;
-          const cachedData = sessionStorage.getItem(cacheKey);
           
-          if (cachedData) return JSON.parse(cachedData); 
+          // ORA USIAMO LOCALSTORAGE (Sopravvive alla chiusura dell'app)
+          const cachedData = localStorage.getItem(cacheKey); 
+          
+          // Se abbiamo i dati e non stiamo forzando l'aggiornamento, carichiamo istantaneamente
+          if (cachedData && !isForced) {
+            return JSON.parse(cachedData); 
+          }
+
+          // Se siamo offline e non abbiamo dati, errore
+          if (!navigator.onLine) {
+            if (cachedData) return JSON.parse(cachedData);
+            throw new Error("Sei offline e non ci sono dati salvati in memoria.");
+          }
 
           const datiModulo = new URLSearchParams();
           datiModulo.append('view', 'easycourse');
@@ -82,7 +111,15 @@ export default function Home() {
           if (!response.ok) throw new Error(`Errore server: ${response.status}`);
           
           const result = await response.json();
-          sessionStorage.setItem(cacheKey, JSON.stringify(result));
+          
+          // Salvataggio permanente
+          localStorage.setItem(cacheKey, JSON.stringify(result));
+          
+          // Aggiorniamo il timestamp del "Last Update"
+          const now = new Date().toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+          localStorage.setItem('ultimoAggiornamento', now);
+          setUltimoAggiornamento(now);
+
           return result;
         };
 
@@ -131,7 +168,7 @@ export default function Home() {
           setLezioni([]);
         }
       } catch (err) {
-        setErrore("Impossibile caricare l'orario. Controlla la connessione.");
+        setErrore("Impossibile scaricare i dati. Controlla la connessione.");
       } finally {
         setInCaricamento(false);
       }
@@ -139,7 +176,7 @@ export default function Home() {
 
     scaricaOrariMultipli();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [corsoCodice, annoCodice]);
+  }, [corsoCodice, annoCodice, refreshCount]);
 
   const lezioneLiveIndex = lezioni.findIndex(lezione => {
     if (!lezione.inizioDateObj || !lezione.fineDateObj) return false;
@@ -157,7 +194,6 @@ export default function Home() {
   const lezioniQuestaSettimana = lezioniFuture.filter(l => !fineSettimanaCorrente || l.inizioDateObj! <= fineSettimanaCorrente);
   const lezioniProssimaSettimana = lezioniFuture.filter(l => fineSettimanaCorrente && l.inizioDateObj! > fineSettimanaCorrente);
 
-  // FUNZIONE MAGICA PER RAGGRUPPARE LE LEZIONI PER GIORNO
   const raggruppaPerGiorno = (listaLezioni: Lezione[]) => {
     const gruppi = new Map<string, Lezione[]>();
     listaLezioni.forEach(l => {
@@ -172,7 +208,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#121212] p-4 pb-28 relative">
-      <header className="flex justify-between items-center mb-6 bg-[#212121] p-5 rounded-2xl shadow-lg border border-[#333]">
+      <header className="flex justify-between items-center mb-4 bg-[#212121] p-5 rounded-2xl shadow-lg border border-[#333]">
         <div>
           <h1 className="text-2xl font-black text-[#c48e12] tracking-tight">L'Agenda</h1>
           <p className="text-[10px] font-bold text-gray-500 mt-1 uppercase tracking-widest line-clamp-1">
@@ -186,10 +222,43 @@ export default function Home() {
         </button>
       </header>
 
+      {/* BANNER OFFLINE ESTREMA */}
+      <div className="mb-6 flex items-center justify-between bg-[#1a1a1a] border border-[#333] p-3 rounded-xl shadow-inner">
+        <div className="flex items-center gap-3">
+          <div className="relative flex h-3 w-3">
+            {!isOffline && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-40"></span>}
+            <span className={`relative inline-flex rounded-full h-3 w-3 ${isOffline ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' : 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]'}`}></span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[11px] font-black text-white tracking-widest uppercase">
+              {isOffline ? 'Modalità Offline' : 'Connesso'}
+            </span>
+            <span className="text-[10px] text-gray-500 font-medium mt-0.5">
+              {ultimoAggiornamento ? `Dati del ${ultimoAggiornamento}` : 'Nessun dato salvato'}
+            </span>
+          </div>
+        </div>
+        
+        {/* TASTO SYNC MANUALE */}
+        <button 
+          onClick={() => {
+            if (isOffline) alert("Sei offline! Connettiti per sincronizzare l'orario.");
+            else setRefreshCount(c => c + 1);
+          }}
+          disabled={inCaricamento || isOffline}
+          className={`p-2 rounded-lg transition-all ${inCaricamento || isOffline ? 'opacity-30 cursor-not-allowed' : 'bg-[#2a2a2a] hover:bg-[#333] active:scale-95 border border-[#444] text-[#c48e12] shadow-lg'}`}
+          title="Forza Sincronizzazione"
+        >
+          <svg className={`w-5 h-5 ${inCaricamento ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+      </div>
+
       <div className="space-y-4">
-        {inCaricamento && (
+        {inCaricamento && refreshCount === 0 && (
           <div className="text-center p-10 text-[#c48e12] font-bold text-sm uppercase tracking-widest animate-pulse">
-            ⏳ Sincronizzazione...
+            ⏳ Caricamento iniziale...
           </div>
         )}
 
@@ -206,7 +275,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* LEZIONE IN CORSO (Nessun divisore, spicca da sola) */}
         {!inCaricamento && lezioneLive && (
             <div className="mb-6">
                 <h3 className="text-xs font-bold text-[#c48e12] uppercase tracking-[0.2em] mb-3 pl-2 flex items-center gap-2">
@@ -220,12 +288,10 @@ export default function Home() {
             </div>
         )}
 
-        {/* PROSSIME LEZIONI CON DIVISORE ORO PER GIORNO */}
         {!inCaricamento && lezioniQuestaSettimana.length > 0 && (
           <div className="mt-8">
             {raggruppaPerGiorno(lezioniQuestaSettimana).map(([giorno, lezioniGiorno], index) => (
               <div key={index} className="mb-8">
-                {/* Il nuovo Divisore Oro elegante */}
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-[11px] font-black text-[#c48e12] uppercase tracking-widest">
                     {giorno}
@@ -243,7 +309,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* PROSSIMA SETTIMANA (Stesso divisore, ma con un mega stacco iniziale) */}
         {!inCaricamento && lezioniProssimaSettimana.length > 0 && (
           <div className="mt-12 mb-4">
             <div className="flex items-center gap-4 mb-8">
@@ -256,7 +321,6 @@ export default function Home() {
             
             {raggruppaPerGiorno(lezioniProssimaSettimana).map(([giorno, lezioniGiorno], index) => (
               <div key={index} className="mb-8">
-                {/* Il nuovo Divisore Oro elegante */}
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-[11px] font-black text-[#c48e12] uppercase tracking-widest">
                     {giorno}
@@ -275,19 +339,14 @@ export default function Home() {
         )}
       </div>
 
-      {/* Navigation Bar Dark Glassmorphism */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/80 backdrop-blur-xl border-t border-[#333] pb-safe shadow-[0_-4px_30px_rgba(0,0,0,0.5)] z-50">
         <div className="max-w-md mx-auto flex justify-around items-center p-2 mt-1">
-          
-          {/* Tasto AGENDA (Attivo - Oro, Spessore 2.5) */}
           <button className="flex flex-col items-center p-2 text-[#c48e12] transition-transform active:scale-95">
             <svg className="w-6 h-6 mb-1 drop-shadow-[0_0_8px_rgba(196,142,18,0.4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
             </svg>
             <span className="text-[10px] font-bold tracking-wider">AGENDA</span>
           </button>
-          
-          {/* Tasto CALENDARIO (Inattivo - Grigio, Spessore 2) */}
           <button onClick={() => navigate('/calendario')} className="flex flex-col items-center p-2 text-gray-500 hover:text-gray-300 transition-colors active:scale-95">
             <svg className="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zM14.25 15h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zM16.5 15h.008v.008H16.5V15zm0 2.25h.008v.008H16.5v-.008z" />
