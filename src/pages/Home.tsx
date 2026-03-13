@@ -19,10 +19,13 @@ export default function Home() {
   const [inCaricamento, setInCaricamento] = useState(true);
   const [errore, setErrore] = useState<string | null>(null);
 
-  // STATI PER LA MODALITÀ OFFLINE ESTREMA
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [ultimoAggiornamento, setUltimoAggiornamento] = useState<string | null>(localStorage.getItem('ultimoAggiornamento'));
   const [refreshCount, setRefreshCount] = useState(0);
+
+  // NUOVI STATI PER LA BLACKLIST
+  const [showBlacklist, setShowBlacklist] = useState(false);
+  const [blacklist, setBlacklist] = useState<string[]>(JSON.parse(localStorage.getItem('blacklist_materie') || '[]'));
 
   const dataRiferimento = new Date(); 
   const [fineSettimanaCorrente, setFineSettimanaCorrente] = useState<Date | null>(null);
@@ -34,7 +37,6 @@ export default function Home() {
     navigate('/onboarding');
   };
 
-  // Listener per la connessione di rete
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
@@ -58,23 +60,19 @@ export default function Home() {
       try {
         setInCaricamento(true);
         setErrore(null);
-        const isForced = refreshCount > 0; // Se l'utente ha premuto il tasto Sync
+        const isForced = refreshCount > 0; 
 
         const urlAPI = '/api-unisalento/PortaleStudenti/grid_call.php';
 
         const fetchSettimana = async (dataTarget: Date) => {
           const dataStr = formattaDataAPI(dataTarget);
           const cacheKey = `orario_${corsoCodice}_${annoCodice}_${dataStr}`;
-          
-          // ORA USIAMO LOCALSTORAGE (Sopravvive alla chiusura dell'app)
           const cachedData = localStorage.getItem(cacheKey); 
           
-          // Se abbiamo i dati e non stiamo forzando l'aggiornamento, carichiamo istantaneamente
           if (cachedData && !isForced) {
             return JSON.parse(cachedData); 
           }
 
-          // Se siamo offline e non abbiamo dati, errore
           if (!navigator.onLine) {
             if (cachedData) return JSON.parse(cachedData);
             throw new Error("Sei offline e non ci sono dati salvati in memoria.");
@@ -111,11 +109,8 @@ export default function Home() {
           if (!response.ok) throw new Error(`Errore server: ${response.status}`);
           
           const result = await response.json();
-          
-          // Salvataggio permanente
           localStorage.setItem(cacheKey, JSON.stringify(result));
           
-          // Aggiorniamo il timestamp del "Last Update"
           const now = new Date().toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
           localStorage.setItem('ultimoAggiornamento', now);
           setUltimoAggiornamento(now);
@@ -178,14 +173,32 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [corsoCodice, annoCodice, refreshCount]);
 
-  const lezioneLiveIndex = lezioni.findIndex(lezione => {
+  // ESTRAZIONE MATERIE UNICHE PER IL POPUP BLACKLIST
+  const materieUniche = Array.from(new Set(lezioni.map(l => l.nome_insegnamento.replace(/<[^>]+>/g, '')))).sort();
+
+  // TOGGLE MATERIA (Aggiungi/Rimuovi dalla blacklist)
+  const toggleMateria = (materia: string) => {
+    let nuovaBlacklist = [...blacklist];
+    if (nuovaBlacklist.includes(materia)) {
+      nuovaBlacklist = nuovaBlacklist.filter(m => m !== materia);
+    } else {
+      nuovaBlacklist.push(materia);
+    }
+    setBlacklist(nuovaBlacklist);
+    localStorage.setItem('blacklist_materie', JSON.stringify(nuovaBlacklist));
+  };
+
+  // 1. FILTRIAMO LE LEZIONI CON LA BLACKLIST PRIMA DI FARE QUALSIASI CALCOLO
+  const lezioniFiltrate = lezioni.filter(l => !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '')));
+
+  const lezioneLiveIndex = lezioniFiltrate.findIndex(lezione => {
     if (!lezione.inizioDateObj || !lezione.fineDateObj) return false;
     return lezione.inizioDateObj <= oraAttuale && lezione.fineDateObj > oraAttuale;
   });
 
-  const lezioneLive = lezioneLiveIndex !== -1 ? lezioni[lezioneLiveIndex] : null;
+  const lezioneLive = lezioneLiveIndex !== -1 ? lezioniFiltrate[lezioneLiveIndex] : null;
 
-  const lezioniFuture = lezioni.filter((lezione, index) => {
+  const lezioniFuture = lezioniFiltrate.filter((lezione, index) => {
       if (index === lezioneLiveIndex) return false;
       if (!lezione.fineDateObj) return true;
       return lezione.fineDateObj > oraAttuale;
@@ -209,17 +222,31 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#121212] p-4 pb-28 relative">
       <header className="flex justify-between items-center mb-4 bg-[#212121] p-5 rounded-2xl shadow-lg border border-[#333]">
-        <div>
+        <div className="flex-1 pr-2">
           <h1 className="text-2xl font-black text-[#c48e12] tracking-tight">L'Agenda</h1>
           <p className="text-[10px] font-bold text-gray-500 mt-1 uppercase tracking-widest line-clamp-1">
             {corsoNome}
           </p>
         </div>
-        <button onClick={resettaImpostazioni} className="bg-[#1a1a1a] border border-[#333] p-3 rounded-xl hover:bg-[#2a2a2a] transition-colors text-gray-300 active:scale-95">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
-          </svg>
-        </button>
+        <div className="flex gap-2">
+          {/* TASTO FILTRI (BLACKLIST) */}
+          <button onClick={() => setShowBlacklist(true)} className="bg-[#1a1a1a] border border-[#333] p-3 rounded-xl hover:bg-[#2a2a2a] transition-colors text-gray-300 active:scale-95 relative">
+            {blacklist.length > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#c48e12] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-[#c48e12]"></span>
+              </span>
+            )}
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+            </svg>
+          </button>
+          <button onClick={resettaImpostazioni} className="bg-[#1a1a1a] border border-[#333] p-3 rounded-xl hover:bg-[#2a2a2a] transition-colors text-gray-300 active:scale-95">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+            </svg>
+          </button>
+        </div>
       </header>
 
       {/* BANNER OFFLINE ESTREMA */}
@@ -239,7 +266,6 @@ export default function Home() {
           </div>
         </div>
         
-        {/* TASTO SYNC MANUALE */}
         <button 
           onClick={() => {
             if (isOffline) alert("Sei offline! Connettiti per sincronizzare l'orario.");
@@ -270,7 +296,7 @@ export default function Home() {
 
         {!inCaricamento && !errore && !lezioneLive && lezioniFuture.length === 0 && (
           <div className="text-center p-10 text-gray-500 font-medium bg-[#212121] rounded-2xl shadow-lg border border-[#333] flex flex-col items-center justify-center gap-3">
-            <span className="text-4xl opacity-50">🥂</span>
+            <span className="text-4xl opacity-50">🏖️</span>
             <p className="text-sm">Nessuna lezione in programma a breve termine.</p>
           </div>
         )}
@@ -339,6 +365,69 @@ export default function Home() {
         )}
       </div>
 
+      {/* POPUP BLACKLIST */}
+      {showBlacklist && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex flex-col p-4 transition-opacity">
+          <div className="bg-[#212121] border border-[#333] rounded-[2rem] shadow-2xl w-full max-w-md mx-auto flex flex-col h-[85vh] overflow-hidden mt-8">
+            <div className="p-6 border-b border-[#333] flex justify-between items-center bg-[#1a1a1a]">
+              <div>
+                <h2 className="text-xl font-black text-white">Nascondi Materie</h2>
+                <p className="text-xs text-gray-400 mt-1 font-medium">Tocca una materia per nasconderla dall'agenda.</p>
+              </div>
+              <button onClick={() => setShowBlacklist(false)} className="bg-[#2a2a2a] p-2 rounded-full text-gray-400 hover:text-white active:scale-95 border border-[#444]">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {materieUniche.length === 0 ? (
+                <p className="text-center text-gray-500 mt-10 text-sm">Nessuna materia caricata.</p>
+              ) : (
+                materieUniche.map((materia, idx) => {
+                  const isNascosta = blacklist.includes(materia);
+                  return (
+                    <button 
+                      key={idx}
+                      onClick={() => toggleMateria(materia)}
+                      className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all active:scale-[0.98] text-left ${
+                        isNascosta 
+                          ? 'bg-[#1a1a1a] border-[#333] opacity-60' 
+                          : 'bg-gradient-to-r from-[#2a2215] to-[#212121] border-[#c48e12]/30 shadow-md'
+                      }`}
+                    >
+                      <span className={`font-bold pr-4 ${isNascosta ? 'text-gray-500 line-through' : 'text-white'}`}>
+                        {materia}
+                      </span>
+                      {isNascosta ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6 text-gray-600 shrink-0">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6 text-[#c48e12] shrink-0">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+            <div className="p-4 bg-[#1a1a1a] border-t border-[#333]">
+              <button 
+                onClick={() => setShowBlacklist(false)}
+                className="w-full font-black py-4 rounded-xl transition-all shadow-lg active:scale-95 bg-[#c48e12] text-[#121212] shadow-[#c48e12]/20"
+              >
+                Applica Filtri
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Navigation Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/80 backdrop-blur-xl border-t border-[#333] pb-safe shadow-[0_-4px_30px_rgba(0,0,0,0.5)] z-50">
         <div className="max-w-md mx-auto flex justify-around items-center p-2 mt-1">
           <button className="flex flex-col items-center p-2 text-[#c48e12] transition-transform active:scale-95">

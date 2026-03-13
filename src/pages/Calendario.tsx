@@ -30,6 +30,9 @@ export default function Calendario() {
 
   const [dataSelezionata, setDataSelezionata] = useState<Date>(new Date());
 
+  // LEGGIAMO LA BLACKLIST SALVATA DALLA HOME
+  const blacklist = JSON.parse(localStorage.getItem('blacklist_materie') || '[]');
+
   const resettaImpostazioni = () => {
     localStorage.clear();
     sessionStorage.clear();
@@ -49,15 +52,12 @@ export default function Calendario() {
         let datiJSON = null;
         let datiTrovatiInCache = false;
 
-        // 1. Controllo cache specifica
         if (cachedData) {
           datiJSON = JSON.parse(cachedData);
           datiTrovatiInCache = true;
         } else {
-          // 2. Ricerca granulare nei pacchetti settimanali della Home
           const prefisso = `orario_${corsoCodice}_${annoCodice}_`;
           let celleTrovate: any[] = [];
-          
           const targetTime = parseDataString(dataStr);
 
           for (let i = 0; i < localStorage.length; i++) {
@@ -73,7 +73,7 @@ export default function Calendario() {
                   const endTime = parseDataString(dataObj.last_day);
                   
                   if (targetTime >= startTime && targetTime <= endTime) {
-                    datiTrovatiInCache = true; // ABBIAMO COPERTURA!
+                    datiTrovatiInCache = true; 
                     if (dataObj.celle) {
                       const celleDelGiorno = dataObj.celle.filter((c: any) => c.data === dataStr);
                       celleTrovate = [...celleTrovate, ...celleDelGiorno];
@@ -89,13 +89,10 @@ export default function Calendario() {
           }
         }
 
-        // 3. Gestione finale: scarico o errore
         if (!datiTrovatiInCache) {
           if (!navigator.onLine) {
-            // SE SIAMO OFFLINE E NON ABBIAMO TROVATO NULLA IN NESSUNA CACHE
             throw new Error("Dati non disponibili offline per questa data. Connettiti per scaricarli.");
           } else {
-            // Online e senza cache: scarichiamo
             const urlAPI = '/api-unisalento/PortaleStudenti/grid_call.php';
             const datiModulo = new URLSearchParams();
             datiModulo.append('view', 'easycourse');
@@ -147,7 +144,11 @@ export default function Calendario() {
             return { ...lezione, inizioDateObj, fineDateObj, mail_docente: mailPulita };
           });
 
-          const lezioniDelGiorno = lezioniElaborate.filter(l => l.data === dataStr);
+          // FILTRAGGIO BLACKLIST: Scartiamo le lezioni che l'utente ha nascosto nella Home
+          const lezioniDelGiorno = lezioniElaborate.filter(l => 
+            l.data === dataStr && !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, ''))
+          );
+          
           const lezioniUniche = Array.from(new Map(lezioniDelGiorno.map(l => [l.id, l])).values());
           lezioniUniche.sort((a, b) => {
              if (!a.inizioDateObj || !b.inizioDateObj) return 0;
@@ -166,6 +167,7 @@ export default function Calendario() {
     };
 
     scaricaOrarioGiorno();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [corsoCodice, annoCodice, dataSelezionata]);
 
   return (
