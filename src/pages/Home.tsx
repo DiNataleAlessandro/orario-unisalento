@@ -55,8 +55,7 @@ export default function Home() {
         setInCaricamento(true);
         setErrore(null);
 
-        const urlOriginale = 'https://logistica.unisalento.it/PortaleStudenti/grid_call.php';
-        const urlAPI = 'https://corsproxy.io/?' + encodeURIComponent(urlOriginale);
+        const urlAPI = '/api-unisalento/PortaleStudenti/grid_call.php';
 
         const fetchSettimana = async (dataTarget: Date) => {
           // SISTEMA DI CACHE: Controlliamo se abbiamo già scaricato questi dati

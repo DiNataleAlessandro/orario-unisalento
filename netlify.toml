@@ -1,10 +1,15 @@
 [build]
-  # Il comando per "cucinare" l'app
   command = "npm run build"
-  # La cartella del prodotto finito da servire al pubblico!
   publish = "dist"
 
-# Questo risolve il problema del refresh delle pagine con React Router
+# 1. IL NOSTRO PONTE PRIVATO (PROXY NETLIFY)
+[[redirects]]
+  from = "/api-unisalento/*"
+  to = "https://logistica.unisalento.it/:splat"
+  status = 200
+  force = true
+
+# 2. Fix per tenere l'app aperta ricaricando la pagina
 [[redirects]]
   from = "/*"
   to = "/index.html"

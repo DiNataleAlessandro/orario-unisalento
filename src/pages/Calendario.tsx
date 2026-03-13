@@ -58,8 +58,7 @@ export default function Calendario() {
         if (cachedData) {
           datiJSON = JSON.parse(cachedData);
         } else {
-          const urlOriginale = 'https://logistica.unisalento.it/PortaleStudenti/grid_call.php';
-          const urlAPI = 'https://corsproxy.io/?' + encodeURIComponent(urlOriginale);
+          const urlAPI = '/api-unisalento/PortaleStudenti/grid_call.php';
 
           const datiModulo = new URLSearchParams();
           datiModulo.append('view', 'easycourse');
