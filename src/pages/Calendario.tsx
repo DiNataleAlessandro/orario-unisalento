@@ -36,7 +36,6 @@ export default function Calendario() {
 
   const [dataSelezionata, setDataSelezionata] = useState<Date>(new Date());
   
-  // STATO PER IL POPUP DEL PROFESSORE
   const [profPopup, setProfPopup] = useState<{nome: string, mail: string} | null>(null);
 
   const resettaImpostazioni = () => {
@@ -105,7 +104,10 @@ export default function Calendario() {
             const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
             const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
             
-            const mailPulita = lezione.mail_docente ? lezione.mail_docente.replace(/^,\s*/, '').trim() : '';
+            // PULIZIA MULTI-MAIL AVANZATA
+            const mailPulita = lezione.mail_docente 
+              ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',')
+              : '';
             
             return { ...lezione, inizioDateObj, fineDateObj, mail_docente: mailPulita };
           });
@@ -147,7 +149,6 @@ export default function Calendario() {
         </button>
       </header>
 
-      {/* Contenitore Calendario */}
       <div className="bg-[#1a1a1a] p-4 rounded-3xl shadow-inner border border-[#333] mb-6 flex justify-center overflow-hidden">
         <DayPicker 
           mode="single" 
@@ -221,7 +222,7 @@ export default function Calendario() {
         )}
       </div>
 
-      {/* POPUP PROFESSORE (Stile Premium) */}
+      {/* POPUP PROFESSORE MULTIPLO RISOLTO */}
       {profPopup && (
         <div 
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-opacity" 
@@ -235,13 +236,22 @@ export default function Calendario() {
               <div className="bg-[#1a1a1a] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-[#c48e12]/30 shadow-[0_0_15px_rgba(196,142,18,0.2)]">
                 <span className="text-2xl">👨‍🏫</span>
               </div>
-              <h3 className="text-xl font-bold text-white">{profPopup.nome.replace(/<[^>]+>/g, '')}</h3>
+              <h3 className="text-xl font-bold text-white leading-tight mb-2">
+                {profPopup.nome.replace(/<[^>]+>/g, '')}
+              </h3>
               <p className="text-gray-400 text-sm mt-1">Docente Unisalento</p>
             </div>
 
-            <div className="bg-[#1a1a1a] p-4 rounded-2xl border border-[#333] mb-6 flex flex-col items-center">
+            <div className="bg-[#1a1a1a] p-4 rounded-2xl border border-[#333] mb-6 flex flex-col items-center gap-2">
               <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Email Ufficiale</span>
-              <span className="text-[#c48e12] font-medium break-all text-center">{profPopup.mail}</span>
+              
+              <div className="flex flex-col gap-1 w-full">
+                {profPopup.mail.split(',').map((email, i) => (
+                  <span key={i} className="text-[#c48e12] font-medium break-all text-center block">
+                    {email}
+                  </span>
+                ))}
+              </div>
             </div>
 
             <div className="flex gap-3">

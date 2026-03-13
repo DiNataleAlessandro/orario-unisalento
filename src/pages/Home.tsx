@@ -32,7 +32,6 @@ export default function Home() {
   const [inCaricamento, setInCaricamento] = useState(true);
   const [errore, setErrore] = useState<string | null>(null);
   
-  // STATO PER IL POPUP DEL PROFESSORE
   const [profPopup, setProfPopup] = useState<{nome: string, mail: string} | null>(null);
 
   const dataRiferimento = new Date(); 
@@ -129,7 +128,10 @@ export default function Home() {
             const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
             const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
 
-            const mailPulita = lezione.mail_docente ? lezione.mail_docente.replace(/^,\s*/, '').trim() : '';
+            // PULIZIA MULTI-MAIL AVANZATA: divide per virgola, pulisce gli spazi e rimuove le vuote
+            const mailPulita = lezione.mail_docente 
+              ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',')
+              : '';
 
             return { ...lezione, inizioDateObj, fineDateObj, mail_docente: mailPulita };
           });
@@ -252,7 +254,6 @@ export default function Home() {
                     </span>
                     In Corso Ora
                 </h3>
-                {/* Card Lezione Live con stile Premium */}
                 <div className="bg-gradient-to-br from-[#2a2215] to-[#1a150c] p-5 rounded-2xl shadow-xl flex flex-col gap-2 relative overflow-hidden border border-[#c48e12]/30 transform transition-transform hover:scale-[1.02]">
                     <div className="flex justify-between items-start pl-2">
                     <h2 className="font-bold text-white text-xl leading-tight w-3/4">
@@ -320,7 +321,7 @@ export default function Home() {
         )}
       </div>
 
-      {/* POPUP PROFESSORE (Stile Premium) */}
+      {/* POPUP PROFESSORE MULTIPLO RISOLTO */}
       {profPopup && (
         <div 
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-opacity" 
@@ -334,13 +335,23 @@ export default function Home() {
               <div className="bg-[#1a1a1a] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-[#c48e12]/30 shadow-[0_0_15px_rgba(196,142,18,0.2)]">
                 <span className="text-2xl">👨‍🏫</span>
               </div>
-              <h3 className="text-xl font-bold text-white">{profPopup.nome.replace(/<[^>]+>/g, '')}</h3>
+              <h3 className="text-xl font-bold text-white leading-tight mb-2">
+                {profPopup.nome.replace(/<[^>]+>/g, '')}
+              </h3>
               <p className="text-gray-400 text-sm mt-1">Docente Unisalento</p>
             </div>
 
-            <div className="bg-[#1a1a1a] p-4 rounded-2xl border border-[#333] mb-6 flex flex-col items-center">
+            <div className="bg-[#1a1a1a] p-4 rounded-2xl border border-[#333] mb-6 flex flex-col items-center gap-2">
               <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Email Ufficiale</span>
-              <span className="text-[#c48e12] font-medium break-all text-center">{profPopup.mail}</span>
+              
+              {/* Le mail vengono separate e messe una sotto l'altra */}
+              <div className="flex flex-col gap-1 w-full">
+                {profPopup.mail.split(',').map((email, i) => (
+                  <span key={i} className="text-[#c48e12] font-medium break-all text-center block">
+                    {email}
+                  </span>
+                ))}
+              </div>
             </div>
 
             <div className="flex gap-3">
@@ -361,7 +372,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* Navigation Bar Dark Glassmorphism */}
+      {/* Navigation Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/80 backdrop-blur-xl border-t border-[#333] pb-safe shadow-[0_-4px_30px_rgba(0,0,0,0.5)] z-50">
         <div className="max-w-md mx-auto flex justify-around items-center p-2 mt-1">
           <button className="flex flex-col items-center p-2 text-[#c48e12] transition-transform active:scale-95">
