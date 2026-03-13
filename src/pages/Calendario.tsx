@@ -126,44 +126,53 @@ export default function Calendario() {
 
   return (
     <div className="min-h-screen bg-[#121212] p-4 pb-28 relative">
-      {/* MAGIA CSS SUPER-POTENZIATA PER IL CALENDARIO DARK */}
       <style>{`
-        .custom-calendar-wrapper .rdp {
-          --rdp-cell-size: 40px;
+        /* Variabili globali del calendario forzate */
+        div.custom-calendar-wrapper .rdp {
           --rdp-accent-color: #c48e12;
           --rdp-background-color: #333333;
+          --rdp-accent-color-dark: #c48e12;
+          --rdp-background-color-dark: #333333;
           --rdp-outline: 2px solid #c48e12;
-          margin: 0;
+          --rdp-outline-selected: 2px solid #c48e12;
         }
-        /* Testo bianco puro per mese, anni e numeri dei giorni */
-        .custom-calendar-wrapper .rdp-caption_label,
-        .custom-calendar-wrapper .rdp-nav_button,
-        .custom-calendar-wrapper .rdp-button {
-          color: #ffffff !important; 
+        
+        /* Colore dei numeri (tutti i giorni) */
+        div.custom-calendar-wrapper .rdp-day {
+          color: #ffffff !important;
         }
-        /* Intestazione giorni (lun, mar, mer...) in grigio */
-        .custom-calendar-wrapper .rdp-head_cell {
+        
+        /* Colore intestazione giorni della settimana (lun, mar...) */
+        div.custom-calendar-wrapper .rdp-head_cell {
           color: #9ca3af !important;
-          font-weight: bold;
         }
-        /* Giorno selezionato: sfondo oro, testo nero scuro */
-        .custom-calendar-wrapper .rdp-day_selected, 
-        .custom-calendar-wrapper .rdp-day_selected:focus-visible, 
-        .custom-calendar-wrapper .rdp-day_selected:hover {
-          color: #121212 !important;
+        
+        /* Freccette dei mesi (rese oro) */
+        div.custom-calendar-wrapper .rdp-nav_button {
+          color: #c48e12 !important;
+        }
+        
+        /* Il giorno SELEZIONATO o OGGI (via il blu, dentro l'oro) */
+        div.custom-calendar-wrapper .rdp-day_selected,
+        div.custom-calendar-wrapper .rdp-day_today,
+        div.custom-calendar-wrapper .rdp-day_selected:hover {
           background-color: #c48e12 !important;
+          color: #121212 !important;
           font-weight: 900 !important;
           border: none !important;
-          outline: none !important;
+          border-radius: 100%;
         }
+
+        /* Rimuove eventuali bordi blu residui dal click/focus */
+        div.custom-calendar-wrapper .rdp-button:focus,
+        div.custom-calendar-wrapper .rdp-button:focus-visible {
+          outline: 2px solid #c48e12 !important;
+          outline-offset: 2px;
+        }
+        
         /* Hover sui giorni normali */
-        .custom-calendar-wrapper .rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
+        div.custom-calendar-wrapper .rdp-day:hover:not(.rdp-day_selected) {
           background-color: #333333 !important;
-        }
-        /* Giorno di oggi (se non selezionato) spicca in oro */
-        .custom-calendar-wrapper .rdp-day_today:not(.rdp-day_selected) {
-          color: #c48e12 !important;
-          font-weight: 900 !important;
         }
       `}</style>
 
