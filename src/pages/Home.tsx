@@ -157,6 +157,19 @@ export default function Home() {
   const lezioniQuestaSettimana = lezioniFuture.filter(l => !fineSettimanaCorrente || l.inizioDateObj! <= fineSettimanaCorrente);
   const lezioniProssimaSettimana = lezioniFuture.filter(l => fineSettimanaCorrente && l.inizioDateObj! > fineSettimanaCorrente);
 
+  // FUNZIONE MAGICA PER RAGGRUPPARE LE LEZIONI PER GIORNO
+  const raggruppaPerGiorno = (listaLezioni: Lezione[]) => {
+    const gruppi = new Map<string, Lezione[]>();
+    listaLezioni.forEach(l => {
+      const chiave = `${l.nome_giorno} ${l.data}`;
+      if (!gruppi.has(chiave)) {
+        gruppi.set(chiave, []);
+      }
+      gruppi.get(chiave)!.push(l);
+    });
+    return Array.from(gruppi.entries());
+  };
+
   return (
     <div className="min-h-screen bg-[#121212] p-4 pb-28 relative">
       <header className="flex justify-between items-center mb-6 bg-[#212121] p-5 rounded-2xl shadow-lg border border-[#333]">
@@ -193,6 +206,7 @@ export default function Home() {
           </div>
         )}
 
+        {/* LEZIONE IN CORSO (Nessun divisore, spicca da sola) */}
         {!inCaricamento && lezioneLive && (
             <div className="mb-6">
                 <h3 className="text-xs font-bold text-[#c48e12] uppercase tracking-[0.2em] mb-3 pl-2 flex items-center gap-2">
@@ -206,31 +220,57 @@ export default function Home() {
             </div>
         )}
 
+        {/* PROSSIME LEZIONI CON DIVISORE ORO PER GIORNO */}
         {!inCaricamento && lezioniQuestaSettimana.length > 0 && (
-          <div className="grid gap-4">
-             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em] pl-2 mt-2">
-                 {lezioneLive ? "Prossime Oggi" : "In Arrivo"}
-             </h3>
-            {lezioniQuestaSettimana.map((lezione, index) => (
-              <CardLezione key={index} lezione={lezione} />
+          <div className="mt-8">
+            {raggruppaPerGiorno(lezioniQuestaSettimana).map(([giorno, lezioniGiorno], index) => (
+              <div key={index} className="mb-8">
+                {/* Il nuovo Divisore Oro elegante */}
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-[11px] font-black text-[#c48e12] uppercase tracking-widest">
+                    {giorno}
+                  </span>
+                  <div className="flex-1 h-[1px] bg-gradient-to-r from-[#c48e12]/40 to-transparent"></div>
+                </div>
+                
+                <div className="grid gap-4">
+                  {lezioniGiorno.map((lezione, idx) => (
+                    <CardLezione key={idx} lezione={lezione} />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )}
 
+        {/* PROSSIMA SETTIMANA (Stesso divisore, ma con un mega stacco iniziale) */}
         {!inCaricamento && lezioniProssimaSettimana.length > 0 && (
-          <div className="mt-8 mb-4">
-            <div className="flex items-center gap-4">
+          <div className="mt-12 mb-4">
+            <div className="flex items-center gap-4 mb-8">
                 <div className="flex-1 h-px bg-[#333] rounded-full"></div>
-                <span className="text-[10px] font-black text-[#c48e12] uppercase tracking-[0.2em] bg-[#1a1a1a] border border-[#333] px-3 py-1 rounded-lg">
+                <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] bg-[#1a1a1a] border border-[#333] px-3 py-1 rounded-lg">
                     Prossima Settimana
                 </span>
                 <div className="flex-1 h-px bg-[#333] rounded-full"></div>
             </div>
-            <div className="grid gap-4 mt-6">
-                {lezioniProssimaSettimana.map((lezione, index) => (
-                  <CardLezione key={index} lezione={lezione} />
-                ))}
-            </div>
+            
+            {raggruppaPerGiorno(lezioniProssimaSettimana).map(([giorno, lezioniGiorno], index) => (
+              <div key={index} className="mb-8">
+                {/* Il nuovo Divisore Oro elegante */}
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-[11px] font-black text-[#c48e12] uppercase tracking-widest">
+                    {giorno}
+                  </span>
+                  <div className="flex-1 h-[1px] bg-gradient-to-r from-[#c48e12]/40 to-transparent"></div>
+                </div>
+                
+                <div className="grid gap-4">
+                  {lezioniGiorno.map((lezione, idx) => (
+                    <CardLezione key={idx} lezione={lezione} />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

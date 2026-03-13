@@ -16,7 +16,7 @@ export interface Lezione {
 
 interface CardLezioneProps {
   lezione: Lezione;
-  isLive?: boolean; // Se è "In Corso Ora", cambiamo lo stile
+  isLive?: boolean; 
 }
 
 export default function CardLezione({ lezione, isLive = false }: CardLezioneProps) {
@@ -33,16 +33,10 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
         <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${isLive ? 'bg-[#c48e12]' : 'bg-[#333]'}`}></div>
         
         <div className="flex justify-between items-start pl-2">
-            <h2 className={`font-bold leading-tight w-3/4 ${isLive ? 'text-white text-xl' : 'text-white text-lg'}`}>
+            {/* Titolo più largo ora che non c'è il riquadro giallo */}
+            <h2 className={`font-bold leading-tight ${isLive ? 'text-white text-xl' : 'text-white text-lg'}`}>
               {lezione.nome_insegnamento.replace(/<[^>]+>/g, '')}
             </h2>
-            <span className={`text-xs font-bold px-2 py-1 rounded-lg shrink-0 text-center border ${
-              isLive 
-                ? 'bg-black/40 text-[#c48e12] border-[#c48e12]/20' 
-                : 'bg-[#1a1a1a] text-[#c48e12] border-[#333]'
-            }`}>
-              {lezione.nome_giorno}<br/>{lezione.data}
-            </span>
         </div>
 
         <div className={`pl-2 flex flex-col gap-1.5 mt-2 text-sm ${isLive ? 'text-[#e8d5a5]' : 'text-gray-400'}`}>
@@ -75,7 +69,7 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
         </div>
       </div>
 
-      {/* POPUP PROFESSORE MULTIPLO INCORPORATO NELLA CARD */}
+      {/* POPUP PROFESSORE MULTIPLO INCORPORATO */}
       {profPopup && (
         <div 
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-opacity" 
