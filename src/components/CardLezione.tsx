@@ -1,6 +1,5 @@
 import { useState } from 'react';
 
-// Esportiamo l'interfaccia così la possono usare anche le altre pagine
 export interface Lezione {
   id: string;
   nome_insegnamento: string;
@@ -19,8 +18,28 @@ interface CardLezioneProps {
   isLive?: boolean; 
 }
 
+const generaEmailProf = (nomeGrezzo: string) => {
+  if (!nomeGrezzo) return '';
+  
+  let pulito = nomeGrezzo.replace(/<[^>]+>/g, '')
+                         .replace(/Prof\.ssa|Prof\.|Dott\.ssa|Dott\./gi, '')
+                         .trim()
+                         .toLowerCase();
+                         
+  pulito = pulito.replace(/[']/g, '')
+                 .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
+                 
+  const parti = pulito.split(/\s+/);
+  return `${parti.join('.')}@unisalento.it`;
+};
+
 export default function CardLezione({ lezione, isLive = false }: CardLezioneProps) {
   const [profPopup, setProfPopup] = useState<{nome: string, mail: string} | null>(null);
+
+  // Fallback invisibile all'utente: se manca quella ufficiale, la calcoliamo.
+  const emailUfficiale = lezione.mail_docente ? lezione.mail_docente.trim() : '';
+  const emailGenerata = emailUfficiale ? '' : generaEmailProf(lezione.docente);
+  const emailFinale = emailUfficiale || emailGenerata;
 
   return (
     <>
@@ -29,11 +48,9 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
           ? 'bg-gradient-to-br from-[#2a2215] to-[#1a150c] border-[#c48e12]/30 shadow-xl' 
           : 'bg-[#212121] border-[#333]'
       }`}>
-        {/* Barra laterale */}
         <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${isLive ? 'bg-[#c48e12]' : 'bg-[#333]'}`}></div>
         
         <div className="flex justify-between items-start pl-2">
-            {/* Titolo più largo ora che non c'è il riquadro giallo */}
             <h2 className={`font-bold leading-tight ${isLive ? 'text-white text-xl' : 'text-white text-lg'}`}>
               {lezione.nome_insegnamento.replace(/<[^>]+>/g, '')}
             </h2>
@@ -52,10 +69,10 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
               <span className={isLive ? 'opacity-80' : 'opacity-70'}>👨‍🏫</span> 
               {lezione.docente ? (
                   <button 
-                    onClick={() => lezione.mail_docente && setProfPopup({ nome: lezione.docente, mail: lezione.mail_docente })}
-                    disabled={!lezione.mail_docente}
+                    onClick={() => emailFinale && setProfPopup({ nome: lezione.docente, mail: emailFinale })}
+                    disabled={!emailFinale}
                     className={`font-medium transition-colors text-left ${
-                      lezione.mail_docente 
+                      emailFinale 
                         ? 'text-[#c48e12] hover:text-white underline decoration-[#c48e12]/30 hover:decoration-white decoration-2 underline-offset-4' 
                         : (isLive ? 'text-gray-300 cursor-default' : 'text-gray-500 cursor-default')
                     }`}
@@ -69,7 +86,7 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
         </div>
       </div>
 
-      {/* POPUP PROFESSORE MULTIPLO INCORPORATO */}
+      {/* POPUP PROFESSORE MINIMAL */}
       {profPopup && (
         <div 
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-opacity" 
@@ -90,7 +107,10 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
             </div>
 
             <div className="bg-[#1a1a1a] p-4 rounded-2xl border border-[#333] mb-6 flex flex-col items-center gap-2">
-              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Email Ufficiale</span>
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">
+                Email Docente
+              </span>
+              
               <div className="flex flex-col gap-1 w-full">
                 {profPopup.mail.split(',').map((email, i) => (
                   <span key={i} className="text-[#c48e12] font-medium break-all text-center block">
