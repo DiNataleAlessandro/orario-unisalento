@@ -26,6 +26,7 @@ export default function Calendario() {
 
   const [lezioniGiorno, setLezioniGiorno] = useState<Lezione[]>([]);
   const [inCaricamento, setInCaricamento] = useState(false);
+  const [esportazioneInCorso, setEsportazioneInCorso] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
 
   const [dataSelezionata, setDataSelezionata] = useState<Date>(new Date());
@@ -38,7 +39,6 @@ export default function Calendario() {
         setErrore(null);
         const dataStr = formatDateForAPI(dataSelezionata);
 
-        // Aggregate targets: main course + any custom added subjects
         const materieExtra = JSON.parse(localStorage.getItem('materieExtra') || '[]');
         const corsiDaScaricare = new Map();
         materieExtra.forEach((m: any) => {
@@ -62,12 +62,10 @@ export default function Calendario() {
             let datiTargetJSON = null;
             let trovatoInCache = false;
 
-            // Cache lookup strategy: check exact date key first
             if (cachedData) {
                 datiTargetJSON = JSON.parse(cachedData);
                 trovatoInCache = true;
             } else {
-                // If exact miss, scan existing week-grid caches to see if target date falls within downloaded range
                 const prefisso = `orario_${target.corsoCodice}_${target.annoCodice}_`;
                 let celleTrovate: any[] = [];
                 const targetTime = parseDataString(dataStr);
@@ -124,7 +122,7 @@ export default function Calendario() {
             if (datiTargetJSON && datiTargetJSON.celle) {
                 let celleDaAggiungere = datiTargetJSON.celle.filter((c:any) => c.data === dataStr);
                 if (target.materie) {
-                    celleDaAggiungere = celleDaAggiungere.filter((c:any) => target.materie.includes(c.nome_insegnamento.replace(/<[^>]+>/g, '')));
+                    celleDaAggiungere = celleDaAggiungere.filter((c:any) => target.materie.includes(c.nome_insegnamento.replace(/<[^>]+>/g, '').trim()));
                 }
                 celleUnite = [...celleUnite, ...celleDaAggiungere];
             }
@@ -147,9 +145,8 @@ export default function Calendario() {
             return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
           });
 
-          const lezioniDelGiorno = lezioniElaborate.filter(l => !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '')));
+          const lezioniDelGiorno = lezioniElaborate.filter(l => !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '').trim()));
           
-          // Deduplicate lessons by ID and sort chronologically
           const uniqueLessons = Array.from(new Map(lezioniDelGiorno.map(l => [l.id, l])).values());
           uniqueLessons.sort((a, b) => {
              if (!a.inizioDateObj || !b.inizioDateObj) return 0;
@@ -171,104 +168,155 @@ export default function Calendario() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [corsoCodice, annoCodice, dataSelezionata]);
 
-  // Aggrega tutte le lezioni memorizzate nell'app per scaricare l'intero calendario al volo
-  const esportaInteroCalendario = () => {
-    const materieExtra = JSON.parse(localStorage.getItem('materieExtra') || '[]');
-    
-    // Mappiamo i corsi che l'utente sta seguendo
-    const mapCorsi = new Map();
-    mapCorsi.set(`${corsoCodice}_${annoCodice}`, { isMain: true, materie: [] });
-
-    materieExtra.forEach((m: any) => {
-       const k = `${m.corsoCodice}_${m.annoCodice}`;
-       if (!mapCorsi.has(k)) mapCorsi.set(k, { isMain: false, materie: [] });
-       mapCorsi.get(k).materie.push(m.materiaNome);
-    });
-
-    let tutteCelle: any[] = [];
-
-    // Raccogliamo tutto dalla memoria locale
-    for (let i = 0; i < localStorage.length; i++) {
-       const key = localStorage.key(i);
-       if (key && key.startsWith('orario_')) {
-           try {
-               const dataObj = JSON.parse(localStorage.getItem(key) || '{}');
-               if (dataObj.celle) {
-                   const parts = key.split('_'); 
-                   if (parts.length >= 3) {
-                       const keyCorsoAnno = `${parts[1]}_${parts[2]}`;
-                       if (mapCorsi.has(keyCorsoAnno)) {
-                           const config = mapCorsi.get(keyCorsoAnno);
-                           let celleValide = dataObj.celle;
-                           if (!config.isMain) {
-                               celleValide = celleValide.filter((c:any) => config.materie.includes(c.nome_insegnamento.replace(/<[^>]+>/g, '')));
-                           }
-                           tutteCelle = [...tutteCelle, ...celleValide];
-                       }
-                   }
-               }
-           } catch(e) {}
-       }
+  // Crawler attivo per scaricare l'intero semestre (passato e futuro)
+  const esportaInteroCalendario = async () => {
+    if (!navigator.onLine) {
+      alert("Devi essere online per scaricare il calendario dell'intero semestre.");
+      return;
     }
 
-    if (tutteCelle.length === 0) {
-        alert("Nessun dato in memoria. Visualizza almeno una settimana di lezioni per caricarle prima di esportare.");
-        return;
-    }
+    setEsportazioneInCorso(true);
 
-    const lezioniElaborate: Lezione[] = tutteCelle.map((lezione: any) => {
-      const [oraInizioStr, oraFineStr] = lezione.orario.split(' - ');
-      const [giorno, mese, annoStr] = lezione.data.split('-');
-      const [oraInizio, minInizio] = oraInizioStr.split(':');
-      const [oraFine, minFine] = oraFineStr.split(':');
-      const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
-      const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
+    try {
+      const materieExtra = JSON.parse(localStorage.getItem('materieExtra') || '[]');
+      const mapCorsi = new Map();
+      mapCorsi.set(`${corsoCodice}_${annoCodice}`, { isMain: true, materie: [] });
+
+      materieExtra.forEach((m: any) => {
+         const k = `${m.corsoCodice}_${m.annoCodice}`;
+         if (!mapCorsi.has(k)) mapCorsi.set(k, { isMain: false, materie: [] });
+         mapCorsi.get(k).materie.push(m.materiaNome);
+      });
+
+      // Creiamo un range di date: 15 settimane nel passato, 15 nel futuro rispetto a oggi
+      const dateTarget: string[] = [];
+      const dataRiferimento = new Date();
+      for (let i = -15; i <= 15; i++) {
+        const d = new Date(dataRiferimento);
+        d.setDate(d.getDate() + (i * 7));
+        dateTarget.push(formatDateForAPI(d));
+      }
+
+      let tutteCelle: any[] = [];
+      const urlAPI = '/api-unisalento/PortaleStudenti/grid_call.php';
+
+      // Facciamo le chiamate in sequenza (per non sovraccaricare il server dell'università)
+      for (const targetDate of dateTarget) {
+        for (const [keyCorsoAnno, config] of mapCorsi.entries()) {
+          const [cCodice, aCodice] = keyCorsoAnno.split('_');
+
+          const formData = new URLSearchParams();
+          formData.append('view', 'easycourse');
+          formData.append('form-type', 'corso');
+          formData.append('include', 'corso');
+          formData.append('txtcurr', '1 - Percorso comune');
+          formData.append('anno', '2025');
+          formData.append('corso', cCodice);
+          formData.append('anno2[]', aCodice);
+          formData.append('visualizzazione_orario', 'cal');
+          formData.append('date', targetDate);
+          formData.append('_lang', 'it');
+          formData.append('week_grid_type', '-1');
+          formData.append('col_cells', '0');
+          formData.append('empty_box', '0');
+          formData.append('only_grid', '0');
+
+          try {
+            const response = await fetch(urlAPI, {
+              method: 'POST',
+              body: formData,
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' }
+            });
+            if (response.ok) {
+              const result = await response.json();
+              if (result && result.celle) {
+                let celleValide = result.celle;
+                if (!config.isMain) {
+                  celleValide = celleValide.filter((c: any) => config.materie.includes(c.nome_insegnamento.replace(/<[^>]+>/g, '').trim()));
+                }
+                tutteCelle = [...tutteCelle, ...celleValide];
+              }
+            }
+          } catch (e) {
+            console.error(`Errore nel recupero dati per la data ${targetDate}`, e);
+          }
+        }
+      }
+
+      if (tutteCelle.length === 0) {
+          alert("Nessun dato trovato per il semestre.");
+          return;
+      }
+
+      const lezioniElaborate: Lezione[] = tutteCelle.map((lezione: any) => {
+        const [oraInizioStr, oraFineStr] = lezione.orario.split(' - ');
+        const [giorno, mese, annoStr] = lezione.data.split('-');
+        const [oraInizio, minInizio] = oraInizioStr.split(':');
+        const [oraFine, minFine] = oraFineStr.split(':');
+        const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
+        const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
+        
+        const cleanMail = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
+        return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
+      });
+
+      const lezioniFiltrate = lezioniElaborate.filter(l => !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '').trim()));
       
-      const cleanMail = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
-      return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
-    });
+      // La deduplicazione qui è vitale perché stiamo scaricando intere settimane multiple volte
+      const mappaUnici = new Map();
+      lezioniFiltrate.forEach(l => {
+        // Creiamo un ID combinato univoco: ID materia + Data esatta + Orario
+        const uniqueKey = `${l.id}_${l.data}_${l.orario}`;
+        if (!mappaUnici.has(uniqueKey)) {
+          mappaUnici.set(uniqueKey, l);
+        }
+      });
 
-    const lezioniFiltrate = lezioniElaborate.filter(l => !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '')));
-    
-    // Deduplichiamo rigorosamente per ID in modo da non avere eventi doppi nel file ICS
-    const lezioniUniche = Array.from(new Map(lezioniFiltrate.map(l => [l.id, l])).values());
-    lezioniUniche.sort((a, b) => {
-       if (!a.inizioDateObj || !b.inizioDateObj) return 0;
-       return a.inizioDateObj.getTime() - b.inizioDateObj.getTime();
-    });
+      const lezioniUniche = Array.from(mappaUnici.values()) as Lezione[];
+      lezioniUniche.sort((a, b) => {
+         if (!a.inizioDateObj || !b.inizioDateObj) return 0;
+         return a.inizioDateObj.getTime() - b.inizioDateObj.getTime();
+      });
 
-    let icsContent = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//NextLesson UniSalento//IT\r\n";
+      let icsContent = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//NextLesson UniSalento//IT\r\n";
 
-    lezioniUniche.forEach(lezione => {
-      if (!lezione.inizioDateObj || !lezione.fineDateObj) return;
+      lezioniUniche.forEach(lezione => {
+        if (!lezione.inizioDateObj || !lezione.fineDateObj) return;
 
-      const start = lezione.inizioDateObj.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-      const end = lezione.fineDateObj.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+        const start = lezione.inizioDateObj.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+        const end = lezione.fineDateObj.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
-      const summary = lezione.nome_insegnamento.replace(/<[^>]+>/g, '');
-      const location = lezione.aula.replace(/<[^>]+>/g, '');
-      const description = `Docente: ${lezione.docente.replace(/<[^>]+>/g, '')}`;
+        const summary = lezione.nome_insegnamento.replace(/<[^>]+>/g, '').trim();
+        const location = lezione.aula.replace(/<[^>]+>/g, '').trim();
+        const description = `Docente: ${lezione.docente.replace(/<[^>]+>/g, '').trim()}`;
 
-      icsContent += "BEGIN:VEVENT\r\n";
-      icsContent += `UID:${lezione.id}-${start}@nextlesson\r\n`;
-      icsContent += `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'}\r\n`;
-      icsContent += `DTSTART:${start}\r\n`;
-      icsContent += `DTEND:${end}\r\n`;
-      icsContent += `SUMMARY:${summary}\r\n`;
-      icsContent += `LOCATION:${location}\r\n`;
-      icsContent += `DESCRIPTION:${description}\r\n`;
-      icsContent += "END:VEVENT\r\n";
-    });
+        icsContent += "BEGIN:VEVENT\r\n";
+        icsContent += `UID:${lezione.id}-${start}@nextlesson\r\n`;
+        icsContent += `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'}\r\n`;
+        icsContent += `DTSTART:${start}\r\n`;
+        icsContent += `DTEND:${end}\r\n`;
+        icsContent += `SUMMARY:${summary}\r\n`;
+        icsContent += `LOCATION:${location}\r\n`;
+        icsContent += `DESCRIPTION:${description}\r\n`;
+        icsContent += "END:VEVENT\r\n";
+      });
 
-    icsContent += "END:VCALENDAR";
+      icsContent += "END:VCALENDAR";
 
-    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-    const link = document.createElement('a');
-    link.href = window.URL.createObjectURL(blob);
-    link.setAttribute('download', `Calendario_Completo_UniSalento.ics`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.setAttribute('download', `Calendario_Semestre_UniSalento.ics`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+    } catch (error) {
+      console.error(error);
+      alert("Si è verificato un errore durante l'esportazione.");
+    } finally {
+      setEsportazioneInCorso(false);
+    }
   };
 
   return (
@@ -284,12 +332,21 @@ export default function Calendario() {
         <div className="flex gap-2">
           <button 
             onClick={esportaInteroCalendario} 
-            className="bg-[#1a1a1a] border border-[#333] p-3 rounded-xl hover:bg-[#2a2a2a] transition-colors text-gray-300 active:scale-95 shadow-inner" 
-            title="Esporta in Apple/Google Calendar"
+            disabled={esportazioneInCorso}
+            className={`bg-[#1a1a1a] border border-[#333] p-3 rounded-xl transition-colors shadow-inner flex items-center justify-center
+              ${esportazioneInCorso ? 'opacity-50 cursor-not-allowed text-gray-500' : 'hover:bg-[#2a2a2a] text-gray-300 active:scale-95'}`}
+            title="Esporta Intero Semestre"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-            </svg>
+            {esportazioneInCorso ? (
+              <svg className="animate-spin w-5 h-5 text-[#c48e12]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+            )}
           </button>
         </div>
       </header>
