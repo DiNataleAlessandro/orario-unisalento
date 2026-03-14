@@ -149,7 +149,7 @@ export default function Calendario() {
 
           const lezioniDelGiorno = lezioniElaborate.filter(l => !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '')));
           
-          // Deduplicate lessons by ID and sort chronologically to prevent overlapping UI elements
+          // Deduplicate lessons by ID and sort chronologically
           const uniqueLessons = Array.from(new Map(lezioniDelGiorno.map(l => [l.id, l])).values());
           uniqueLessons.sort((a, b) => {
              if (!a.inizioDateObj || !b.inizioDateObj) return 0;
@@ -171,14 +171,126 @@ export default function Calendario() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [corsoCodice, annoCodice, dataSelezionata]);
 
+  // Aggrega tutte le lezioni memorizzate nell'app per scaricare l'intero calendario al volo
+  const esportaInteroCalendario = () => {
+    const materieExtra = JSON.parse(localStorage.getItem('materieExtra') || '[]');
+    
+    // Mappiamo i corsi che l'utente sta seguendo
+    const mapCorsi = new Map();
+    mapCorsi.set(`${corsoCodice}_${annoCodice}`, { isMain: true, materie: [] });
+
+    materieExtra.forEach((m: any) => {
+       const k = `${m.corsoCodice}_${m.annoCodice}`;
+       if (!mapCorsi.has(k)) mapCorsi.set(k, { isMain: false, materie: [] });
+       mapCorsi.get(k).materie.push(m.materiaNome);
+    });
+
+    let tutteCelle: any[] = [];
+
+    // Raccogliamo tutto dalla memoria locale
+    for (let i = 0; i < localStorage.length; i++) {
+       const key = localStorage.key(i);
+       if (key && key.startsWith('orario_')) {
+           try {
+               const dataObj = JSON.parse(localStorage.getItem(key) || '{}');
+               if (dataObj.celle) {
+                   const parts = key.split('_'); 
+                   if (parts.length >= 3) {
+                       const keyCorsoAnno = `${parts[1]}_${parts[2]}`;
+                       if (mapCorsi.has(keyCorsoAnno)) {
+                           const config = mapCorsi.get(keyCorsoAnno);
+                           let celleValide = dataObj.celle;
+                           if (!config.isMain) {
+                               celleValide = celleValide.filter((c:any) => config.materie.includes(c.nome_insegnamento.replace(/<[^>]+>/g, '')));
+                           }
+                           tutteCelle = [...tutteCelle, ...celleValide];
+                       }
+                   }
+               }
+           } catch(e) {}
+       }
+    }
+
+    if (tutteCelle.length === 0) {
+        alert("Nessun dato in memoria. Visualizza almeno una settimana di lezioni per caricarle prima di esportare.");
+        return;
+    }
+
+    const lezioniElaborate: Lezione[] = tutteCelle.map((lezione: any) => {
+      const [oraInizioStr, oraFineStr] = lezione.orario.split(' - ');
+      const [giorno, mese, annoStr] = lezione.data.split('-');
+      const [oraInizio, minInizio] = oraInizioStr.split(':');
+      const [oraFine, minFine] = oraFineStr.split(':');
+      const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
+      const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
+      
+      const cleanMail = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
+      return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
+    });
+
+    const lezioniFiltrate = lezioniElaborate.filter(l => !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '')));
+    
+    // Deduplichiamo rigorosamente per ID in modo da non avere eventi doppi nel file ICS
+    const lezioniUniche = Array.from(new Map(lezioniFiltrate.map(l => [l.id, l])).values());
+    lezioniUniche.sort((a, b) => {
+       if (!a.inizioDateObj || !b.inizioDateObj) return 0;
+       return a.inizioDateObj.getTime() - b.inizioDateObj.getTime();
+    });
+
+    let icsContent = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//NextLesson UniSalento//IT\r\n";
+
+    lezioniUniche.forEach(lezione => {
+      if (!lezione.inizioDateObj || !lezione.fineDateObj) return;
+
+      const start = lezione.inizioDateObj.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+      const end = lezione.fineDateObj.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+      const summary = lezione.nome_insegnamento.replace(/<[^>]+>/g, '');
+      const location = lezione.aula.replace(/<[^>]+>/g, '');
+      const description = `Docente: ${lezione.docente.replace(/<[^>]+>/g, '')}`;
+
+      icsContent += "BEGIN:VEVENT\r\n";
+      icsContent += `UID:${lezione.id}-${start}@nextlesson\r\n`;
+      icsContent += `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'}\r\n`;
+      icsContent += `DTSTART:${start}\r\n`;
+      icsContent += `DTEND:${end}\r\n`;
+      icsContent += `SUMMARY:${summary}\r\n`;
+      icsContent += `LOCATION:${location}\r\n`;
+      icsContent += `DESCRIPTION:${description}\r\n`;
+      icsContent += "END:VEVENT\r\n";
+    });
+
+    icsContent += "END:VCALENDAR";
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    link.setAttribute('download', `Calendario_Completo_UniSalento.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="min-h-screen bg-[#121212] px-4 pb-32 pt-[calc(env(safe-area-inset-top)+1rem)] relative">
+      
       <header className="flex justify-between items-center mb-6 bg-[#212121] p-5 rounded-2xl shadow-lg border border-[#333]">
-        <div>
+        <div className="flex-1 pr-2">
           <h1 className="text-2xl font-black text-[#c48e12] tracking-tight">Calendario</h1>
           <p className="text-[10px] font-bold text-gray-500 mt-1 uppercase tracking-widest">
             Scegli una data
           </p>
+        </div>
+        <div className="flex gap-2">
+          <button 
+            onClick={esportaInteroCalendario} 
+            className="bg-[#1a1a1a] border border-[#333] p-3 rounded-xl hover:bg-[#2a2a2a] transition-colors text-gray-300 active:scale-95 shadow-inner" 
+            title="Esporta in Apple/Google Calendar"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+          </button>
         </div>
       </header>
 
@@ -220,7 +332,7 @@ export default function Calendario() {
         {!inCaricamento && lezioniGiorno.length > 0 && (
           <div className="grid gap-4">
             {lezioniGiorno.map((lezione, index) => (
-              <CardLezione key={index} lezione={lezione} />
+              <CardLezione key={index} lezione={lezione} isLive={false} />
             ))}
           </div>
         )}
