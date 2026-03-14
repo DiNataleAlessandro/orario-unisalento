@@ -28,6 +28,17 @@ export default function PianoDiStudi() {
   // Stati per Backup & Ripristino
   const [showBackupPopup, setShowBackupPopup] = useState(false);
   const [importString, setImportString] = useState('');
+  
+  // Stato per le notifiche personalizzate (Toast)
+  const [toast, setToast] = useState<{ messaggio: string; tipo: 'success' | 'error' } | null>(null);
+
+  // Helper per mostrare il toast e nasconderlo dopo 3 secondi
+  const showToast = (messaggio: string, tipo: 'success' | 'error') => {
+    setToast({ messaggio, tipo });
+    setTimeout(() => {
+      setToast(null);
+    }, 3000);
+  };
 
   useEffect(() => {
     const corsiMap = new Map();
@@ -100,7 +111,7 @@ export default function PianoDiStudi() {
       const uniqueSubjects = Array.from(new Set(allCells.map((c: any) => c.nome_insegnamento.replace(/<[^>]+>/g, '')))).sort();
       setMaterieTrovate(uniqueSubjects);
     } catch (e) {
-      alert("Errore di connessione durante la ricerca delle materie.");
+      showToast("📶 Errore di connessione. Riprova più tardi.", "error");
     } finally {
       setInCaricamento(false);
     }
@@ -163,10 +174,10 @@ export default function PianoDiStudi() {
       const base64String = window.btoa(unescape(encodeURIComponent(jsonString)));
       
       await navigator.clipboard.writeText(base64String);
-      alert("Configurazione copiata! Inviala al nuovo dispositivo.");
+      showToast("✅ Copiato! Salvalo in un posto sicuro.", "success");
     } catch (err) {
       console.error(err);
-      alert("Errore durante la copia della stringa.");
+      showToast("❌ Errore durante la copia. Riprova.", "error");
     }
   };
 
@@ -190,10 +201,14 @@ export default function PianoDiStudi() {
         });
       }
 
-      alert("Configurazione importata! L'app verrà ricaricata.");
-      window.location.href = '/'; 
+      showToast("🎉 Importazione completata! Riavvio in corso...", "success");
+      
+      setTimeout(() => {
+        window.location.href = '/'; 
+      }, 1500);
+
     } catch (e) {
-      alert("Stringa non valida. Assicurati di averla copiata correttamente.");
+      showToast("⚠️ Codice non valido. Controlla e riprova.", "error");
     }
   };
 
@@ -201,13 +216,24 @@ export default function PianoDiStudi() {
 
   return (
     <div className="min-h-screen bg-[#121212] px-4 pb-32 pt-[calc(env(safe-area-inset-top)+1rem)] relative">
+      
+      {/* TOAST NOTIFICATION */}
+      {toast && (
+        <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[200] px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center justify-center backdrop-blur-md transition-all duration-300 w-[90%] max-w-sm text-center ${
+          toast.tipo === 'success' 
+            ? 'bg-green-950/90 border-green-500/50 text-green-400' 
+            : 'bg-red-950/90 border-red-500/50 text-red-400'
+        }`}>
+          <span className="text-[13px] font-bold tracking-wide">{toast.messaggio}</span>
+        </div>
+      )}
+
       <header className="flex justify-between items-center mb-6 bg-[#212121] p-5 rounded-2xl shadow-lg border border-[#333]">
         <div className="flex-1 pr-2">
           <h1 className="text-2xl font-black text-[#c48e12] tracking-tight">Piano di Studi</h1>
           <p className="text-[10px] font-bold text-gray-500 mt-1 uppercase tracking-widest line-clamp-1">Personalizza le tue lezioni</p>
         </div>
         <div className="flex gap-2">
-          {/* Bottone stile Calendario con il nuovo SVG */}
           <button 
             onClick={() => setShowBackupPopup(true)}
             className="bg-[#1a1a1a] border border-[#333] p-3 rounded-xl transition-colors shadow-inner flex items-center justify-center hover:bg-[#2a2a2a] text-gray-300 active:scale-95"
@@ -362,7 +388,11 @@ export default function PianoDiStudi() {
               </svg>
             </div>
             <h2 className="text-xl font-black text-white mb-2 tracking-tight">Portabilità Dati</h2>
-            <p className="text-xs text-gray-400 mb-6 font-medium">Esporta la configurazione o incollane una esistente per sincronizzare i tuoi dati.</p>
+            
+            <p className="text-xs text-gray-400 mb-6 font-medium leading-relaxed">
+              Esporta la configurazione o incollane una esistente. <br />
+              <span className="text-[#c48e12] font-bold">Consiglio: salva il codice in un posto sicuro!</span>
+            </p>
 
             <div className="space-y-4">
               <button 
