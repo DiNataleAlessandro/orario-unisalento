@@ -25,7 +25,10 @@ export default function PianoDiStudi() {
   const [materieTrovate, setMaterieTrovate] = useState<string[]>([]);
   const [materieSpuntate, setMaterieSpuntate] = useState<string[]>([]);
 
-  // Initialize course list from static data, mapping multiple years to their parent course
+  // Stati per Backup & Ripristino
+  const [showBackupPopup, setShowBackupPopup] = useState(false);
+  const [importString, setImportString] = useState('');
+
   useEffect(() => {
     const corsiMap = new Map();
     elenco_corsi.forEach((item: any) => {
@@ -83,7 +86,6 @@ export default function PianoDiStudi() {
         return await response.json();
       };
 
-      // Lookahead 14 days to capture sporadic or bi-weekly lectures
       const dataOggi = new Date();
       const dataProssima = new Date(); dataProssima.setDate(dataProssima.getDate() + 7);
       const dataTraDue = new Date(); dataTraDue.setDate(dataTraDue.getDate() + 14);
@@ -95,7 +97,6 @@ export default function PianoDiStudi() {
       if (res2?.celle) allCells = [...allCells, ...res2.celle];
       if (res3?.celle) allCells = [...allCells, ...res3.celle];
 
-      // Extract unique subject names
       const uniqueSubjects = Array.from(new Set(allCells.map((c: any) => c.nome_insegnamento.replace(/<[^>]+>/g, '')))).sort();
       setMaterieTrovate(uniqueSubjects);
     } catch (e) {
@@ -116,7 +117,6 @@ export default function PianoDiStudi() {
   const salvaEsamiExtra = () => {
     const annoObj = corsoSelezionato.anni.find((a: any) => a.valore === annoSelezionato);
     
-    // Persist selected subjects to localStorage for cross-referencing in Home and Calendar
     const nuoviSalvataggi = materieSpuntate.map(materia => ({
       id: Date.now().toString() + Math.random().toString(),
       corsoCodice: annoObj.codiceReale,
@@ -142,14 +142,91 @@ export default function PianoDiStudi() {
     localStorage.setItem('materieExtra', JSON.stringify(filtrate));
   };
 
+  // Logica Backup (Esporta)
+  const handleExport = async () => {
+    try {
+      const backup = {
+        corsoCodice: localStorage.getItem('corsoCodice'),
+        annoCodice: localStorage.getItem('annoCodice'),
+        corsoNome: localStorage.getItem('corsoNome'),
+        materieExtra: JSON.parse(localStorage.getItem('materieExtra') || '[]'),
+        blacklist_materie: JSON.parse(localStorage.getItem('blacklist_materie') || '[]'),
+        note: Object.keys(localStorage)
+          .filter(key => key.startsWith('nota_'))
+          .reduce((obj, key) => {
+            obj[key] = localStorage.getItem(key);
+            return obj;
+          }, {} as any)
+      };
+
+      const jsonString = JSON.stringify(backup);
+      const base64String = window.btoa(unescape(encodeURIComponent(jsonString)));
+      
+      await navigator.clipboard.writeText(base64String);
+      alert("Configurazione copiata! Inviala al nuovo dispositivo.");
+    } catch (err) {
+      console.error(err);
+      alert("Errore durante la copia della stringa.");
+    }
+  };
+
+  // Logica Ripristino (Importa)
+  const handleImport = () => {
+    if (!importString.trim()) return;
+
+    try {
+      const decodedString = decodeURIComponent(escape(window.atob(importString)));
+      const json = JSON.parse(decodedString);
+      
+      if (json.corsoCodice) localStorage.setItem('corsoCodice', json.corsoCodice);
+      if (json.annoCodice) localStorage.setItem('annoCodice', json.annoCodice);
+      if (json.corsoNome) localStorage.setItem('corsoNome', json.corsoNome);
+      if (json.materieExtra) localStorage.setItem('materieExtra', JSON.stringify(json.materieExtra));
+      if (json.blacklist_materie) localStorage.setItem('blacklist_materie', JSON.stringify(json.blacklist_materie));
+      
+      if (json.note) {
+        Object.entries(json.note).forEach(([key, value]) => {
+          localStorage.setItem(key, value as string);
+        });
+      }
+
+      alert("Configurazione importata! L'app verrà ricaricata.");
+      window.location.href = '/'; 
+    } catch (e) {
+      alert("Stringa non valida. Assicurati di averla copiata correttamente.");
+    }
+  };
+
   const corsiFiltratiSearch = listaCorsiGlobali.filter(c => c.etichetta.toLowerCase().includes(ricerca.toLowerCase()));
 
   return (
     <div className="min-h-screen bg-[#121212] px-4 pb-32 pt-[calc(env(safe-area-inset-top)+1rem)] relative">
       <header className="flex justify-between items-center mb-6 bg-[#212121] p-5 rounded-2xl shadow-lg border border-[#333]">
-        <div>
+        <div className="flex-1 pr-2">
           <h1 className="text-2xl font-black text-[#c48e12] tracking-tight">Piano di Studi</h1>
           <p className="text-[10px] font-bold text-gray-500 mt-1 uppercase tracking-widest line-clamp-1">Personalizza le tue lezioni</p>
+        </div>
+        <div className="flex gap-2">
+          {/* Bottone stile Calendario con il nuovo SVG */}
+          <button 
+            onClick={() => setShowBackupPopup(true)}
+            className="bg-[#1a1a1a] border border-[#333] p-3 rounded-xl transition-colors shadow-inner flex items-center justify-center hover:bg-[#2a2a2a] text-gray-300 active:scale-95"
+            title="Backup e Portabilità"
+          >
+            <svg viewBox="0 0 800 800" fill="none" stroke="currentColor" strokeWidth="73.33" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+              <g>
+                <path d="M400,250l-150,-150" />
+                <path d="M250,100l-150,150" />
+              </g>
+              <path d="M250,100l-0,450" />
+              <g>
+                <path d="M672.081,400l-150,150" />
+                <path d="M522.081,550l-150,-150" />
+              </g>
+              <path d="M522.081,550l0,-450" />
+              <path d="M100,550l0,75c0,41.144 33.856,75 75,75l450,0c41.144,0 75,-33.856 75,-75l0,-75" />
+            </svg>
+          </button>
         </div>
       </header>
 
@@ -264,6 +341,61 @@ export default function PianoDiStudi() {
           </div>
         )}
       </div>
+
+      {/* POPUP BACKUP & RIPRISTINO */}
+      {showBackupPopup && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex flex-col p-4 items-center justify-center" onClick={() => setShowBackupPopup(false)}>
+          <div className="bg-[#212121] border border-[#333] p-8 rounded-[2rem] shadow-2xl w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
+            <div className="bg-[#1a1a1a] border border-[#333] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+              <svg viewBox="0 0 800 800" fill="none" stroke="currentColor" strokeWidth="73.33" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-[#c48e12]">
+                <g>
+                  <path d="M400,250l-150,-150" />
+                  <path d="M250,100l-150,150" />
+                </g>
+                <path d="M250,100l-0,450" />
+                <g>
+                  <path d="M672.081,400l-150,150" />
+                  <path d="M522.081,550l-150,-150" />
+                </g>
+                <path d="M522.081,550l0,-450" />
+                <path d="M100,550l0,75c0,41.144 33.856,75 75,75l450,0c41.144,0 75,-33.856 75,-75l0,-75" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-black text-white mb-2 tracking-tight">Portabilità Dati</h2>
+            <p className="text-xs text-gray-400 mb-6 font-medium">Esporta la configurazione o incollane una esistente per sincronizzare i tuoi dati.</p>
+
+            <div className="space-y-4">
+              <button 
+                onClick={handleExport}
+                className="w-full py-4 rounded-xl font-black text-[#121212] bg-[#c48e12] hover:bg-[#d89e17] active:scale-95 transition-all shadow-lg shadow-[#c48e12]/20"
+              >
+                Copia Configurazione
+              </button>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-[#333]"></span></div>
+                <div className="relative flex justify-center text-[10px] uppercase font-bold"><span className="bg-[#212121] px-2 text-gray-500 tracking-widest">Oppure Importa</span></div>
+              </div>
+
+              <textarea 
+                value={importString}
+                onChange={(e) => setImportString(e.target.value)}
+                placeholder="Incolla qui la stringa di backup..."
+                className="w-full bg-[#1a1a1a] border border-[#444] rounded-xl p-3 text-xs text-gray-300 focus:outline-none focus:border-[#c48e12] h-20 resize-none font-mono"
+              />
+
+              <div className="flex gap-3">
+                <button onClick={() => setShowBackupPopup(false)} className="flex-1 py-3.5 rounded-xl font-bold text-white bg-[#333] hover:bg-[#444] transition-colors active:scale-95">
+                  Annulla
+                </button>
+                <button onClick={handleImport} className="flex-1 py-3.5 rounded-xl font-black text-[#c48e12] border border-[#c48e12]/30 hover:bg-[#c48e12]/5 transition-colors active:scale-95">
+                  Importa
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/90 backdrop-blur-xl border-t border-[#333] pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_30px_rgba(0,0,0,0.7)] z-50">
         <div className="max-w-md mx-auto grid grid-cols-3 items-center p-2 mt-1">

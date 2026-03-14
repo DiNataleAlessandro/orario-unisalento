@@ -250,8 +250,11 @@ export default function Home() {
         </div>
         <div className="flex gap-2">
           <button onClick={() => setShowResetConfirm(true)} className="bg-[#1a1a1a] border border-[#333] p-3 rounded-xl hover:bg-[#2a2a2a] transition-colors text-gray-300 active:scale-95">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14l5-5m0 0l-5-5m5 5H9" />
+            {/* NUOVO SVG HEADER QUI */}
+            <svg viewBox="0 0 800 800" fill="none" stroke="currentColor" strokeWidth="73.33" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+              <g><path d="M550,550l150,-150" /><path d="M700,400l-150,-150" /></g>
+              <path d="M700,400l-450,-0" />
+              <path d="M250,100l-75,0c-41.144,0 -75,33.856 -75,75l0,450c0,41.144 33.856,75 75,75l75,0" />
             </svg>
           </button>
         </div>
@@ -453,8 +456,11 @@ export default function Home() {
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex flex-col p-4 transition-opacity items-center justify-center" onClick={() => setShowResetConfirm(false)}>
           <div className="bg-[#212121] border border-[#333] p-8 rounded-[2rem] shadow-2xl w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
             <div className="bg-[#1a1a1a] border border-[#333] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor" className="w-8 h-8 text-[#c48e12]">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14l5-5m0 0l-5-5m5 5H9" />
+              {/* NUOVO SVG POPUP QUI */}
+              <svg viewBox="0 0 800 800" fill="none" stroke="currentColor" strokeWidth="73.33" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-[#c48e12]">
+                <g><path d="M550,550l150,-150" /><path d="M700,400l-150,-150" /></g>
+                <path d="M700,400l-450,-0" />
+                <path d="M250,100l-75,0c-41.144,0 -75,33.856 -75,75l0,450c0,41.144 33.856,75 75,75l75,0" />
               </svg>
             </div>
             <h2 className="text-xl font-black text-white mb-2 tracking-tight">Cambiare Corso?</h2>
