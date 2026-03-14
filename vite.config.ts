@@ -16,9 +16,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg}']
       },
       manifest: {
-        name: 'Orario Unisalento',
-        short_name: 'OrarioUni',
-        description: 'La tua agenda intelligente per le lezioni',
+        name: 'NextLesson Unisalento',
+        short_name: 'NextLesson',
+        description: 'La tua prossima lezione, a portata di mano',
         theme_color: '#121212', // <-- AGGIORNATO AL DARK THEME
         background_color: '#121212', // <-- AGGIORNATO AL DARK THEME
         display: 'standalone', // Fa sparire la barra di Safari!
