@@ -200,7 +200,7 @@ export default function Calendario() {
       let tutteCelle: any[] = [];
       const urlAPI = '/api-unisalento/PortaleStudenti/grid_call.php';
 
-      // Facciamo le chiamate in sequenza (per non sovraccaricare il server dell'università)
+      // Facciamo le chiamate in sequenza
       for (const targetDate of dateTarget) {
         for (const [keyCorsoAnno, config] of mapCorsi.entries()) {
           const [cCodice, aCodice] = keyCorsoAnno.split('_');
@@ -248,24 +248,34 @@ export default function Calendario() {
           return;
       }
 
+      // CORREZIONE QUI: Protezione contro eventi malformati
       const lezioniElaborate: Lezione[] = tutteCelle.map((lezione: any) => {
-        const [oraInizioStr, oraFineStr] = lezione.orario.split(' - ');
-        const [giorno, mese, annoStr] = lezione.data.split('-');
-        const [oraInizio, minInizio] = oraInizioStr.split(':');
-        const [oraFine, minFine] = oraFineStr.split(':');
-        const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
-        const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
-        
-        const cleanMail = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
-        return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
-      });
+        try {
+          // Filtro antiproiettile: se mancano i pezzi fondamentali o l'orario non è nel formato "XX:XX - YY:YY", la scartiamo
+          if (!lezione || !lezione.orario || typeof lezione.orario !== 'string' || !lezione.orario.includes(' - ') || !lezione.data) {
+              return null;
+          }
+
+          const [oraInizioStr, oraFineStr] = lezione.orario.split(' - ');
+          const [giorno, mese, annoStr] = lezione.data.split('-');
+          const [oraInizio, minInizio] = oraInizioStr.split(':');
+          const [oraFine, minFine] = oraFineStr.split(':');
+          
+          const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
+          const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
+          
+          const cleanMail = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
+          return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
+        } catch (err) {
+          // Fallback silenzioso
+          return null;
+        }
+      }).filter(Boolean); // Questo rimuove automaticamente tutti i "null" dall'array risultante
 
       const lezioniFiltrate = lezioniElaborate.filter(l => !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '').trim()));
       
-      // La deduplicazione qui è vitale perché stiamo scaricando intere settimane multiple volte
       const mappaUnici = new Map();
       lezioniFiltrate.forEach(l => {
-        // Creiamo un ID combinato univoco: ID materia + Data esatta + Orario
         const uniqueKey = `${l.id}_${l.data}_${l.orario}`;
         if (!mappaUnici.has(uniqueKey)) {
           mappaUnici.set(uniqueKey, l);
