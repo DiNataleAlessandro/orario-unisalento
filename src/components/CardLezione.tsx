@@ -168,7 +168,7 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
             <textarea
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
-              placeholder="Aggiungi una nota per questa materia (es. 'Portare PC', 'Cambio di Aula')..."
+              placeholder="Aggiungi una nota per questa materia (es. 'Portare PC', 'Cambio di Aula', ecc..)"
               className="w-full bg-[#1a1a1a] text-gray-300 rounded-xl p-3 border border-[#444] text-sm focus:outline-none focus:border-[#c48e12] transition-colors resize-none placeholder-gray-600 shadow-inner"
               rows={3}
             />
