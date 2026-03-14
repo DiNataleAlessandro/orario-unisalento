@@ -28,6 +28,9 @@ export default function Calendario() {
   const [inCaricamento, setInCaricamento] = useState(false);
   const [esportazioneInCorso, setEsportazioneInCorso] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
+  
+  // Nuovo stato per controllare il popup di conferma
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
 
   const [dataSelezionata, setDataSelezionata] = useState<Date>(new Date());
   const blacklist = JSON.parse(localStorage.getItem('blacklist_materie') || '[]');
@@ -122,7 +125,6 @@ export default function Calendario() {
             if (datiTargetJSON && datiTargetJSON.celle) {
                 let celleDaAggiungere = datiTargetJSON.celle.filter((c:any) => c.data === dataStr);
                 if (target.materie) {
-                    // FIX: Controllo esistenza c.nome_insegnamento prima di fare .replace
                     celleDaAggiungere = celleDaAggiungere.filter((c:any) => 
                       c.nome_insegnamento && target.materie.includes(c.nome_insegnamento.replace(/<[^>]+>/g, '').trim())
                     );
@@ -150,7 +152,6 @@ export default function Calendario() {
             return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
           }).filter(Boolean) as Lezione[];
 
-          // FIX: Controllo di sicurezza sulla blacklist
           const lezioniDelGiorno = lezioniElaborate.filter(l => 
             l.nome_insegnamento && !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '').trim())
           );
@@ -175,7 +176,10 @@ export default function Calendario() {
     fetchDailySchedule();
   }, [corsoCodice, annoCodice, dataSelezionata]);
 
-  const esportaInteroCalendario = async () => {
+  const avviaEsportazione = async () => {
+    // Chiude il popup appena l'utente conferma
+    setShowExportConfirm(false);
+    
     if (!navigator.onLine) {
       alert("Devi essere online per scaricare il calendario dell'intero semestre.");
       return;
@@ -194,7 +198,6 @@ export default function Calendario() {
          mapCorsi.get(k).materie.push(m.materiaNome);
       });
 
-      // Creiamo un range di date: SOLO FUTURO. Da questa settimana (0) a 15 settimane in avanti.
       const dateTarget: string[] = [];
       const dataRiferimento = new Date();
       for (let i = 0; i <= 15; i++) {
@@ -276,7 +279,6 @@ export default function Calendario() {
         }
       }).filter(Boolean) as Lezione[];
 
-      // Calcoliamo la mezzanotte di oggi per escludere il passato
       const oggiMezzanotte = new Date();
       oggiMezzanotte.setHours(0, 0, 0, 0);
 
@@ -284,7 +286,7 @@ export default function Calendario() {
         l.nome_insegnamento && 
         !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '').trim()) &&
         l.inizioDateObj && 
-        l.inizioDateObj.getTime() >= oggiMezzanotte.getTime() // SOLO FUTURO
+        l.inizioDateObj.getTime() >= oggiMezzanotte.getTime()
       );
       
       const mappaUnici = new Map();
@@ -359,7 +361,7 @@ export default function Calendario() {
         </div>
         <div className="flex gap-2">
           <button 
-            onClick={esportaInteroCalendario} 
+            onClick={() => setShowExportConfirm(true)} // Ora apre il popup invece di scaricare subito
             disabled={esportazioneInCorso}
             className={`bg-[#1a1a1a] border border-[#333] p-3 rounded-xl transition-colors shadow-inner flex items-center justify-center
               ${esportazioneInCorso ? 'opacity-50 cursor-not-allowed text-gray-500' : 'hover:bg-[#2a2a2a] text-gray-300 active:scale-95'}`}
@@ -423,6 +425,38 @@ export default function Calendario() {
         )}
       </div>
 
+      {/* POPUP DI CONFERMA ESPORTAZIONE */}
+      {showExportConfirm && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex flex-col p-4 transition-opacity items-center justify-center" onClick={() => setShowExportConfirm(false)}>
+          <div className="bg-[#212121] border border-[#333] p-8 rounded-[2rem] shadow-2xl w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
+            <div className="bg-[#1a1a1a] border border-[#333] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor" className="w-8 h-8 text-[#c48e12]">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-black text-white mb-2 tracking-tight">Sincronizza Calendario</h2>
+            <p className="text-sm text-gray-400 mb-8 font-medium">
+              Stai per scaricare tutte le lezioni previste da oggi fino a fine semestre. L'operazione potrebbe richiedere qualche secondo. Vuoi procedere?
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowExportConfirm(false)}
+                className="flex-1 py-3.5 rounded-xl font-bold text-white bg-[#333] hover:bg-[#444] active:scale-95 transition-all"
+              >
+                Annulla
+              </button>
+              <button 
+                onClick={avviaEsportazione}
+                className="flex-1 py-3.5 rounded-xl font-black text-[#121212] bg-[#c48e12] hover:bg-[#d89e17] active:scale-95 transition-all shadow-lg shadow-[#c48e12]/20"
+              >
+                Esporta
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* NAVBAR */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/90 backdrop-blur-xl border-t border-[#333] pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_30px_rgba(0,0,0,0.7)] z-50">
         <div className="max-w-md mx-auto grid grid-cols-3 items-center p-2 mt-1">
           <button onClick={() => navigate('/')} className="flex flex-col items-center justify-center p-2 text-gray-500 hover:text-gray-300 transition-colors active:scale-95">
