@@ -195,9 +195,6 @@ export default function Onboarding() {
               ))}
             </select>
           </div>
-
-          // ... (resto del codice sopra invariato)
-
           <button 
             onClick={salvaImpostazioni}
             className="w-full font-black py-5 rounded-2xl mt-4 transition-all shadow-lg active:scale-95 bg-[#c48e12] text-[#121212] hover:bg-[#d89e17] shadow-[#c48e12]/20"
