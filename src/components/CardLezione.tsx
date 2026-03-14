@@ -61,6 +61,19 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
   const [profPopup, setProfPopup] = useState<{nome: string, mail: string} | null>(null);
 
   const listaProfessori = ottieniListaProfessori(lezione.docente, lezione.mail_docente || '');
+  
+  // Puliamo il nome per il confronto
+  const nomePulito = lezione.nome_insegnamento.replace(/<[^>]+>/g, '');
+
+  // Verifichiamo in modo invisibile se questa materia fa parte delle aggiunte extra
+  const isExtra = (() => {
+    try {
+      const materieExtra = JSON.parse(localStorage.getItem('materieExtra') || '[]');
+      return materieExtra.some((m: any) => m.materiaNome === nomePulito);
+    } catch (e) {
+      return false;
+    }
+  })();
 
   return (
     <>
@@ -71,9 +84,19 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
       }`}>
         <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${isLive ? 'bg-[#c48e12]' : 'bg-[#333]'}`}></div>
         
-        <div className="flex justify-between items-start pl-2">
+        {/* BADGE "A SCELTA" (Senza aspetto da bottone, solo testo e icona a filigrana) */}
+        {isExtra && (
+          <div className="absolute bottom-5 right-5 flex items-center gap-1.5 opacity-50 pointer-events-none select-none">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 text-[#c48e12]">
+              <path fillRule="evenodd" d="M9 4.5a.75.75 0 01.721.544l.813 2.846a3.75 3.75 0 002.576 2.576l2.846.813a.75.75 0 010 1.442l-2.846.813a3.75 3.75 0 00-2.576 2.576l-.813 2.846a.75.75 0 01-1.442 0l-.813-2.846a3.75 3.75 0 00-2.576-2.576l-2.846-.813a.75.75 0 010-1.442l2.846-.813A3.75 3.75 0 007.466 7.89l.813-2.846A.75.75 0 019 4.5zM18 1.5a.75.75 0 01.728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 010 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 01-1.456 0l-.258-1.036a2.625 2.625 0 00-1.91-1.91l-1.036-.258a.75.75 0 010-1.456l1.036-.258a2.625 2.625 0 001.91-1.91l.258-1.036A.75.75 0 0118 1.5zM16.5 15a.75.75 0 01.712.513l.394 1.183c.15.447.5.799.948.948l1.183.395a.75.75 0 010 1.422l-1.183.395c-.447.15-.799.5-.948.948l-.395 1.183a.75.75 0 01-1.422 0l-.395-1.183a1.5 1.5 0 00-.948-.948l-1.183-.395a.75.75 0 010-1.422l1.183-.395c.447-.15.799-.5.948-.948l.395-1.183A.75.75 0 0116.5 15z" clipRule="evenodd" />
+            </svg>
+            <span className="text-[10px] font-bold text-[#c48e12] uppercase tracking-[0.2em] mt-[1px]">A Scelta</span>
+          </div>
+        )}
+
+        <div className="flex justify-between items-start pl-2 pr-12">
             <h2 className={`font-bold leading-tight ${isLive ? 'text-white text-xl' : 'text-white text-lg'}`}>
-              {lezione.nome_insegnamento.replace(/<[^>]+>/g, '')}
+              {nomePulito}
             </h2>
         </div>
 
@@ -88,7 +111,7 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
             </p>
             <div className="flex items-start gap-2">
               <span className={isLive ? 'opacity-80' : 'opacity-70'}>👨‍🏫</span> 
-              <div className="flex flex-wrap gap-x-1">
+              <div className="flex flex-wrap gap-x-1 pr-14">
                 {listaProfessori.length > 0 ? (
                   listaProfessori.map((prof, index) => (
                     <span key={index}>
