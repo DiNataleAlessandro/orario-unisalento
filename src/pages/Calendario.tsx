@@ -194,9 +194,10 @@ export default function Calendario() {
          mapCorsi.get(k).materie.push(m.materiaNome);
       });
 
+      // Creiamo un range di date: SOLO FUTURO. Da questa settimana (0) a 15 settimane in avanti.
       const dateTarget: string[] = [];
       const dataRiferimento = new Date();
-      for (let i = -15; i <= 15; i++) {
+      for (let i = 0; i <= 15; i++) {
         const d = new Date(dataRiferimento);
         d.setDate(d.getDate() + (i * 7));
         dateTarget.push(formatDateForAPI(d));
@@ -236,7 +237,6 @@ export default function Calendario() {
               if (result && result.celle) {
                 let celleValide = result.celle;
                 if (!config.isMain) {
-                  // FIX: Sicurezza nel .filter dell'esportazione massiva
                   celleValide = celleValide.filter((c: any) => 
                     c.nome_insegnamento && config.materie.includes(c.nome_insegnamento.replace(/<[^>]+>/g, '').trim())
                   );
@@ -257,7 +257,6 @@ export default function Calendario() {
 
       const lezioniElaborate: Lezione[] = tutteCelle.map((lezione: any) => {
         try {
-          // FIX: Aggiunta !lezione.nome_insegnamento al blocco principale
           if (!lezione || !lezione.orario || typeof lezione.orario !== 'string' || !lezione.orario.includes(' - ') || !lezione.data || !lezione.nome_insegnamento) {
               return null;
           }
@@ -277,9 +276,15 @@ export default function Calendario() {
         }
       }).filter(Boolean) as Lezione[];
 
-      // FIX: Sicurezza per la blacklist
+      // Calcoliamo la mezzanotte di oggi per escludere il passato
+      const oggiMezzanotte = new Date();
+      oggiMezzanotte.setHours(0, 0, 0, 0);
+
       const lezioniFiltrate = lezioniElaborate.filter(l => 
-        l.nome_insegnamento && !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '').trim())
+        l.nome_insegnamento && 
+        !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '').trim()) &&
+        l.inizioDateObj && 
+        l.inizioDateObj.getTime() >= oggiMezzanotte.getTime() // SOLO FUTURO
       );
       
       const mappaUnici = new Map();
@@ -296,6 +301,11 @@ export default function Calendario() {
          return a.inizioDateObj.getTime() - b.inizioDateObj.getTime();
       });
 
+      if (lezioniUniche.length === 0) {
+        alert("Non ci sono lezioni future in programma per questo semestre.");
+        return;
+      }
+
       let icsContent = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//NextLesson UniSalento//IT\r\n";
 
       lezioniUniche.forEach(lezione => {
@@ -304,7 +314,6 @@ export default function Calendario() {
         const start = lezione.inizioDateObj.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
         const end = lezione.fineDateObj.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
-        // FIX: Forzatura a stringa vuota in caso di anomalie impreviste nell'export ICS
         const summary = (lezione.nome_insegnamento || '').replace(/<[^>]+>/g, '').trim();
         const location = (lezione.aula || '').replace(/<[^>]+>/g, '').trim();
         const description = `Docente: ${(lezione.docente || '').replace(/<[^>]+>/g, '').trim()}`;
