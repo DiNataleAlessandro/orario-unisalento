@@ -38,6 +38,7 @@ export default function Calendario() {
         setErrore(null);
         const dataStr = formatDateForAPI(dataSelezionata);
 
+        // Aggregate targets: main course + any custom added subjects
         const materieExtra = JSON.parse(localStorage.getItem('materieExtra') || '[]');
         const corsiDaScaricare = new Map();
         materieExtra.forEach((m: any) => {
@@ -61,10 +62,12 @@ export default function Calendario() {
             let datiTargetJSON = null;
             let trovatoInCache = false;
 
+            // Cache lookup strategy: check exact date key first
             if (cachedData) {
                 datiTargetJSON = JSON.parse(cachedData);
                 trovatoInCache = true;
             } else {
+                // If exact miss, scan existing week-grid caches to see if target date falls within downloaded range
                 const prefisso = `orario_${target.corsoCodice}_${target.annoCodice}_`;
                 let celleTrovate: any[] = [];
                 const targetTime = parseDataString(dataStr);
@@ -146,6 +149,7 @@ export default function Calendario() {
 
           const lezioniDelGiorno = lezioniElaborate.filter(l => !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '')));
           
+          // Deduplicate lessons by ID and sort chronologically
           const uniqueLessons = Array.from(new Map(lezioniDelGiorno.map(l => [l.id, l])).values());
           uniqueLessons.sort((a, b) => {
              if (!a.inizioDateObj || !b.inizioDateObj) return 0;
@@ -167,8 +171,11 @@ export default function Calendario() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [corsoCodice, annoCodice, dataSelezionata]);
 
+  // Aggrega tutte le lezioni memorizzate nell'app per scaricare l'intero calendario al volo
   const esportaInteroCalendario = () => {
     const materieExtra = JSON.parse(localStorage.getItem('materieExtra') || '[]');
+    
+    // Mappiamo i corsi che l'utente sta seguendo
     const mapCorsi = new Map();
     mapCorsi.set(`${corsoCodice}_${annoCodice}`, { isMain: true, materie: [] });
 
@@ -180,6 +187,7 @@ export default function Calendario() {
 
     let tutteCelle: any[] = [];
 
+    // Raccogliamo tutto dalla memoria locale
     for (let i = 0; i < localStorage.length; i++) {
        const key = localStorage.key(i);
        if (key && key.startsWith('orario_')) {
@@ -221,6 +229,8 @@ export default function Calendario() {
     });
 
     const lezioniFiltrate = lezioniElaborate.filter(l => !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '')));
+    
+    // Deduplichiamo rigorosamente per ID in modo da non avere eventi doppi nel file ICS
     const lezioniUniche = Array.from(new Map(lezioniFiltrate.map(l => [l.id, l])).values());
     lezioniUniche.sort((a, b) => {
        if (!a.inizioDateObj || !b.inizioDateObj) return 0;
@@ -235,11 +245,9 @@ export default function Calendario() {
       const start = lezione.inizioDateObj.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
       const end = lezione.fineDateObj.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
-      // Trimmed fields for exported calendar precision
-      const summary = lezione.nome_insegnamento.replace(/<[^>]+>/g, '').trim();
-      const location = lezione.aula.replace(/<[^>]+>/g, '').trim();
-      const docent = lezione.docente.replace(/<[^>]+>/g, '').trim();
-      const description = `Docente: ${docent}`;
+      const summary = lezione.nome_insegnamento.replace(/<[^>]+>/g, '');
+      const location = lezione.aula.replace(/<[^>]+>/g, '');
+      const description = `Docente: ${lezione.docente.replace(/<[^>]+>/g, '')}`;
 
       icsContent += "BEGIN:VEVENT\r\n";
       icsContent += `UID:${lezione.id}-${start}@nextlesson\r\n`;
@@ -265,6 +273,7 @@ export default function Calendario() {
 
   return (
     <div className="min-h-screen bg-[#121212] px-4 pb-32 pt-[calc(env(safe-area-inset-top)+1rem)] relative">
+      
       <header className="flex justify-between items-center mb-6 bg-[#212121] p-5 rounded-2xl shadow-lg border border-[#333]">
         <div className="flex-1 pr-2">
           <h1 className="text-2xl font-black text-[#c48e12] tracking-tight">Calendario</h1>

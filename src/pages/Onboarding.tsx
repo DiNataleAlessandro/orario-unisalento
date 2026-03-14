@@ -196,16 +196,26 @@ export default function Onboarding() {
             </select>
           </div>
 
+          // ... (resto del codice sopra invariato)
+
           <button 
             onClick={salvaImpostazioni}
             className="w-full font-black py-5 rounded-2xl mt-4 transition-all shadow-lg active:scale-95 bg-[#c48e12] text-[#121212] hover:bg-[#d89e17] shadow-[#c48e12]/20"
           >
             Configurazione Completata
           </button>
-
           <div className="pt-2 text-center">
             <p className="text-[10px] font-bold text-gray-600 tracking-widest uppercase">
-              made by <span className="text-[#c48e12]/80">Λlεx</span>
+              made by {' '}
+              <a 
+                href="https://github.com/DiNataleAlessandro" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-[#c48e12]/80 no-underline hover:no-underline"
+                style={{ color: 'inherit', textDecoration: 'none' }}
+              >
+                <span className="text-[#c48e12]/80">Λlεx</span>
+              </a>
             </p>
           </div>
 
