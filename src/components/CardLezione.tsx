@@ -93,10 +93,7 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
       }`}>
         <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${isLive ? 'bg-[#c48e12]' : 'bg-[#333]'}`}></div>
         
-        {/* TOP SECTION: Isolata per contenere Titolo, Info e il tag "A SCELTA" */}
         <div className="relative flex flex-col w-full pb-1">
-          
-          {/* Riga Titolo e Bottone Note */}
           <div className="flex justify-between items-start pl-2">
               <h2 className={`font-bold leading-tight pr-14 ${isLive ? 'text-white text-xl' : 'text-white text-lg'}`}>
                 {cleanSubjectName}
@@ -110,9 +107,9 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
                     : 'bg-[#1a1a1a] border-[#333] text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
                 }`}
               >
-                {/* fill impostato fisso a "none" per non colorare l'interno del rettangolo */}
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                {/* Nuova Icona Taccuino notes-52.svg */}
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="currentColor" className="w-5 h-5">
+                  <path d="M738.1 166.4H285.9c-66.3 0-120 53.7-120 120v452.2c0 66.3 53.7 120 120 120h452.2c66.3 0 120-53.7 120-120V286.4c0-66.3-53.7-120-120-120zM352.3 80c26.5 0 48 21.5 48 48v86.4c0 26.5-21.5 48-48 48s-48-21.5-48-48V128c0-26.5 21.5-48 48-48zm160 0c26.5 0 48 21.5 48 48v86.4c0 26.5-21.5 48-48 48s-48-21.5-48-48V128c0-26.5 21.5-48 48-48zm160 0c26.5 0 48 21.5 48 48v86.4c0 26.5-21.5 48-48 48s-48-21.5-48-48V128c0-26.5 21.5-48 48-48zM706.1 418.4H317.9c-26.5 0-48-21.5-48-48s21.5-48 48-48h388.2c26.5 0 48 21.5 48 48s-21.5 48-48 48zM608.1 590.4H317.9c-26.5 0-48-21.5-48-48s21.5-48 48-48h290.2c26.5 0 48 21.5 48 48s-21.5 48-48 48z" />
                 </svg>
               </button>
           </div>
@@ -153,7 +150,6 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
               </div>
           </div>
 
-          {/* Tag posizionato in basso a destra del contenitore info */}
           {isExtra && (
             <div className="absolute bottom-0 right-0 flex items-center gap-1.5 opacity-50 pointer-events-none select-none">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-[#c48e12]">
@@ -164,7 +160,6 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
           )}
         </div>
 
-        {/* Sezione Espandibile Smart Notes */}
         {isNoteOpen && (
           <div className="mt-3 pt-4 border-t border-[#333] animate-in fade-in slide-in-from-top-2 duration-200 pl-2">
             <div className="flex justify-between items-center mb-2">
@@ -181,7 +176,6 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
         )}
       </div>
 
-      {/* POPUP DOCENTE */}
       {profPopup && (
         <div 
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-opacity" 
