@@ -122,7 +122,10 @@ export default function Calendario() {
             if (datiTargetJSON && datiTargetJSON.celle) {
                 let celleDaAggiungere = datiTargetJSON.celle.filter((c:any) => c.data === dataStr);
                 if (target.materie) {
-                    celleDaAggiungere = celleDaAggiungere.filter((c:any) => target.materie.includes(c.nome_insegnamento.replace(/<[^>]+>/g, '').trim()));
+                    // FIX: Controllo esistenza c.nome_insegnamento prima di fare .replace
+                    celleDaAggiungere = celleDaAggiungere.filter((c:any) => 
+                      c.nome_insegnamento && target.materie.includes(c.nome_insegnamento.replace(/<[^>]+>/g, '').trim())
+                    );
                 }
                 celleUnite = [...celleUnite, ...celleDaAggiungere];
             }
@@ -134,6 +137,8 @@ export default function Calendario() {
 
         if (celleUnite.length > 0) {
           const lezioniElaborate: Lezione[] = celleUnite.map((lezione: any) => {
+            if (!lezione || !lezione.orario || !lezione.orario.includes(' - ') || !lezione.data || !lezione.nome_insegnamento) return null;
+            
             const [oraInizioStr, oraFineStr] = lezione.orario.split(' - ');
             const [giorno, mese, annoStr] = lezione.data.split('-');
             const [oraInizio, minInizio] = oraInizioStr.split(':');
@@ -143,9 +148,12 @@ export default function Calendario() {
             
             const cleanMail = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
             return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
-          });
+          }).filter(Boolean) as Lezione[];
 
-          const lezioniDelGiorno = lezioniElaborate.filter(l => !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '').trim()));
+          // FIX: Controllo di sicurezza sulla blacklist
+          const lezioniDelGiorno = lezioniElaborate.filter(l => 
+            l.nome_insegnamento && !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '').trim())
+          );
           
           const uniqueLessons = Array.from(new Map(lezioniDelGiorno.map(l => [l.id, l])).values());
           uniqueLessons.sort((a, b) => {
@@ -165,10 +173,8 @@ export default function Calendario() {
     };
 
     fetchDailySchedule();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [corsoCodice, annoCodice, dataSelezionata]);
 
-  // Crawler attivo per scaricare l'intero semestre (passato e futuro)
   const esportaInteroCalendario = async () => {
     if (!navigator.onLine) {
       alert("Devi essere online per scaricare il calendario dell'intero semestre.");
@@ -188,7 +194,6 @@ export default function Calendario() {
          mapCorsi.get(k).materie.push(m.materiaNome);
       });
 
-      // Creiamo un range di date: 15 settimane nel passato, 15 nel futuro rispetto a oggi
       const dateTarget: string[] = [];
       const dataRiferimento = new Date();
       for (let i = -15; i <= 15; i++) {
@@ -200,7 +205,6 @@ export default function Calendario() {
       let tutteCelle: any[] = [];
       const urlAPI = '/api-unisalento/PortaleStudenti/grid_call.php';
 
-      // Facciamo le chiamate in sequenza
       for (const targetDate of dateTarget) {
         for (const [keyCorsoAnno, config] of mapCorsi.entries()) {
           const [cCodice, aCodice] = keyCorsoAnno.split('_');
@@ -232,13 +236,16 @@ export default function Calendario() {
               if (result && result.celle) {
                 let celleValide = result.celle;
                 if (!config.isMain) {
-                  celleValide = celleValide.filter((c: any) => config.materie.includes(c.nome_insegnamento.replace(/<[^>]+>/g, '').trim()));
+                  // FIX: Sicurezza nel .filter dell'esportazione massiva
+                  celleValide = celleValide.filter((c: any) => 
+                    c.nome_insegnamento && config.materie.includes(c.nome_insegnamento.replace(/<[^>]+>/g, '').trim())
+                  );
                 }
                 tutteCelle = [...tutteCelle, ...celleValide];
               }
             }
           } catch (e) {
-            console.error(`Errore nel recupero dati per la data ${targetDate}`, e);
+            console.warn(`Tentativo di fetch saltato per data ${targetDate}`);
           }
         }
       }
@@ -248,11 +255,10 @@ export default function Calendario() {
           return;
       }
 
-      // CORREZIONE QUI: Protezione contro eventi malformati
       const lezioniElaborate: Lezione[] = tutteCelle.map((lezione: any) => {
         try {
-          // Filtro antiproiettile: se mancano i pezzi fondamentali o l'orario non è nel formato "XX:XX - YY:YY", la scartiamo
-          if (!lezione || !lezione.orario || typeof lezione.orario !== 'string' || !lezione.orario.includes(' - ') || !lezione.data) {
+          // FIX: Aggiunta !lezione.nome_insegnamento al blocco principale
+          if (!lezione || !lezione.orario || typeof lezione.orario !== 'string' || !lezione.orario.includes(' - ') || !lezione.data || !lezione.nome_insegnamento) {
               return null;
           }
 
@@ -267,12 +273,14 @@ export default function Calendario() {
           const cleanMail = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
           return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
         } catch (err) {
-          // Fallback silenzioso
           return null;
         }
-      }).filter(Boolean); // Questo rimuove automaticamente tutti i "null" dall'array risultante
+      }).filter(Boolean) as Lezione[];
 
-      const lezioniFiltrate = lezioniElaborate.filter(l => !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '').trim()));
+      // FIX: Sicurezza per la blacklist
+      const lezioniFiltrate = lezioniElaborate.filter(l => 
+        l.nome_insegnamento && !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '').trim())
+      );
       
       const mappaUnici = new Map();
       lezioniFiltrate.forEach(l => {
@@ -296,9 +304,10 @@ export default function Calendario() {
         const start = lezione.inizioDateObj.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
         const end = lezione.fineDateObj.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
-        const summary = lezione.nome_insegnamento.replace(/<[^>]+>/g, '').trim();
-        const location = lezione.aula.replace(/<[^>]+>/g, '').trim();
-        const description = `Docente: ${lezione.docente.replace(/<[^>]+>/g, '').trim()}`;
+        // FIX: Forzatura a stringa vuota in caso di anomalie impreviste nell'export ICS
+        const summary = (lezione.nome_insegnamento || '').replace(/<[^>]+>/g, '').trim();
+        const location = (lezione.aula || '').replace(/<[^>]+>/g, '').trim();
+        const description = `Docente: ${(lezione.docente || '').replace(/<[^>]+>/g, '').trim()}`;
 
         icsContent += "BEGIN:VEVENT\r\n";
         icsContent += `UID:${lezione.id}-${start}@nextlesson\r\n`;
