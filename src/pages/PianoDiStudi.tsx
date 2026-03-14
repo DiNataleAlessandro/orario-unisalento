@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { elenco_corsi } from '../corsiData';
 
-const formattaDataAPI = (data: Date) => {
+const formatDateForAPI = (data: Date) => {
   const g = String(data.getDate()).padStart(2, '0');
   const m = String(data.getMonth() + 1).padStart(2, '0');
   const a = data.getFullYear();
@@ -25,6 +25,7 @@ export default function PianoDiStudi() {
   const [materieTrovate, setMaterieTrovate] = useState<string[]>([]);
   const [materieSpuntate, setMaterieSpuntate] = useState<string[]>([]);
 
+  // Initialize course list from static data, mapping multiple years to their parent course
   useEffect(() => {
     const corsiMap = new Map();
     elenco_corsi.forEach((item: any) => {
@@ -41,11 +42,11 @@ export default function PianoDiStudi() {
   }, []);
 
   useEffect(() => {
-    function gestisciClickFuori(e: MouseEvent) {
+    function handleOutsideClick(e: MouseEvent) {
       if (tendinaRef.current && !tendinaRef.current.contains(e.target as Node)) setTendinaAperta(false);
     }
-    document.addEventListener("mousedown", gestisciClickFuori);
-    return () => document.removeEventListener("mousedown", gestisciClickFuori);
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
   const cercaMaterieNelCorso = async () => {
@@ -59,41 +60,44 @@ export default function PianoDiStudi() {
 
     try {
       const urlAPI = '/api-unisalento/PortaleStudenti/grid_call.php';
-      const fetchSettimana = async (dataTarget: Date) => {
-        const datiModulo = new URLSearchParams();
-        datiModulo.append('view', 'easycourse');
-        datiModulo.append('form-type', 'corso');
-        datiModulo.append('include', 'corso');
-        datiModulo.append('txtcurr', '1 - Percorso comune');
-        datiModulo.append('anno', '2025'); 
-        datiModulo.append('corso', annoObj.codiceReale); 
-        datiModulo.append('anno2[]', annoObj.valore); 
-        datiModulo.append('visualizzazione_orario', 'cal');
-        datiModulo.append('date', formattaDataAPI(dataTarget)); 
-        datiModulo.append('_lang', 'it');
-        datiModulo.append('week_grid_type', '-1');
-        datiModulo.append('col_cells', '0');
-        datiModulo.append('empty_box', '0');
-        datiModulo.append('only_grid', '0');
+      
+      const fetchWeek = async (dataTarget: Date) => {
+        const formData = new URLSearchParams();
+        formData.append('view', 'easycourse');
+        formData.append('form-type', 'corso');
+        formData.append('include', 'corso');
+        formData.append('txtcurr', '1 - Percorso comune');
+        formData.append('anno', '2025'); 
+        formData.append('corso', annoObj.codiceReale); 
+        formData.append('anno2[]', annoObj.valore); 
+        formData.append('visualizzazione_orario', 'cal');
+        formData.append('date', formatDateForAPI(dataTarget)); 
+        formData.append('_lang', 'it');
+        formData.append('week_grid_type', '-1');
+        formData.append('col_cells', '0');
+        formData.append('empty_box', '0');
+        formData.append('only_grid', '0');
 
-        const response = await fetch(urlAPI, { method: 'POST', body: datiModulo, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' } });
-        if (!response.ok) throw new Error("Errore");
+        const response = await fetch(urlAPI, { method: 'POST', body: formData, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' } });
+        if (!response.ok) throw new Error("API Request Failed");
         return await response.json();
       };
 
+      // Lookahead 14 days to capture sporadic or bi-weekly lectures
       const dataOggi = new Date();
       const dataProssima = new Date(); dataProssima.setDate(dataProssima.getDate() + 7);
       const dataTraDue = new Date(); dataTraDue.setDate(dataTraDue.getDate() + 14);
 
-      const [res1, res2, res3] = await Promise.all([ fetchSettimana(dataOggi), fetchSettimana(dataProssima), fetchSettimana(dataTraDue) ]);
+      const [res1, res2, res3] = await Promise.all([ fetchWeek(dataOggi), fetchWeek(dataProssima), fetchWeek(dataTraDue) ]);
       
-      let tutteLeCelle: any[] = [];
-      if (res1?.celle) tutteLeCelle = [...tutteLeCelle, ...res1.celle];
-      if (res2?.celle) tutteLeCelle = [...tutteLeCelle, ...res2.celle];
-      if (res3?.celle) tutteLeCelle = [...tutteLeCelle, ...res3.celle];
+      let allCells: any[] = [];
+      if (res1?.celle) allCells = [...allCells, ...res1.celle];
+      if (res2?.celle) allCells = [...allCells, ...res2.celle];
+      if (res3?.celle) allCells = [...allCells, ...res3.celle];
 
-      const uniche = Array.from(new Set(tutteLeCelle.map((c: any) => c.nome_insegnamento.replace(/<[^>]+>/g, '')))).sort();
-      setMaterieTrovate(uniche);
+      // Extract unique subject names
+      const uniqueSubjects = Array.from(new Set(allCells.map((c: any) => c.nome_insegnamento.replace(/<[^>]+>/g, '')))).sort();
+      setMaterieTrovate(uniqueSubjects);
     } catch (e) {
       alert("Errore di connessione durante la ricerca delle materie.");
     } finally {
@@ -112,6 +116,7 @@ export default function PianoDiStudi() {
   const salvaEsamiExtra = () => {
     const annoObj = corsoSelezionato.anni.find((a: any) => a.valore === annoSelezionato);
     
+    // Persist selected subjects to localStorage for cross-referencing in Home and Calendar
     const nuoviSalvataggi = materieSpuntate.map(materia => ({
       id: Date.now().toString() + Math.random().toString(),
       corsoCodice: annoObj.codiceReale,
@@ -148,7 +153,6 @@ export default function PianoDiStudi() {
         </div>
       </header>
 
-      {/* MOTORE DI RICERCA CORSI */}
       <div className="mb-8">
         <h3 className="text-[10px] font-black text-[#c48e12] uppercase tracking-[0.2em] mb-3 ml-2">Aggiungi nuovo esame a scelta</h3>
         
@@ -238,7 +242,6 @@ export default function PianoDiStudi() {
 
       <div className="w-full h-px bg-gradient-to-r from-transparent via-[#333] to-transparent mb-8"></div>
 
-      {/* MATERIE EXTRA GIA' AGGIUNTE */}
       <div className="mb-8">
         <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 ml-2">Esami a scelta selezionati</h3>
         {materieSalvate.length === 0 ? (
@@ -262,10 +265,8 @@ export default function PianoDiStudi() {
         )}
       </div>
 
-      {/* NAVBAR A 3 VOCI CENTRATA (Fissata con Grid per non ballare) */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/90 backdrop-blur-xl border-t border-[#333] pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_30px_rgba(0,0,0,0.7)] z-50">
         <div className="max-w-md mx-auto grid grid-cols-3 items-center p-2 mt-1">
-          
           <button onClick={() => navigate('/')} className="flex flex-col items-center justify-center p-2 text-gray-500 hover:text-gray-300 transition-colors active:scale-95">
             <svg className="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
@@ -286,7 +287,6 @@ export default function PianoDiStudi() {
             </svg>
             <span className="text-[10px] font-bold tracking-wider">CALENDARIO</span>
           </button>
-
         </div>
       </div>
     </div>

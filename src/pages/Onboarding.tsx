@@ -22,6 +22,7 @@ export default function Onboarding() {
 
   const navigate = useNavigate();
 
+  // Group raw course data into a unified map to handle multiple years/paths per course
   useEffect(() => {
     const corsiUnificati = new Map<string, { etichetta: string, tutti_gli_anni: any[] }>();
 
@@ -57,13 +58,13 @@ export default function Onboarding() {
   }, []);
 
   useEffect(() => {
-    function gestisciClickFuori(event: MouseEvent) {
+    function handleOutsideClick(event: MouseEvent) {
       if (tendinaRef.current && !tendinaRef.current.contains(event.target as Node)) {
         setTendinaAperta(false);
       }
     }
-    document.addEventListener("mousedown", gestisciClickFuori);
-    return () => document.removeEventListener("mousedown", gestisciClickFuori);
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
   useEffect(() => {
@@ -113,6 +114,7 @@ export default function Onboarding() {
     localStorage.setItem('corsoNome', corso);
     localStorage.setItem('annoNome', annoScelto.label); 
     
+    // Wipe existing schedule cache when changing course to prevent data pollution
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith('orario_')) {
@@ -128,13 +130,11 @@ export default function Onboarding() {
     <div className="min-h-screen bg-[#121212] flex flex-col items-center justify-center p-6 font-sans">
       <div className="bg-[#212121] p-8 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-[#333333]">
         
-        {/* HEADER CON LOGO E TITOLO BRANDIZZATO GLOW */}
         <div className="mb-6">
           <div className="flex items-center gap-5 mb-5">
             <div className="bg-[#1a1a1a] border border-[#333] w-24 h-24 rounded-[1.5rem] flex items-center justify-center shrink-0 shadow-inner overflow-hidden">
               <img src={logoUnisalento} alt="Logo UniSalento" className="w-[4.5rem] h-[4.5rem] object-contain opacity-90" />
             </div>
-            {/* Effetto Neon/Glow SOLO sul titolo */}
             <h1 className="text-[1.75rem] font-black text-[#c48e12] leading-tight tracking-tight drop-shadow-[0_0_12px_rgba(196,142,18,0.7)]">
               NextLesson<br/>UniSalento
             </h1>
@@ -142,7 +142,6 @@ export default function Onboarding() {
           
           <div className="text-left mt-2">
             <h2 className="text-2xl font-black text-white tracking-tight">Benvenuto!</h2>
-            {/* Niente glow qui, solo testo pulito e opaco */}
             <p className="text-[#c48e12] mt-1 font-bold tracking-widest text-xs uppercase">
               Configura il tuo piano di studi
             </p>
@@ -204,7 +203,6 @@ export default function Onboarding() {
             Configurazione Completata
           </button>
 
-          {/* FIRMA DELL'AUTORE */}
           <div className="pt-2 text-center">
             <p className="text-[10px] font-bold text-gray-600 tracking-widest uppercase">
               made by <span className="text-[#c48e12]/80">Λlεx</span>

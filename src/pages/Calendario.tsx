@@ -6,7 +6,7 @@ import { it } from 'date-fns/locale';
 import 'react-day-picker/dist/style.css';
 import CardLezione, { type Lezione } from '../components/CardLezione';
 
-const formattaDataAPI = (data: Date) => {
+const formatDateForAPI = (data: Date) => {
   const g = String(data.getDate()).padStart(2, '0');
   const m = String(data.getMonth() + 1).padStart(2, '0');
   const a = data.getFullYear();
@@ -29,16 +29,16 @@ export default function Calendario() {
   const [errore, setErrore] = useState<string | null>(null);
 
   const [dataSelezionata, setDataSelezionata] = useState<Date>(new Date());
-
   const blacklist = JSON.parse(localStorage.getItem('blacklist_materie') || '[]');
 
   useEffect(() => {
-    const scaricaOrarioGiorno = async () => {
+    const fetchDailySchedule = async () => {
       try {
         setInCaricamento(true);
         setErrore(null);
-        const dataStr = formattaDataAPI(dataSelezionata);
+        const dataStr = formatDateForAPI(dataSelezionata);
 
+        // Aggregate targets: main course + any custom added subjects
         const materieExtra = JSON.parse(localStorage.getItem('materieExtra') || '[]');
         const corsiDaScaricare = new Map();
         materieExtra.forEach((m: any) => {
@@ -62,10 +62,12 @@ export default function Calendario() {
             let datiTargetJSON = null;
             let trovatoInCache = false;
 
+            // Cache lookup strategy: check exact date key first
             if (cachedData) {
                 datiTargetJSON = JSON.parse(cachedData);
                 trovatoInCache = true;
             } else {
+                // If exact miss, scan existing week-grid caches to see if target date falls within downloaded range
                 const prefisso = `orario_${target.corsoCodice}_${target.annoCodice}_`;
                 let celleTrovate: any[] = [];
                 const targetTime = parseDataString(dataStr);
@@ -96,24 +98,24 @@ export default function Calendario() {
                     datiMancantiOffline = true;
                 } else {
                     const urlAPI = '/api-unisalento/PortaleStudenti/grid_call.php';
-                    const datiModulo = new URLSearchParams();
-                    datiModulo.append('view', 'easycourse');
-                    datiModulo.append('form-type', 'corso');
-                    datiModulo.append('include', 'corso');
-                    datiModulo.append('txtcurr', '1 - Percorso comune');
-                    datiModulo.append('anno', '2025'); 
-                    datiModulo.append('corso', target.corsoCodice); 
-                    datiModulo.append('anno2[]', target.annoCodice); 
-                    datiModulo.append('visualizzazione_orario', 'cal');
-                    datiModulo.append('date', dataStr); 
-                    datiModulo.append('_lang', 'it');
-                    datiModulo.append('week_grid_type', '-1');
-                    datiModulo.append('col_cells', '0');
-                    datiModulo.append('empty_box', '0');
-                    datiModulo.append('only_grid', '0');
+                    const formData = new URLSearchParams();
+                    formData.append('view', 'easycourse');
+                    formData.append('form-type', 'corso');
+                    formData.append('include', 'corso');
+                    formData.append('txtcurr', '1 - Percorso comune');
+                    formData.append('anno', '2025'); 
+                    formData.append('corso', target.corsoCodice); 
+                    formData.append('anno2[]', target.annoCodice); 
+                    formData.append('visualizzazione_orario', 'cal');
+                    formData.append('date', dataStr); 
+                    formData.append('_lang', 'it');
+                    formData.append('week_grid_type', '-1');
+                    formData.append('col_cells', '0');
+                    formData.append('empty_box', '0');
+                    formData.append('only_grid', '0');
 
-                    const response = await fetch(urlAPI, { method: 'POST', body: datiModulo, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' } });
-                    if (!response.ok) throw new Error("Errore");
+                    const response = await fetch(urlAPI, { method: 'POST', body: formData, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' } });
+                    if (!response.ok) throw new Error("API Request Failed");
                     datiTargetJSON = await response.json();
                     localStorage.setItem(cacheKeyEsatta, JSON.stringify(datiTargetJSON));
                 }
@@ -141,19 +143,20 @@ export default function Calendario() {
             const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
             const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
             
-            const mailPulita = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
-            return { ...lezione, inizioDateObj, fineDateObj, mail_docente: mailPulita };
+            const cleanMail = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
+            return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
           });
 
           const lezioniDelGiorno = lezioniElaborate.filter(l => !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '')));
           
-          const lezioniUniche = Array.from(new Map(lezioniDelGiorno.map(l => [l.id, l])).values());
-          lezioniUniche.sort((a, b) => {
+          // Deduplicate lessons by ID and sort chronologically to prevent overlapping UI elements
+          const uniqueLessons = Array.from(new Map(lezioniDelGiorno.map(l => [l.id, l])).values());
+          uniqueLessons.sort((a, b) => {
              if (!a.inizioDateObj || !b.inizioDateObj) return 0;
              return a.inizioDateObj.getTime() - b.inizioDateObj.getTime();
           });
 
-          setLezioniGiorno(lezioniUniche);
+          setLezioniGiorno(uniqueLessons);
         } else {
           setLezioniGiorno([]);
         }
@@ -164,14 +167,12 @@ export default function Calendario() {
       }
     };
 
-    scaricaOrarioGiorno();
+    fetchDailySchedule();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [corsoCodice, annoCodice, dataSelezionata]);
 
   return (
     <div className="min-h-screen bg-[#121212] px-4 pb-32 pt-[calc(env(safe-area-inset-top)+1rem)] relative">
-      
-      {/* HEADER PULITO SENZA PULSANTE */}
       <header className="flex justify-between items-center mb-6 bg-[#212121] p-5 rounded-2xl shadow-lg border border-[#333]">
         <div>
           <h1 className="text-2xl font-black text-[#c48e12] tracking-tight">Calendario</h1>
@@ -227,7 +228,6 @@ export default function Calendario() {
 
       <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/90 backdrop-blur-xl border-t border-[#333] pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_30px_rgba(0,0,0,0.7)] z-50">
         <div className="max-w-md mx-auto grid grid-cols-3 items-center p-2 mt-1">
-          
           <button onClick={() => navigate('/')} className="flex flex-col items-center justify-center p-2 text-gray-500 hover:text-gray-300 transition-colors active:scale-95">
             <svg className="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
@@ -248,7 +248,6 @@ export default function Calendario() {
             </svg>
             <span className="text-[10px] font-bold tracking-wider">CALENDARIO</span>
           </button>
-
         </div>
       </div>
     </div>

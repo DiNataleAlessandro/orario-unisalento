@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CardLezione, { type Lezione } from '../components/CardLezione';
 
-const formattaDataAPI = (data: Date) => {
+const formatDateForAPI = (data: Date) => {
   const g = String(data.getDate()).padStart(2, '0');
   const m = String(data.getMonth() + 1).padStart(2, '0');
   const a = data.getFullYear();
@@ -26,14 +26,13 @@ export default function Home() {
   const [showBlacklist, setShowBlacklist] = useState(false);
   const [blacklist, setBlacklist] = useState<string[]>(JSON.parse(localStorage.getItem('blacklist_materie') || '[]'));
 
-  // STATO PER IL POPUP DI RESET/EXIT
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const dataRiferimento = new Date(); 
   const [fineSettimanaCorrente, setFineSettimanaCorrente] = useState<Date | null>(null);
   const [oraAttuale, setOraAttuale] = useState(new Date());
 
-  const resettaImpostazioni = () => {
+  const handleReset = () => {
     localStorage.clear();
     sessionStorage.clear(); 
     navigate('/onboarding');
@@ -51,53 +50,51 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const timerId = setInterval(() => {
-      setOraAttuale(new Date());
-    }, 60000); 
+    const timerId = setInterval(() => setOraAttuale(new Date()), 60000); 
     return () => clearInterval(timerId);
   }, []);
 
   useEffect(() => {
-    const scaricaOrariMultipli = async () => {
+    const fetchScheduleData = async () => {
       try {
         setInCaricamento(true);
         setErrore(null);
         const isForced = refreshCount > 0; 
         const urlAPI = '/api-unisalento/PortaleStudenti/grid_call.php';
 
-        const fetchSettimanaSingola = async (dataTarget: Date, cCodice: string, aCodice: string) => {
-          const dataStr = formattaDataAPI(dataTarget);
+        // Fetches data for a specific week and caches it via localStorage
+        const fetchSingleWeek = async (dataTarget: Date, cCodice: string, aCodice: string) => {
+          const dataStr = formatDateForAPI(dataTarget);
           const cacheKey = `orario_${cCodice}_${aCodice}_${dataStr}`;
           const cachedData = localStorage.getItem(cacheKey); 
           
           if (cachedData && !isForced) return JSON.parse(cachedData); 
 
           if (!navigator.onLine) {
-            if (cachedData) return JSON.parse(cachedData);
-            return { celle: [] };
+            return cachedData ? JSON.parse(cachedData) : { celle: [] };
           }
 
-          const datiModulo = new URLSearchParams();
-          datiModulo.append('view', 'easycourse');
-          datiModulo.append('form-type', 'corso');
-          datiModulo.append('include', 'corso');
-          datiModulo.append('txtcurr', '1 - Percorso comune');
-          datiModulo.append('anno', '2025'); 
-          datiModulo.append('corso', cCodice); 
-          datiModulo.append('anno2[]', aCodice); 
-          datiModulo.append('visualizzazione_orario', 'cal');
-          datiModulo.append('date', dataStr); 
-          datiModulo.append('_lang', 'it');
-          datiModulo.append('week_grid_type', '-1');
-          datiModulo.append('col_cells', '0');
-          datiModulo.append('empty_box', '0');
-          datiModulo.append('only_grid', '0');
-          datiModulo.append('highlighted_date', '0');
-          datiModulo.append('all_events', '0');
-          datiModulo.append('faculty_group', '0');
+          const formData = new URLSearchParams();
+          formData.append('view', 'easycourse');
+          formData.append('form-type', 'corso');
+          formData.append('include', 'corso');
+          formData.append('txtcurr', '1 - Percorso comune');
+          formData.append('anno', '2025'); 
+          formData.append('corso', cCodice); 
+          formData.append('anno2[]', aCodice); 
+          formData.append('visualizzazione_orario', 'cal');
+          formData.append('date', dataStr); 
+          formData.append('_lang', 'it');
+          formData.append('week_grid_type', '-1');
+          formData.append('col_cells', '0');
+          formData.append('empty_box', '0');
+          formData.append('only_grid', '0');
+          formData.append('highlighted_date', '0');
+          formData.append('all_events', '0');
+          formData.append('faculty_group', '0');
 
           const response = await fetch(urlAPI, {
-            method: 'POST', body: datiModulo, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' }
+            method: 'POST', body: formData, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' }
           });
 
           if (!response.ok) throw new Error(`Errore server: ${response.status}`);
@@ -111,58 +108,59 @@ export default function Home() {
           return result;
         };
 
-        const fetchTuttiCorsiPerData = async (dataTarget: Date) => {
-          const resPrincipale = await fetchSettimanaSingola(dataTarget, corsoCodice, annoCodice);
-          let celleUnite: any[] = resPrincipale?.celle ? [...resPrincipale.celle] : [];
+        // Merges main subjects with user-selected extra subjects
+        const fetchAllCoursesForDate = async (dataTarget: Date) => {
+          const mainRes = await fetchSingleWeek(dataTarget, corsoCodice, annoCodice);
+          let mergedCells: any[] = mainRes?.celle ? [...mainRes.celle] : [];
 
           const materieExtra = JSON.parse(localStorage.getItem('materieExtra') || '[]');
-          const corsiDaScaricare = new Map();
+          const corsiToDownload = new Map();
           
           materieExtra.forEach((m: any) => {
              const key = `${m.corsoCodice}_${m.annoCodice}`;
-             if (!corsiDaScaricare.has(key)) {
-                 corsiDaScaricare.set(key, { corsoCodice: m.corsoCodice, annoCodice: m.annoCodice, materie: [] });
+             if (!corsiToDownload.has(key)) {
+                 corsiToDownload.set(key, { corsoCodice: m.corsoCodice, annoCodice: m.annoCodice, materie: [] });
              }
-             corsiDaScaricare.get(key).materie.push(m.materiaNome);
+             corsiToDownload.get(key).materie.push(m.materiaNome);
           });
 
-          const listaExtra = Array.from(corsiDaScaricare.values());
-          const risultatiExtra = await Promise.all(
-            listaExtra.map(c => fetchSettimanaSingola(dataTarget, c.corsoCodice, c.annoCodice).then(res => ({ res, materieRichieste: c.materie })))
+          const extraList = Array.from(corsiToDownload.values());
+          const extraResults = await Promise.all(
+            extraList.map(c => fetchSingleWeek(dataTarget, c.corsoCodice, c.annoCodice).then(res => ({ res, materieRichieste: c.materie })))
           );
           
-          risultatiExtra.forEach(item => {
+          extraResults.forEach(item => {
             if (item.res?.celle) {
-               const celleFiltrate = item.res.celle.filter((cella: any) => {
-                   const nomePulito = cella.nome_insegnamento.replace(/<[^>]+>/g, '');
-                   return item.materieRichieste.includes(nomePulito);
+               const filteredCells = item.res.celle.filter((cella: any) => {
+                   const cleanName = cella.nome_insegnamento.replace(/<[^>]+>/g, '');
+                   return item.materieRichieste.includes(cleanName);
                });
-               celleUnite = [...celleUnite, ...celleFiltrate];
+               mergedCells = [...mergedCells, ...filteredCells];
             }
           });
 
-          return { celle: celleUnite, last_day: resPrincipale?.last_day };
+          return { celle: mergedCells, last_day: mainRes?.last_day };
         };
 
-        const dataProssimaSettimana = new Date(dataRiferimento);
-        dataProssimaSettimana.setDate(dataProssimaSettimana.getDate() + 7);
+        const nextWeekDate = new Date(dataRiferimento);
+        nextWeekDate.setDate(nextWeekDate.getDate() + 7);
 
-        const [datiSettimanaCorrente, datiSettimanaProssima] = await Promise.all([
-          fetchTuttiCorsiPerData(dataRiferimento),
-          fetchTuttiCorsiPerData(dataProssimaSettimana)
+        const [currentWeekData, nextWeekData] = await Promise.all([
+          fetchAllCoursesForDate(dataRiferimento),
+          fetchAllCoursesForDate(nextWeekDate)
         ]);
 
-        let tutteLeCelle: any[] = [];
-        if (datiSettimanaCorrente?.celle) tutteLeCelle = [...tutteLeCelle, ...datiSettimanaCorrente.celle];
-        if (datiSettimanaProssima?.celle) tutteLeCelle = [...tutteLeCelle, ...datiSettimanaProssima.celle];
+        let allCells: any[] = [];
+        if (currentWeekData?.celle) allCells = [...allCells, ...currentWeekData.celle];
+        if (nextWeekData?.celle) allCells = [...allCells, ...nextWeekData.celle];
 
-        if (datiSettimanaCorrente?.last_day) {
-            const [gFine, mFine, aFine] = datiSettimanaCorrente.last_day.split('-');
-            setFineSettimanaCorrente(new Date(Number(aFine), Number(mFine) - 1, Number(gFine), 23, 59, 59));
+        if (currentWeekData?.last_day) {
+            const [gEnd, mEnd, aEnd] = currentWeekData.last_day.split('-');
+            setFineSettimanaCorrente(new Date(Number(aEnd), Number(mEnd) - 1, Number(gEnd), 23, 59, 59));
         }
 
-        if (tutteLeCelle.length > 0) {
-          const lezioniElaborate: Lezione[] = tutteLeCelle.map((lezione: any) => {
+        if (allCells.length > 0) {
+          const processedLessons: Lezione[] = allCells.map((lezione: any) => {
             const [oraInizioStr, oraFineStr] = lezione.orario.split(' - ');
             const [giorno, mese, annoStr] = lezione.data.split('-');
             const [oraInizio, minInizio] = oraInizioStr.split(':');
@@ -171,18 +169,19 @@ export default function Home() {
             const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
             const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
 
-            const mailPulita = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
+            const cleanMail = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
 
-            return { ...lezione, inizioDateObj, fineDateObj, mail_docente: mailPulita };
+            return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
           });
 
-          const lezioniUniche = Array.from(new Map(lezioniElaborate.map(l => [l.id, l])).values());
-          lezioniUniche.sort((a, b) => {
+          // Deduplicate lessons by id and sort chronologically
+          const uniqueLessons = Array.from(new Map(processedLessons.map(l => [l.id, l])).values());
+          uniqueLessons.sort((a, b) => {
              if (!a.inizioDateObj || !b.inizioDateObj) return 0;
              return a.inizioDateObj.getTime() - b.inizioDateObj.getTime();
           });
 
-          setLezioni(lezioniUniche);
+          setLezioni(uniqueLessons);
         } else {
           setLezioni([]);
         }
@@ -193,51 +192,51 @@ export default function Home() {
       }
     };
 
-    scaricaOrariMultipli();
+    fetchScheduleData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [corsoCodice, annoCodice, refreshCount]); 
 
-  const materieUniche = Array.from(new Set(lezioni.map(l => l.nome_insegnamento.replace(/<[^>]+>/g, '')))).sort();
+  const uniqueSubjects = Array.from(new Set(lezioni.map(l => l.nome_insegnamento.replace(/<[^>]+>/g, '')))).sort();
 
-  const toggleMateria = (materia: string) => {
-    let nuovaBlacklist = [...blacklist];
-    if (nuovaBlacklist.includes(materia)) {
-      nuovaBlacklist = nuovaBlacklist.filter(m => m !== materia);
+  const toggleBlacklistSubject = (materia: string) => {
+    let newBlacklist = [...blacklist];
+    if (newBlacklist.includes(materia)) {
+      newBlacklist = newBlacklist.filter(m => m !== materia);
     } else {
-      nuovaBlacklist.push(materia);
+      newBlacklist.push(materia);
     }
-    setBlacklist(nuovaBlacklist);
-    localStorage.setItem('blacklist_materie', JSON.stringify(nuovaBlacklist));
+    setBlacklist(newBlacklist);
+    localStorage.setItem('blacklist_materie', JSON.stringify(newBlacklist));
   };
 
-  const lezioniFiltrate = lezioni.filter(l => !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '')));
+  const filteredLessons = lezioni.filter(l => !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '')));
 
-  const lezioneLiveIndex = lezioniFiltrate.findIndex(lezione => {
+  const liveLessonIndex = filteredLessons.findIndex(lezione => {
     if (!lezione.inizioDateObj || !lezione.fineDateObj) return false;
     return lezione.inizioDateObj <= oraAttuale && lezione.fineDateObj > oraAttuale;
   });
 
-  const lezioneLive = lezioneLiveIndex !== -1 ? lezioniFiltrate[lezioneLiveIndex] : null;
+  const liveLesson = liveLessonIndex !== -1 ? filteredLessons[liveLessonIndex] : null;
 
-  const lezioniFuture = lezioniFiltrate.filter((lezione, index) => {
-      if (index === lezioneLiveIndex) return false;
+  const futureLessons = filteredLessons.filter((lezione, index) => {
+      if (index === liveLessonIndex) return false;
       if (!lezione.fineDateObj) return true;
       return lezione.fineDateObj > oraAttuale;
   });
 
-  const lezioniQuestaSettimana = lezioniFuture.filter(l => !fineSettimanaCorrente || l.inizioDateObj! <= fineSettimanaCorrente);
-  const lezioniProssimaSettimana = lezioniFuture.filter(l => fineSettimanaCorrente && l.inizioDateObj! > fineSettimanaCorrente);
+  const thisWeekLessons = futureLessons.filter(l => !fineSettimanaCorrente || l.inizioDateObj! <= fineSettimanaCorrente);
+  const nextWeekLessons = futureLessons.filter(l => fineSettimanaCorrente && l.inizioDateObj! > fineSettimanaCorrente);
 
-  const raggruppaPerGiorno = (listaLezioni: Lezione[]) => {
-    const gruppi = new Map<string, Lezione[]>();
-    listaLezioni.forEach(l => {
-      const chiave = `${l.nome_giorno} ${l.data}`;
-      if (!gruppi.has(chiave)) {
-        gruppi.set(chiave, []);
+  const groupByDay = (lessonList: Lezione[]) => {
+    const groups = new Map<string, Lezione[]>();
+    lessonList.forEach(l => {
+      const key = `${l.nome_giorno} ${l.data}`;
+      if (!groups.has(key)) {
+        groups.set(key, []);
       }
-      gruppi.get(chiave)!.push(l);
+      groups.get(key)!.push(l);
     });
-    return Array.from(gruppi.entries());
+    return Array.from(groups.entries());
   };
 
   return (
@@ -250,7 +249,6 @@ export default function Home() {
           </p>
         </div>
         <div className="flex gap-2">
-          {/* TASTO EXIT/LOGOUT - STILE APPLE STANDARD */}
           <button onClick={() => setShowResetConfirm(true)} className="bg-[#1a1a1a] border border-[#333] p-3 rounded-xl hover:bg-[#2a2a2a] transition-colors text-gray-300 active:scale-95">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14l5-5m0 0l-5-5m5 5H9" />
@@ -319,14 +317,14 @@ export default function Home() {
           </div>
         )}
 
-        {!inCaricamento && !errore && !lezioneLive && lezioniFuture.length === 0 && (
+        {!inCaricamento && !errore && !liveLesson && futureLessons.length === 0 && (
           <div className="text-center p-10 text-gray-500 font-medium bg-[#212121] rounded-2xl shadow-lg border border-[#333] flex flex-col items-center justify-center gap-3">
             <span className="text-4xl opacity-50">🥂</span>
             <p className="text-sm">Nessuna lezione in programma a breve termine.</p>
           </div>
         )}
 
-        {!inCaricamento && lezioneLive && (
+        {!inCaricamento && liveLesson && (
             <div className="mb-6">
                 <h3 className="text-xs font-bold text-[#c48e12] uppercase tracking-[0.2em] mb-3 pl-2 flex items-center gap-2">
                     <span className="relative flex h-2.5 w-2.5">
@@ -335,13 +333,13 @@ export default function Home() {
                     </span>
                     In Corso Ora
                 </h3>
-                <CardLezione lezione={lezioneLive} isLive={true} />
+                <CardLezione lezione={liveLesson} isLive={true} />
             </div>
         )}
 
-        {!inCaricamento && lezioniQuestaSettimana.length > 0 && (
+        {!inCaricamento && thisWeekLessons.length > 0 && (
           <div className="mt-8">
-            {raggruppaPerGiorno(lezioniQuestaSettimana).map(([giorno, lezioniGiorno], index) => (
+            {groupByDay(thisWeekLessons).map(([giorno, lezioniGiorno], index) => (
               <div key={index} className="mb-8">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-[11px] font-black text-[#c48e12] uppercase tracking-widest">
@@ -360,7 +358,7 @@ export default function Home() {
           </div>
         )}
 
-        {!inCaricamento && lezioniProssimaSettimana.length > 0 && (
+        {!inCaricamento && nextWeekLessons.length > 0 && (
           <div className="mt-12 mb-4">
             <div className="flex items-center gap-4 mb-8">
                 <div className="flex-1 h-px bg-[#333] rounded-full"></div>
@@ -370,7 +368,7 @@ export default function Home() {
                 <div className="flex-1 h-px bg-[#333] rounded-full"></div>
             </div>
             
-            {raggruppaPerGiorno(lezioniProssimaSettimana).map(([giorno, lezioniGiorno], index) => (
+            {groupByDay(nextWeekLessons).map(([giorno, lezioniGiorno], index) => (
               <div key={index} className="mb-8">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-[11px] font-black text-[#c48e12] uppercase tracking-widest">
@@ -390,7 +388,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* POPUP BLACKLIST */}
       {showBlacklist && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex flex-col p-4 transition-opacity">
           <div className="bg-[#212121] border border-[#333] rounded-[2rem] shadow-2xl w-full max-w-md mx-auto flex flex-col h-[85vh] overflow-hidden mt-8">
@@ -407,25 +404,25 @@ export default function Home() {
             </div>
             
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {materieUniche.length === 0 ? (
+              {uniqueSubjects.length === 0 ? (
                 <p className="text-center text-gray-500 mt-10 text-sm">Nessuna materia caricata.</p>
               ) : (
-                materieUniche.map((materia, idx) => {
-                  const isNascosta = blacklist.includes(materia);
+                uniqueSubjects.map((materia, idx) => {
+                  const isHidden = blacklist.includes(materia);
                   return (
                     <button 
                       key={idx}
-                      onClick={() => toggleMateria(materia)}
+                      onClick={() => toggleBlacklistSubject(materia)}
                       className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all active:scale-[0.98] text-left ${
-                        isNascosta 
+                        isHidden 
                           ? 'bg-[#1a1a1a] border-[#333] opacity-60' 
                           : 'bg-gradient-to-r from-[#2a2215] to-[#212121] border-[#c48e12]/30 shadow-md'
                       }`}
                     >
-                      <span className={`font-bold pr-4 ${isNascosta ? 'text-gray-500 line-through' : 'text-white'}`}>
+                      <span className={`font-bold pr-4 ${isHidden ? 'text-gray-500 line-through' : 'text-white'}`}>
                         {materia}
                       </span>
-                      {isNascosta ? (
+                      {isHidden ? (
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6 text-gray-600 shrink-0">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
                         </svg>
@@ -452,12 +449,10 @@ export default function Home() {
         </div>
       )}
 
-      {/* POPUP CONFERMA CAMBIO CORSO (RESET) */}
       {showResetConfirm && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex flex-col p-4 transition-opacity items-center justify-center" onClick={() => setShowResetConfirm(false)}>
           <div className="bg-[#212121] border border-[#333] p-8 rounded-[2rem] shadow-2xl w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
             <div className="bg-[#1a1a1a] border border-[#333] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-              {/* STESSA ICONA APPLE LOGOUT NEL POPUP */}
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor" className="w-8 h-8 text-[#c48e12]">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14l5-5m0 0l-5-5m5 5H9" />
               </svg>
@@ -474,7 +469,7 @@ export default function Home() {
                 Annulla
               </button>
               <button 
-                onClick={resettaImpostazioni}
+                onClick={handleReset}
                 className="flex-1 py-3.5 rounded-xl font-black text-[#121212] bg-[#c48e12] hover:bg-[#d89e17] active:scale-95 transition-all shadow-lg shadow-[#c48e12]/20"
               >
                 Conferma
@@ -484,7 +479,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* NAVBAR A 3 VOCI CENTRATA */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/90 backdrop-blur-xl border-t border-[#333] pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_30px_rgba(0,0,0,0.7)] z-50">
         <div className="max-w-md mx-auto grid grid-cols-3 items-center p-2 mt-1">
           <button className="flex flex-col items-center justify-center p-2 text-[#c48e12] transition-transform active:scale-95">

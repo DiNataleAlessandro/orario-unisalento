@@ -18,59 +18,53 @@ interface CardLezioneProps {
   isLive?: boolean; 
 }
 
-// Genera la mail per UN SINGOLO professore
-const generaEmailSingola = (nomeProf: string) => {
-  if (!nomeProf) return '';
-  let pulito = nomeProf.replace(/<[^>]+>/g, '')
-                       .replace(/Prof\.ssa|Prof\.|Dott\.ssa|Dott\./gi, '')
-                       .trim()
-                       .toLowerCase();
-                       
-  // Rimuoviamo accenti e apostrofi
-  pulito = pulito.replace(/[']/g, '')
-                 .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
-                 
-  const parti = pulito.split(/\s+/);
+const parseDocenteEmail = (rawName: string) => {
+  if (!rawName) return '';
   
-  // Il formato UniSalento è "Cognome Nome". 
-  // Prendiamo l'ultima parola (Nome) e la portiamo all'inizio.
-  if (parti.length >= 2) {
-    const nome = parti.pop();
-    if (nome) parti.unshift(nome);
+  const cleanName = rawName
+    .replace(/<[^>]+>/g, '')
+    .replace(/Prof\.ssa|Prof\.|Dott\.ssa|Dott\./gi, '')
+    .trim()
+    .toLowerCase()
+    .replace(/[']/g, '')
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
+                 
+  const parts = cleanName.split(/\s+/);
+  
+  // UniSalento APIs typically return "Lastname Firstname".
+  // This shifts the firstname to the beginning for standard email generation.
+  if (parts.length >= 2) {
+    const firstName = parts.pop();
+    if (firstName) parts.unshift(firstName);
   }
   
-  return `${parti.join('.')}@unisalento.it`;
+  return `${parts.join('.')}@unisalento.it`;
 };
 
-// Accoppia ogni professore alla sua mail (ufficiale o generata)
-const ottieniListaProfessori = (docenteGrezzo: string, mailGrezza: string) => {
-  if (!docenteGrezzo) return [];
+const getProfessorsData = (rawDocente: string, rawMail: string) => {
+  if (!rawDocente) return [];
   
-  // Dividiamo i nomi e le mail usando la virgola
-  const nomi = docenteGrezzo.split(',').map(n => n.replace(/<[^>]+>/g, '').trim()).filter(Boolean);
-  const mails = mailGrezza ? mailGrezza.split(',').map(m => m.trim()).filter(Boolean) : [];
+  const names = rawDocente.split(',').map(n => n.replace(/<[^>]+>/g, '').trim()).filter(Boolean);
+  const emails = rawMail ? rawMail.split(',').map(m => m.trim()).filter(Boolean) : [];
 
-  return nomi.map((nome, index) => {
-    const emailUfficiale = mails[index] || '';
-    const emailFinale = emailUfficiale || generaEmailSingola(nome);
-    return { nome, email: emailFinale };
-  });
+  return names.map((nome, index) => ({
+    nome,
+    email: emails[index] || parseDocenteEmail(nome)
+  }));
 };
 
 export default function CardLezione({ lezione, isLive = false }: CardLezioneProps) {
   const [profPopup, setProfPopup] = useState<{nome: string, mail: string} | null>(null);
 
-  const listaProfessori = ottieniListaProfessori(lezione.docente, lezione.mail_docente || '');
-  
-  // Puliamo il nome per il confronto
-  const nomePulito = lezione.nome_insegnamento.replace(/<[^>]+>/g, '');
+  const professors = getProfessorsData(lezione.docente, lezione.mail_docente || '');
+  const cleanSubjectName = lezione.nome_insegnamento.replace(/<[^>]+>/g, '');
 
-  // Verifichiamo in modo invisibile se questa materia fa parte delle aggiunte extra
+  // Cross-reference with localStorage to identify custom user-added subjects
   const isExtra = (() => {
     try {
-      const materieExtra = JSON.parse(localStorage.getItem('materieExtra') || '[]');
-      return materieExtra.some((m: any) => m.materiaNome === nomePulito);
-    } catch (e) {
+      const extraSubjects = JSON.parse(localStorage.getItem('materieExtra') || '[]');
+      return extraSubjects.some((m: { materiaNome: string }) => m.materiaNome === cleanSubjectName);
+    } catch {
       return false;
     }
   })();
@@ -84,7 +78,6 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
       }`}>
         <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${isLive ? 'bg-[#c48e12]' : 'bg-[#333]'}`}></div>
         
-        {/* BADGE "A SCELTA" (Senza aspetto da bottone, solo testo e icona a filigrana) */}
         {isExtra && (
           <div className="absolute bottom-5 right-5 flex items-center gap-1.5 opacity-50 pointer-events-none select-none">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 text-[#c48e12]">
@@ -96,7 +89,7 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
 
         <div className="flex justify-between items-start pl-2 pr-12">
             <h2 className={`font-bold leading-tight ${isLive ? 'text-white text-xl' : 'text-white text-lg'}`}>
-              {nomePulito}
+              {cleanSubjectName}
             </h2>
         </div>
 
@@ -112,8 +105,8 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
             <div className="flex items-start gap-2">
               <span className={isLive ? 'opacity-80' : 'opacity-70'}>👨‍🏫</span> 
               <div className="flex flex-wrap gap-x-1 pr-14">
-                {listaProfessori.length > 0 ? (
-                  listaProfessori.map((prof, index) => (
+                {professors.length > 0 ? (
+                  professors.map((prof, index) => (
                     <span key={index}>
                       <button 
                         onClick={() => prof.email && setProfPopup({ nome: prof.nome, mail: prof.email })}
@@ -126,8 +119,7 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
                       >
                         {prof.nome}
                       </button>
-                      {/* Aggiungiamo la virgola se non è l'ultimo professore */}
-                      {index < listaProfessori.length - 1 && <span className={isLive ? 'text-[#e8d5a5]' : 'text-gray-400'}>, </span>}
+                      {index < professors.length - 1 && <span className={isLive ? 'text-[#e8d5a5]' : 'text-gray-400'}>, </span>}
                     </span>
                   ))
                 ) : (
@@ -138,7 +130,6 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
         </div>
       </div>
 
-      {/* POPUP PROFESSORE MINIMAL */}
       {profPopup && (
         <div 
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-opacity" 
