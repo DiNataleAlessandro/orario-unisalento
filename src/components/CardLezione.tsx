@@ -31,8 +31,6 @@ const parseDocenteEmail = (rawName: string) => {
                  
   const parts = cleanName.split(/\s+/);
   
-  // UniSalento APIs typically return "Lastname Firstname".
-  // This shifts the firstname to the beginning for standard email generation.
   if (parts.length >= 2) {
     const firstName = parts.pop();
     if (firstName) parts.unshift(firstName);
@@ -57,9 +55,11 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
   const [profPopup, setProfPopup] = useState<{nome: string, mail: string} | null>(null);
 
   const professors = getProfessorsData(lezione.docente, lezione.mail_docente || '');
-  const cleanSubjectName = lezione.nome_insegnamento.replace(/<[^>]+>/g, '');
+  
+  // Applied .trim() to ensure perfect UI alignment
+  const cleanSubjectName = lezione.nome_insegnamento.replace(/<[^>]+>/g, '').trim();
+  const cleanAula = lezione.aula.replace(/<[^>]+>/g, '').trim();
 
-  // Cross-reference with localStorage to identify custom user-added subjects
   const isExtra = (() => {
     try {
       const extraSubjects = JSON.parse(localStorage.getItem('materieExtra') || '[]');
@@ -100,7 +100,7 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
             </p>
             <p className="flex items-center gap-2">
               <span className={isLive ? 'opacity-80' : 'opacity-70'}>📍</span> 
-              <span className="font-medium">{lezione.aula.replace(/<[^>]+>/g, '')}</span>
+              <span className="font-medium">{cleanAula}</span>
             </p>
             <div className="flex items-start gap-2">
               <span className={isLive ? 'opacity-80' : 'opacity-70'}>👨‍🏫</span> 
