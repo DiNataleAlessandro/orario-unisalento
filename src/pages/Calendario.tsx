@@ -29,7 +29,6 @@ export default function Calendario() {
   const [esportazioneInCorso, setEsportazioneInCorso] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
   
-  // Nuovo stato per controllare il popup di conferma
   const [showExportConfirm, setShowExportConfirm] = useState(false);
 
   const [dataSelezionata, setDataSelezionata] = useState<Date>(new Date());
@@ -177,7 +176,6 @@ export default function Calendario() {
   }, [corsoCodice, annoCodice, dataSelezionata]);
 
   const avviaEsportazione = async () => {
-    // Chiude il popup appena l'utente conferma
     setShowExportConfirm(false);
     
     if (!navigator.onLine) {
@@ -361,7 +359,7 @@ export default function Calendario() {
         </div>
         <div className="flex gap-2">
           <button 
-            onClick={() => setShowExportConfirm(true)} // Ora apre il popup invece di scaricare subito
+            onClick={() => setShowExportConfirm(true)}
             disabled={esportazioneInCorso}
             className={`bg-[#1a1a1a] border border-[#333] p-3 rounded-xl transition-colors shadow-inner flex items-center justify-center
               ${esportazioneInCorso ? 'opacity-50 cursor-not-allowed text-gray-500' : 'hover:bg-[#2a2a2a] text-gray-300 active:scale-95'}`}
@@ -431,7 +429,7 @@ export default function Calendario() {
           <div className="bg-[#212121] border border-[#333] p-8 rounded-[2rem] shadow-2xl w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
             <div className="bg-[#1a1a1a] border border-[#333] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor" className="w-8 h-8 text-[#c48e12]">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
               </svg>
             </div>
             <h2 className="text-xl font-black text-white mb-2 tracking-tight">Sincronizza Calendario</h2>
