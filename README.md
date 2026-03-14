@@ -1,73 +1,28 @@
-# React + TypeScript + Vite
+# 🎓 NextLesson UniSalento
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**L'Agenda Universitaria definitiva, ripensata per un'esperienza premium.** Una Progressive Web App (PWA) costruita in React per gestire orari, lezioni ed esami a scelta dell'Università del Salento, superando i limiti dei sistemi tradizionali.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## ✨ Features Principali
 
-## React Compiler
+* 📱 **Esperienza Nativa (PWA):** Installabile direttamente sulla Home di iOS e Android. Zero bordi del browser, navigazione fluida e supporto per la Dynamic Island.
+* 📴 **Extreme Offline Mode:** L'app funziona perfettamente anche nei sotterranei dell'università. Scarica l'orario una volta e consultalo ovunque, con indicatori di stato della connessione in tempo reale.
+* 🛠️ **Piano di Studi 100% Custom:** Non limitarti al tuo corso di base. Aggiungi "Esami a Scelta" (extra) prelevandoli da altri indirizzi, fondendoli nel tuo orario con un badge dedicato.
+* 🚫 **Blacklist Materie:** Nascondi con un tap le materie che non segui o che hai già dato, mantenendo l'agenda sempre pulita.
+* 📧 **Smart Click-to-Mail:** Algoritmo intelligente che divide i professori multipli e accoppia (o genera automaticamente) le email istituzionali corrette. Un tap e sei su Mail.
+* ⚡ **Motore di Fusione:** Unifica i duplicati forniti dalle API dell'università in un unico menù pulito e facile da navigare.
+* 🎨 **Design Premium:** Dark Mode profonda (`#121212`) progettata per schermi OLED, con accenti dorati e micro-interazioni curate (animazioni, glow effects).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 🛠️ Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Questo progetto è stato costruito utilizzando le migliori tecnologie moderne per il frontend:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+* **Framework:** React + TypeScript
+* **Styling:** Tailwind CSS (per un design system solido e custom)
+* **Build Tool:** Vite (per un hot-reload istantaneo e build super veloci)
+* **Routing:** React Router DOM
+* **Calendario:** React Day Picker + date-fns
+* **Architettura:** Progressive Web App (PWA) ottimizzata per Mobile
