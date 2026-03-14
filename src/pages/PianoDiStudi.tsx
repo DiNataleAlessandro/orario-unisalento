@@ -174,7 +174,7 @@ export default function PianoDiStudi() {
       const base64String = window.btoa(unescape(encodeURIComponent(jsonString)));
       
       await navigator.clipboard.writeText(base64String);
-      showToast("✅ Copiato! Salvalo in un posto sicuro.", "success");
+      showToast("✅ Codice copiato negli appunti!", "success");
     } catch (err) {
       console.error(err);
       showToast("❌ Errore durante la copia. Riprova.", "error");
