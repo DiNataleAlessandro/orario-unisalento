@@ -32,12 +32,6 @@ export default function Calendario() {
 
   const blacklist = JSON.parse(localStorage.getItem('blacklist_materie') || '[]');
 
-  const resettaImpostazioni = () => {
-    localStorage.clear();
-    sessionStorage.clear();
-    navigate('/onboarding');
-  };
-
   useEffect(() => {
     const scaricaOrarioGiorno = async () => {
       try {
@@ -151,7 +145,6 @@ export default function Calendario() {
             return { ...lezione, inizioDateObj, fineDateObj, mail_docente: mailPulita };
           });
 
-          // FILTRAGGIO BLACKLIST PER CORSO PRINCIPALE
           const lezioniDelGiorno = lezioniElaborate.filter(l => !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '')));
           
           const lezioniUniche = Array.from(new Map(lezioniDelGiorno.map(l => [l.id, l])).values());
@@ -177,6 +170,8 @@ export default function Calendario() {
 
   return (
     <div className="min-h-screen bg-[#121212] px-4 pb-32 pt-[calc(env(safe-area-inset-top)+1rem)] relative">
+      
+      {/* HEADER PULITO SENZA PULSANTE */}
       <header className="flex justify-between items-center mb-6 bg-[#212121] p-5 rounded-2xl shadow-lg border border-[#333]">
         <div>
           <h1 className="text-2xl font-black text-[#c48e12] tracking-tight">Calendario</h1>
@@ -184,11 +179,6 @@ export default function Calendario() {
             Scegli una data
           </p>
         </div>
-        <button onClick={resettaImpostazioni} className="bg-[#1a1a1a] border border-[#333] p-3 rounded-xl hover:bg-[#2a2a2a] transition-colors text-gray-300 active:scale-95">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
-          </svg>
-        </button>
       </header>
 
       <div className="bg-[#1a1a1a] p-4 rounded-3xl shadow-inner border border-[#333] mb-6 flex justify-center overflow-hidden">
@@ -235,7 +225,6 @@ export default function Calendario() {
         )}
       </div>
 
-      {/* NAVBAR A 3 VOCI CENTRATA (Fissata con Grid per non ballare) */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/90 backdrop-blur-xl border-t border-[#333] pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_30px_rgba(0,0,0,0.7)] z-50">
         <div className="max-w-md mx-auto grid grid-cols-3 items-center p-2 mt-1">
           
