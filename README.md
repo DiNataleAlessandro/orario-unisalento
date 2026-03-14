@@ -26,3 +26,15 @@ Questo progetto è stato costruito utilizzando le migliori tecnologie moderne pe
 * **Routing:** React Router DOM
 * **Calendario:** React Day Picker + date-fns
 * **Architettura:** Progressive Web App (PWA) ottimizzata per Mobile
+
+---
+
+## 💡 Utilizzo API
+L'app si interfaccia con le API pubbliche (`grid_call.php`) dell'Università del Salento per il recupero degli orari. I dati vengono poi parsati, puliti e unificati localmente per garantire una visualizzazione coerente. Tutte le preferenze dell'utente (Onboarding, Blacklist, Esami Extra) sono salvate localmente sul dispositivo (`localStorage`) garantendo massima privacy.
+
+---
+
+<div align="center">
+  <p>Progettato e sviluppato con cura.</p>
+  <p><b>made by Λlεx</b></p>
+</div>
