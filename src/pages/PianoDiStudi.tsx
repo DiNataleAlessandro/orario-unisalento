@@ -164,7 +164,6 @@ export default function PianoDiStudi() {
     try {
       const materieExtra = JSON.parse(localStorage.getItem('materieExtra') || '[]');
       
-      // Invece di usare stringhe e pipe (|), usiamo array per evitare sfasamenti nei dati
       const materieCompresse = materieExtra.map((m: any) => [
         m.corsoCodice, m.annoCodice, m.corsoNome, m.materiaNome
       ]);
@@ -211,7 +210,6 @@ export default function PianoDiStudi() {
       
       if (json.m && Array.isArray(json.m)) {
         const materieRicostruite = json.m.map((item: any) => {
-          // Retro-compatibilità (nel caso usassi ancora un codice con i pipe)
           if (typeof item === 'string') {
             const parts = item.split('|');
             return {
@@ -222,7 +220,6 @@ export default function PianoDiStudi() {
               materiaNome: parts[3] || ''
             };
           }
-          // Nuova modalità array sicuro
           return {
             id: Date.now().toString() + Math.random().toString(),
             corsoCodice: item[0] || '',
@@ -232,9 +229,9 @@ export default function PianoDiStudi() {
           };
         });
 
-        // Eliminiamo automaticamente eventuali duplicati corrotti del passato
-        const uniche = materieRicostruite.filter((v, i, a) => 
-           a.findIndex(t => t.corsoCodice === v.corsoCodice && t.annoCodice === v.annoCodice && t.materiaNome === v.materiaNome) === i
+        // Corretti i tipi per TypeScript
+        const uniche = materieRicostruite.filter((v: any, i: number, a: any[]) => 
+           a.findIndex((t: any) => t.corsoCodice === v.corsoCodice && t.annoCodice === v.annoCodice && t.materiaNome === v.materiaNome) === i
         );
 
         localStorage.setItem('materieExtra', JSON.stringify(uniche));
