@@ -153,24 +153,32 @@ export default function PianoDiStudi() {
     localStorage.setItem('materieExtra', JSON.stringify(filtrate));
   };
 
-  // Logica Backup (Esporta)
+  // Logica Backup (Esporta) COMPATTA
   const handleExport = async () => {
     try {
-      const backup = {
-        corsoCodice: localStorage.getItem('corsoCodice'),
-        annoCodice: localStorage.getItem('annoCodice'),
-        corsoNome: localStorage.getItem('corsoNome'),
-        materieExtra: JSON.parse(localStorage.getItem('materieExtra') || '[]'),
-        blacklist_materie: JSON.parse(localStorage.getItem('blacklist_materie') || '[]'),
-        note: Object.keys(localStorage)
-          .filter(key => key.startsWith('nota_'))
-          .reduce((obj, key) => {
-            obj[key] = localStorage.getItem(key);
-            return obj;
-          }, {} as any)
+      const materieExtra = JSON.parse(localStorage.getItem('materieExtra') || '[]');
+      
+      const materieCompresse = materieExtra.map((m: any) => 
+        `${m.corsoCodice}|${m.annoCodice}|${m.corsoNome}|${m.materiaNome}`
+      );
+
+      const noteCompresse = Object.keys(localStorage)
+        .filter(key => key.startsWith('nota_'))
+        .reduce((obj, key) => {
+          obj[key.replace('nota_', '')] = localStorage.getItem(key);
+          return obj;
+        }, {} as any);
+
+      const miniBackup = {
+        c: localStorage.getItem('corsoCodice'),
+        a: localStorage.getItem('annoCodice'),
+        n: localStorage.getItem('corsoNome'),
+        m: materieCompresse,
+        b: JSON.parse(localStorage.getItem('blacklist_materie') || '[]'),
+        t: noteCompresse 
       };
 
-      const jsonString = JSON.stringify(backup);
+      const jsonString = JSON.stringify(miniBackup);
       const base64String = window.btoa(unescape(encodeURIComponent(jsonString)));
       
       await navigator.clipboard.writeText(base64String);
@@ -181,7 +189,7 @@ export default function PianoDiStudi() {
     }
   };
 
-  // Logica Ripristino (Importa)
+  // Logica Ripristino (Importa) COMPATTA
   const handleImport = () => {
     if (!importString.trim()) return;
 
@@ -189,15 +197,28 @@ export default function PianoDiStudi() {
       const decodedString = decodeURIComponent(escape(window.atob(importString)));
       const json = JSON.parse(decodedString);
       
-      if (json.corsoCodice) localStorage.setItem('corsoCodice', json.corsoCodice);
-      if (json.annoCodice) localStorage.setItem('annoCodice', json.annoCodice);
-      if (json.corsoNome) localStorage.setItem('corsoNome', json.corsoNome);
-      if (json.materieExtra) localStorage.setItem('materieExtra', JSON.stringify(json.materieExtra));
-      if (json.blacklist_materie) localStorage.setItem('blacklist_materie', JSON.stringify(json.blacklist_materie));
+      if (json.c) localStorage.setItem('corsoCodice', json.c);
+      if (json.a) localStorage.setItem('annoCodice', json.a);
+      if (json.n) localStorage.setItem('corsoNome', json.n);
+      if (json.b) localStorage.setItem('blacklist_materie', JSON.stringify(json.b));
       
-      if (json.note) {
-        Object.entries(json.note).forEach(([key, value]) => {
-          localStorage.setItem(key, value as string);
+      if (json.m) {
+        const materieRicostruite = json.m.map((str: string) => {
+          const [corsoCodice, annoCodice, corsoNome, materiaNome] = str.split('|');
+          return {
+            id: Date.now().toString() + Math.random().toString(),
+            corsoCodice,
+            annoCodice,
+            corsoNome,
+            materiaNome
+          };
+        });
+        localStorage.setItem('materieExtra', JSON.stringify(materieRicostruite));
+      }
+      
+      if (json.t) {
+        Object.entries(json.t).forEach(([key, value]) => {
+          localStorage.setItem(`nota_${key}`, value as string);
         });
       }
 
@@ -239,18 +260,15 @@ export default function PianoDiStudi() {
             className="bg-[#1a1a1a] border border-[#333] p-3 rounded-xl transition-colors shadow-inner flex items-center justify-center hover:bg-[#2a2a2a] text-gray-300 active:scale-95"
             title="Backup e Portabilità"
           >
-            <svg viewBox="0 0 800 800" fill="none" stroke="currentColor" strokeWidth="73.33" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-              <g>
-                <path d="M400,250l-150,-150" />
-                <path d="M250,100l-150,150" />
-              </g>
-              <path d="M250,100l-0,450" />
-              <g>
-                <path d="M672.081,400l-150,150" />
-                <path d="M522.081,550l-150,-150" />
-              </g>
-              <path d="M522.081,550l0,-450" />
-              <path d="M100,550l0,75c0,41.144 33.856,75 75,75l450,0c41.144,0 75,-33.856 75,-75l0,-75" />
+            {/* SVG fornito dall'utente per il bottone Header */}
+            <svg viewBox="0 0 800 800" fillRule="evenodd" clipRule="evenodd" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+              <path d="M400,250l-150,-150" fill="none" stroke="currentColor" strokeWidth="73.33" />
+              <path d="M250,100l-150,150" fill="none" stroke="currentColor" strokeWidth="73.33" />
+              <path d="M250,100l-0,450" fill="none" stroke="currentColor" strokeWidth="73.33" />
+              <path d="M672.081,400l-150,150" fill="none" stroke="currentColor" strokeWidth="73.33" />
+              <path d="M522.081,550l-150,-150" fill="none" stroke="currentColor" strokeWidth="73.33" />
+              <path d="M522.081,550l0,-450" fill="none" stroke="currentColor" strokeWidth="73.33" />
+              <path d="M100,550l0,75c0,41.144 33.856,75 75,75l450,0c41.144,0 75,-33.856 75,-75l0,-75" fill="none" stroke="currentColor" strokeWidth="73.33" />
             </svg>
           </button>
         </div>
@@ -373,18 +391,15 @@ export default function PianoDiStudi() {
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex flex-col p-4 items-center justify-center" onClick={() => setShowBackupPopup(false)}>
           <div className="bg-[#212121] border border-[#333] p-8 rounded-[2rem] shadow-2xl w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
             <div className="bg-[#1a1a1a] border border-[#333] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-              <svg viewBox="0 0 800 800" fill="none" stroke="currentColor" strokeWidth="73.33" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-[#c48e12]">
-                <g>
-                  <path d="M400,250l-150,-150" />
-                  <path d="M250,100l-150,150" />
-                </g>
-                <path d="M250,100l-0,450" />
-                <g>
-                  <path d="M672.081,400l-150,150" />
-                  <path d="M522.081,550l-150,-150" />
-                </g>
-                <path d="M522.081,550l0,-450" />
-                <path d="M100,550l0,75c0,41.144 33.856,75 75,75l450,0c41.144,0 75,-33.856 75,-75l0,-75" />
+              {/* SVG fornito dall'utente per il Popup Centrale */}
+              <svg viewBox="0 0 800 800" fillRule="evenodd" clipRule="evenodd" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-[#c48e12]">
+                <path d="M400,250l-150,-150" fill="none" stroke="currentColor" strokeWidth="73.33" />
+                <path d="M250,100l-150,150" fill="none" stroke="currentColor" strokeWidth="73.33" />
+                <path d="M250,100l-0,450" fill="none" stroke="currentColor" strokeWidth="73.33" />
+                <path d="M672.081,400l-150,150" fill="none" stroke="currentColor" strokeWidth="73.33" />
+                <path d="M522.081,550l-150,-150" fill="none" stroke="currentColor" strokeWidth="73.33" />
+                <path d="M522.081,550l0,-450" fill="none" stroke="currentColor" strokeWidth="73.33" />
+                <path d="M100,550l0,75c0,41.144 33.856,75 75,75l450,0c41.144,0 75,-33.856 75,-75l0,-75" fill="none" stroke="currentColor" strokeWidth="73.33" />
               </svg>
             </div>
             <h2 className="text-xl font-black text-white mb-2 tracking-tight">Portabilità Dati</h2>
