@@ -128,13 +128,19 @@ export default function PianoDiStudi() {
   const salvaEsamiExtra = () => {
     const annoObj = corsoSelezionato.anni.find((a: any) => a.valore === annoSelezionato);
     
-    const nuoviSalvataggi = materieSpuntate.map(materia => ({
-      id: Date.now().toString() + Math.random().toString(),
-      corsoCodice: annoObj.codiceReale,
-      annoCodice: annoObj.valore,
-      corsoNome: corsoSelezionato.etichetta,
-      materiaNome: materia
-    }));
+    const nuoviSalvataggi = materieSpuntate
+      .filter(materia => !materieSalvate.some(ms => 
+         ms.corsoCodice === annoObj.codiceReale && 
+         ms.annoCodice === annoObj.valore && 
+         ms.materiaNome === materia
+      ))
+      .map(materia => ({
+        id: Date.now().toString() + Math.random().toString(),
+        corsoCodice: annoObj.codiceReale,
+        annoCodice: annoObj.valore,
+        corsoNome: corsoSelezionato.etichetta,
+        materiaNome: materia
+      }));
 
     const nuovoStato = [...materieSalvate, ...nuoviSalvataggi];
     setMaterieSalvate(nuovoStato);
@@ -153,14 +159,15 @@ export default function PianoDiStudi() {
     localStorage.setItem('materieExtra', JSON.stringify(filtrate));
   };
 
-  // Logica Backup (Esporta) COMPATTA
+  // Logica Backup (Esporta) COMPATTA & SICURA
   const handleExport = async () => {
     try {
       const materieExtra = JSON.parse(localStorage.getItem('materieExtra') || '[]');
       
-      const materieCompresse = materieExtra.map((m: any) => 
-        `${m.corsoCodice}|${m.annoCodice}|${m.corsoNome}|${m.materiaNome}`
-      );
+      // Invece di usare stringhe e pipe (|), usiamo array per evitare sfasamenti nei dati
+      const materieCompresse = materieExtra.map((m: any) => [
+        m.corsoCodice, m.annoCodice, m.corsoNome, m.materiaNome
+      ]);
 
       const noteCompresse = Object.keys(localStorage)
         .filter(key => key.startsWith('nota_'))
@@ -189,7 +196,7 @@ export default function PianoDiStudi() {
     }
   };
 
-  // Logica Ripristino (Importa) COMPATTA
+  // Logica Ripristino (Importa) COMPATTA & SICURA
   const handleImport = () => {
     if (!importString.trim()) return;
 
@@ -202,18 +209,35 @@ export default function PianoDiStudi() {
       if (json.n) localStorage.setItem('corsoNome', json.n);
       if (json.b) localStorage.setItem('blacklist_materie', JSON.stringify(json.b));
       
-      if (json.m) {
-        const materieRicostruite = json.m.map((str: string) => {
-          const [corsoCodice, annoCodice, corsoNome, materiaNome] = str.split('|');
+      if (json.m && Array.isArray(json.m)) {
+        const materieRicostruite = json.m.map((item: any) => {
+          // Retro-compatibilità (nel caso usassi ancora un codice con i pipe)
+          if (typeof item === 'string') {
+            const parts = item.split('|');
+            return {
+              id: Date.now().toString() + Math.random().toString(),
+              corsoCodice: parts[0] || '',
+              annoCodice: parts[1] || '',
+              corsoNome: parts[2] || '',
+              materiaNome: parts[3] || ''
+            };
+          }
+          // Nuova modalità array sicuro
           return {
             id: Date.now().toString() + Math.random().toString(),
-            corsoCodice,
-            annoCodice,
-            corsoNome,
-            materiaNome
+            corsoCodice: item[0] || '',
+            annoCodice: item[1] || '',
+            corsoNome: item[2] || '',
+            materiaNome: item[3] || ''
           };
         });
-        localStorage.setItem('materieExtra', JSON.stringify(materieRicostruite));
+
+        // Eliminiamo automaticamente eventuali duplicati corrotti del passato
+        const uniche = materieRicostruite.filter((v, i, a) => 
+           a.findIndex(t => t.corsoCodice === v.corsoCodice && t.annoCodice === v.annoCodice && t.materiaNome === v.materiaNome) === i
+        );
+
+        localStorage.setItem('materieExtra', JSON.stringify(uniche));
       }
       
       if (json.t) {
@@ -260,15 +284,18 @@ export default function PianoDiStudi() {
             className="bg-[#1a1a1a] border border-[#333] p-3 rounded-xl transition-colors shadow-inner flex items-center justify-center hover:bg-[#2a2a2a] text-gray-300 active:scale-95"
             title="Backup e Portabilità"
           >
-            {/* SVG fornito dall'utente per il bottone Header */}
-            <svg viewBox="0 0 800 800" fillRule="evenodd" clipRule="evenodd" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-              <path d="M400,250l-150,-150" fill="none" stroke="currentColor" strokeWidth="73.33" />
-              <path d="M250,100l-150,150" fill="none" stroke="currentColor" strokeWidth="73.33" />
-              <path d="M250,100l-0,450" fill="none" stroke="currentColor" strokeWidth="73.33" />
-              <path d="M672.081,400l-150,150" fill="none" stroke="currentColor" strokeWidth="73.33" />
-              <path d="M522.081,550l-150,-150" fill="none" stroke="currentColor" strokeWidth="73.33" />
-              <path d="M522.081,550l0,-450" fill="none" stroke="currentColor" strokeWidth="73.33" />
-              <path d="M100,550l0,75c0,41.144 33.856,75 75,75l450,0c41.144,0 75,-33.856 75,-75l0,-75" fill="none" stroke="currentColor" strokeWidth="73.33" />
+            <svg viewBox="0 0 800 800" fill="none" stroke="currentColor" strokeWidth="73.33" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+              <g>
+                <path d="M400,250l-150,-150" />
+                <path d="M250,100l-150,150" />
+              </g>
+              <path d="M250,100l-0,450" />
+              <g>
+                <path d="M672.081,400l-150,150" />
+                <path d="M522.081,550l-150,-150" />
+              </g>
+              <path d="M522.081,550l0,-450" />
+              <path d="M100,550l0,75c0,41.144 33.856,75 75,75l450,0c41.144,0 75,-33.856 75,-75l0,-75" />
             </svg>
           </button>
         </div>
@@ -335,17 +362,36 @@ export default function PianoDiStudi() {
               <div className="mt-4 border-t border-[#333] pt-4">
                 <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-3">Seleziona le materie da seguire:</p>
                 <div className="space-y-2 mb-4 max-h-60 overflow-y-auto">
-                  {materieTrovate.map((materia, idx) => (
-                    <label key={idx} className={`flex items-center gap-3 p-3 rounded-xl border transition-colors cursor-pointer ${materieSpuntate.includes(materia) ? 'bg-[#c48e12]/10 border-[#c48e12]/50' : 'bg-[#2a2a2a] border-[#444]'}`}>
-                      <input 
-                        type="checkbox" 
-                        checked={materieSpuntate.includes(materia)} 
-                        onChange={() => toggleSpunta(materia)}
-                        className="w-5 h-5 accent-[#c48e12] rounded"
-                      />
-                      <span className={`text-sm font-bold ${materieSpuntate.includes(materia) ? 'text-[#c48e12]' : 'text-gray-300'}`}>{materia}</span>
-                    </label>
-                  ))}
+                  {materieTrovate.map((materia, idx) => {
+                    const annoObj = corsoSelezionato.anni.find((a: any) => a.valore === annoSelezionato);
+                    const giaSalvata = materieSalvate.some(ms => 
+                       ms.corsoCodice === annoObj?.codiceReale && 
+                       ms.annoCodice === annoObj?.valore && 
+                       ms.materiaNome === materia
+                    );
+
+                    if (giaSalvata) {
+                      return (
+                        <label key={`saved-${idx}`} className="flex items-center gap-3 p-3 rounded-xl border bg-[#1a1a1a] border-[#333] opacity-60 cursor-not-allowed">
+                          <input type="checkbox" disabled checked className="w-5 h-5 accent-[#c48e12] rounded opacity-50" />
+                          <span className="text-sm font-bold text-gray-500 line-through">{materia}</span>
+                          <span className="ml-auto text-[10px] text-[#c48e12] font-bold uppercase tracking-widest">Già Aggiunta</span>
+                        </label>
+                      );
+                    }
+
+                    return (
+                      <label key={idx} className={`flex items-center gap-3 p-3 rounded-xl border transition-colors cursor-pointer ${materieSpuntate.includes(materia) ? 'bg-[#c48e12]/10 border-[#c48e12]/50' : 'bg-[#2a2a2a] border-[#444]'}`}>
+                        <input 
+                          type="checkbox" 
+                          checked={materieSpuntate.includes(materia)} 
+                          onChange={() => toggleSpunta(materia)}
+                          className="w-5 h-5 accent-[#c48e12] rounded"
+                        />
+                        <span className={`text-sm font-bold ${materieSpuntate.includes(materia) ? 'text-[#c48e12]' : 'text-gray-300'}`}>{materia}</span>
+                      </label>
+                    );
+                  })}
                 </div>
                 
                 <button 
@@ -391,15 +437,18 @@ export default function PianoDiStudi() {
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex flex-col p-4 items-center justify-center" onClick={() => setShowBackupPopup(false)}>
           <div className="bg-[#212121] border border-[#333] p-8 rounded-[2rem] shadow-2xl w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
             <div className="bg-[#1a1a1a] border border-[#333] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-              {/* SVG fornito dall'utente per il Popup Centrale */}
-              <svg viewBox="0 0 800 800" fillRule="evenodd" clipRule="evenodd" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-[#c48e12]">
-                <path d="M400,250l-150,-150" fill="none" stroke="currentColor" strokeWidth="73.33" />
-                <path d="M250,100l-150,150" fill="none" stroke="currentColor" strokeWidth="73.33" />
-                <path d="M250,100l-0,450" fill="none" stroke="currentColor" strokeWidth="73.33" />
-                <path d="M672.081,400l-150,150" fill="none" stroke="currentColor" strokeWidth="73.33" />
-                <path d="M522.081,550l-150,-150" fill="none" stroke="currentColor" strokeWidth="73.33" />
-                <path d="M522.081,550l0,-450" fill="none" stroke="currentColor" strokeWidth="73.33" />
-                <path d="M100,550l0,75c0,41.144 33.856,75 75,75l450,0c41.144,0 75,-33.856 75,-75l0,-75" fill="none" stroke="currentColor" strokeWidth="73.33" />
+              <svg viewBox="0 0 800 800" fill="none" stroke="currentColor" strokeWidth="73.33" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-[#c48e12]">
+                <g>
+                  <path d="M400,250l-150,-150" />
+                  <path d="M250,100l-150,150" />
+                </g>
+                <path d="M250,100l-0,450" />
+                <g>
+                  <path d="M672.081,400l-150,150" />
+                  <path d="M522.081,550l-150,-150" />
+                </g>
+                <path d="M522.081,550l0,-450" />
+                <path d="M100,550l0,75c0,41.144 33.856,75 75,75l450,0c41.144,0 75,-33.856 75,-75l0,-75" />
               </svg>
             </div>
             <h2 className="text-xl font-black text-white mb-2 tracking-tight">Portabilità Dati</h2>
