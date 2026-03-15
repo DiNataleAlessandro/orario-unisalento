@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { elenco_corsi } from '../corsiData'; 
-import logoUnisalento from '../assets/icona.png'; 
 
 export default function Onboarding() {
   const [corso, setCorso] = useState('');
@@ -133,7 +132,8 @@ export default function Onboarding() {
         <div className="mb-6">
           <div className="flex items-center gap-5 mb-5">
             <div className="bg-[#1a1a1a] border border-[#333] w-24 h-24 rounded-[1.5rem] flex items-center justify-center shrink-0 shadow-inner overflow-hidden">
-              <img src={logoUnisalento} alt="Logo UniSalento" className="w-[4.5rem] h-[4.5rem] object-contain opacity-90" />
+              {/* Usa il nuovo file PNG direttamente dalla cartella public e riempie il box */}
+              <img src="/apple-touch-icon.png" alt="Logo UniSalento" className="w-full h-full object-cover" />
             </div>
             <h1 className="text-[1.75rem] font-black text-[#c48e12] leading-tight tracking-tight drop-shadow-[0_0_12px_rgba(196,142,18,0.7)]">
               NextLesson<br/>UniSalento
