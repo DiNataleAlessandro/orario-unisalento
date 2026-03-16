@@ -30,7 +30,8 @@ export default function PianoDiStudi() {
   
   const [toast, setToast] = useState<{ messaggio: string; tipo: 'success' | 'error' } | null>(null);
 
-  const mioCorsoNome = localStorage.getItem('corsoNome') || '';
+  // Recuperiamo i dati del corso principale per gestire le esclusioni
+  const mioAnnoCodice = localStorage.getItem('annoCodice') || ''; //
 
   const showToast = (messaggio: string, tipo: 'success' | 'error') => {
     setToast({ messaggio, tipo });
@@ -267,15 +268,15 @@ export default function PianoDiStudi() {
     }
   };
 
+  // Modificato: non escludiamo più il corso principale dalla ricerca globale
   const corsiFiltratiSearch = listaCorsiGlobali.filter(c => 
-    c.etichetta.toLowerCase().includes(ricerca.toLowerCase()) && 
-    c.etichetta !== mioCorsoNome
+    c.etichetta.toLowerCase().includes(ricerca.toLowerCase())
   );
 
   return (
     <div className="min-h-screen bg-[#121212] px-4 pb-32 pt-[calc(env(safe-area-inset-top)+1rem)] relative">
       
-      {/* TOAST GLOBALE (quando il popup è chiuso) */}
+      {/* TOAST GLOBALE */}
       {toast && !showBackupPopup && (
         <div className={`fixed bottom-[100px] left-1/2 -translate-x-1/2 z-[9999] px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center justify-center backdrop-blur-md transition-all duration-300 w-[90%] max-w-sm text-center ${
           toast.tipo === 'success' 
@@ -354,9 +355,13 @@ export default function PianoDiStudi() {
               onChange={(e) => {setAnnoSelezionato(e.target.value); setMaterieTrovate([]);}}
             >
               <option value="" className="text-gray-500">In che anno si trova questo esame?</option>
-              {corsoSelezionato.anni.map((a: any, i: number) => (
-                <option key={i} value={a.valore}>{a.label}</option>
-              ))}
+              {/* Filtriamo gli anni/indirizzi per nascondere solo quello principale già in uso */}
+              {corsoSelezionato.anni
+                .filter((a: any) => a.valore !== mioAnnoCodice)
+                .map((a: any, i: number) => (
+                  <option key={i} value={a.valore}>{a.label}</option>
+                ))
+              }
             </select>
 
             {annoSelezionato && materieTrovate.length === 0 && !inCaricamento && (
@@ -502,7 +507,7 @@ export default function PianoDiStudi() {
             </div>
           </div>
           
-          {/* TOAST LOCALE (mostrato esattamente sotto il popup) */}
+          {/* TOAST LOCALE */}
           {toast && (
             <div 
               className={`w-full max-w-sm px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center justify-center backdrop-blur-md transition-all duration-300 text-center ${
