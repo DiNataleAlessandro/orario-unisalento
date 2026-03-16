@@ -25,14 +25,13 @@ export default function PianoDiStudi() {
   const [materieTrovate, setMaterieTrovate] = useState<string[]>([]);
   const [materieSpuntate, setMaterieSpuntate] = useState<string[]>([]);
 
-  // Stati per Backup & Ripristino
   const [showBackupPopup, setShowBackupPopup] = useState(false);
   const [importString, setImportString] = useState('');
   
-  // Stato per le notifiche personalizzate (Toast)
   const [toast, setToast] = useState<{ messaggio: string; tipo: 'success' | 'error' } | null>(null);
 
-  // Helper per mostrare il toast e nasconderlo dopo 3 secondi
+  const mioCorsoNome = localStorage.getItem('corsoNome') || '';
+
   const showToast = (messaggio: string, tipo: 'success' | 'error') => {
     setToast({ messaggio, tipo });
     setTimeout(() => {
@@ -91,24 +90,43 @@ export default function PianoDiStudi() {
         formData.append('col_cells', '0');
         formData.append('empty_box', '0');
         formData.append('only_grid', '0');
+        formData.append('highlighted_date', '0');
+        formData.append('all_events', '0');
+        formData.append('faculty_group', '0');
 
-        const response = await fetch(urlAPI, { method: 'POST', body: formData, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' } });
-        if (!response.ok) throw new Error("API Request Failed");
-        return await response.json();
+        try {
+          const response = await fetch(urlAPI, { method: 'POST', body: formData, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' } });
+          
+          // Se il server di UniSalento crasha su una settimana specifica, restituiamo un array vuoto senza bloccare tutto
+          if (!response.ok) return { celle: [] };
+          
+          const text = await response.text();
+          try {
+            return JSON.parse(text);
+          } catch (parseError) {
+            return { celle: [] };
+          }
+        } catch (networkError) {
+          return { celle: [] };
+        }
       };
 
       const dataOggi = new Date();
       const dataProssima = new Date(); dataProssima.setDate(dataProssima.getDate() + 7);
-      const dataTraDue = new Date(); dataTraDue.setDate(dataTraDue.getDate() + 14);
 
-      const [res1, res2, res3] = await Promise.all([ fetchWeek(dataOggi), fetchWeek(dataProssima), fetchWeek(dataTraDue) ]);
+      // Usiamo solo 2 settimane come nella Home: più veloce e non fa schiantare il server UniSalento
+      const [res1, res2] = await Promise.all([ fetchWeek(dataOggi), fetchWeek(dataProssima) ]);
       
       let allCells: any[] = [];
       if (res1?.celle) allCells = [...allCells, ...res1.celle];
       if (res2?.celle) allCells = [...allCells, ...res2.celle];
-      if (res3?.celle) allCells = [...allCells, ...res3.celle];
 
       const uniqueSubjects = Array.from(new Set(allCells.map((c: any) => c.nome_insegnamento.replace(/<[^>]+>/g, '')))).sort();
+      
+      if (uniqueSubjects.length === 0) {
+        showToast("Nessuna materia trovata (orario non pubblicato).", "error");
+      }
+      
       setMaterieTrovate(uniqueSubjects);
     } catch (e) {
       showToast("📶 Errore di connessione. Riprova più tardi.", "error");
@@ -159,7 +177,6 @@ export default function PianoDiStudi() {
     localStorage.setItem('materieExtra', JSON.stringify(filtrate));
   };
 
-  // Logica Backup (Esporta) COMPATTA & SICURA
   const handleExport = async () => {
     try {
       const materieExtra = JSON.parse(localStorage.getItem('materieExtra') || '[]');
@@ -195,7 +212,6 @@ export default function PianoDiStudi() {
     }
   };
 
-  // Logica Ripristino (Importa) COMPATTA & SICURA
   const handleImport = () => {
     if (!importString.trim()) return;
 
@@ -229,7 +245,6 @@ export default function PianoDiStudi() {
           };
         });
 
-        // Corretti i tipi per TypeScript
         const uniche = materieRicostruite.filter((v: any, i: number, a: any[]) => 
            a.findIndex((t: any) => t.corsoCodice === v.corsoCodice && t.annoCodice === v.annoCodice && t.materiaNome === v.materiaNome) === i
         );
@@ -254,14 +269,17 @@ export default function PianoDiStudi() {
     }
   };
 
-  const corsiFiltratiSearch = listaCorsiGlobali.filter(c => c.etichetta.toLowerCase().includes(ricerca.toLowerCase()));
+  const corsiFiltratiSearch = listaCorsiGlobali.filter(c => 
+    c.etichetta.toLowerCase().includes(ricerca.toLowerCase()) && 
+    c.etichetta !== mioCorsoNome
+  );
 
   return (
     <div className="min-h-screen bg-[#121212] px-4 pb-32 pt-[calc(env(safe-area-inset-top)+1rem)] relative">
       
-      {/* TOAST NOTIFICATION */}
+      {/* TOAST NOTIFICATION - Abbassato per non sovrapporsi ai bottoni */}
       {toast && (
-        <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[200] px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center justify-center backdrop-blur-md transition-all duration-300 w-[90%] max-w-sm text-center ${
+        <div className={`fixed bottom-[80px] left-1/2 -translate-x-1/2 z-[9999] px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center justify-center backdrop-blur-md transition-all duration-300 w-[90%] max-w-sm text-center ${
           toast.tipo === 'success' 
             ? 'bg-green-950/90 border-green-500/50 text-green-400' 
             : 'bg-red-950/90 border-red-500/50 text-red-400'

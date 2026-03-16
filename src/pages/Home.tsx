@@ -62,7 +62,6 @@ export default function Home() {
         const isForced = refreshCount > 0; 
         const urlAPI = '/api-unisalento/PortaleStudenti/grid_call.php';
 
-        // Fetches data for a specific week and caches it via localStorage
         const fetchSingleWeek = async (dataTarget: Date, cCodice: string, aCodice: string) => {
           const dataStr = formatDateForAPI(dataTarget);
           const cacheKey = `orario_${cCodice}_${aCodice}_${dataStr}`;
@@ -108,7 +107,6 @@ export default function Home() {
           return result;
         };
 
-        // Merges main subjects with user-selected extra subjects
         const fetchAllCoursesForDate = async (dataTarget: Date) => {
           const mainRes = await fetchSingleWeek(dataTarget, corsoCodice, annoCodice);
           let mergedCells: any[] = mainRes?.celle ? [...mainRes.celle] : [];
@@ -174,7 +172,6 @@ export default function Home() {
             return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
           });
 
-          // Deduplicate lessons by id and sort chronologically
           const uniqueLessons = Array.from(new Map(processedLessons.map(l => [l.id, l])).values());
           uniqueLessons.sort((a, b) => {
              if (!a.inizioDateObj || !b.inizioDateObj) return 0;
@@ -239,6 +236,22 @@ export default function Home() {
     return Array.from(groups.entries());
   };
 
+  // Helper per calcolare le date dinamiche (OGGI, DOMANI, IN ARRIVO)
+  const oggiStr = formatDateForAPI(oraAttuale);
+  const dataDomani = new Date(oraAttuale);
+  dataDomani.setDate(dataDomani.getDate() + 1);
+  const domaniStr = formatDateForAPI(dataDomani);
+
+  const getEtichettaGiorno = (dataLezioneStr: string, giornoOriginale: string) => {
+    if (dataLezioneStr === oggiStr) {
+      return liveLesson ? "IN ARRIVO" : "OGGI";
+    }
+    if (dataLezioneStr === domaniStr) {
+      return "DOMANI";
+    }
+    return giornoOriginale;
+  };
+
   return (
     <div className="min-h-screen bg-[#121212] px-4 pb-32 pt-[calc(env(safe-area-inset-top)+1rem)] relative">
       <header className="flex justify-between items-center mb-4 bg-[#212121] p-5 rounded-2xl shadow-lg border border-[#333]">
@@ -250,7 +263,6 @@ export default function Home() {
         </div>
         <div className="flex gap-2">
           <button onClick={() => setShowResetConfirm(true)} className="bg-[#1a1a1a] border border-[#333] p-3 rounded-xl hover:bg-[#2a2a2a] transition-colors text-gray-300 active:scale-95">
-            {/* NUOVO SVG HEADER QUI */}
             <svg viewBox="0 0 800 800" fill="none" stroke="currentColor" strokeWidth="73.33" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
               <g><path d="M550,550l150,-150" /><path d="M700,400l-150,-150" /></g>
               <path d="M700,400l-450,-0" />
@@ -342,22 +354,27 @@ export default function Home() {
 
         {!inCaricamento && thisWeekLessons.length > 0 && (
           <div className="mt-8">
-            {groupByDay(thisWeekLessons).map(([giorno, lezioniGiorno], index) => (
-              <div key={index} className="mb-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-[11px] font-black text-[#c48e12] uppercase tracking-widest">
-                    {giorno}
-                  </span>
-                  <div className="flex-1 h-[1px] bg-gradient-to-r from-[#c48e12]/40 to-transparent"></div>
+            {groupByDay(thisWeekLessons).map(([giorno, lezioniGiorno], index) => {
+              const dataCorrente = lezioniGiorno.length > 0 ? lezioniGiorno[0].data : '';
+              const etichetta = getEtichettaGiorno(dataCorrente, giorno);
+
+              return (
+                <div key={index} className="mb-8">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-[11px] font-black text-[#c48e12] uppercase tracking-widest">
+                      {etichetta}
+                    </span>
+                    <div className="flex-1 h-[1px] bg-gradient-to-r from-[#c48e12]/40 to-transparent"></div>
+                  </div>
+                  
+                  <div className="grid gap-4">
+                    {lezioniGiorno.map((lezione, idx) => (
+                      <CardLezione key={idx} lezione={lezione} />
+                    ))}
+                  </div>
                 </div>
-                
-                <div className="grid gap-4">
-                  {lezioniGiorno.map((lezione, idx) => (
-                    <CardLezione key={idx} lezione={lezione} />
-                  ))}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -371,22 +388,27 @@ export default function Home() {
                 <div className="flex-1 h-px bg-[#333] rounded-full"></div>
             </div>
             
-            {groupByDay(nextWeekLessons).map(([giorno, lezioniGiorno], index) => (
-              <div key={index} className="mb-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-[11px] font-black text-[#c48e12] uppercase tracking-widest">
-                    {giorno}
-                  </span>
-                  <div className="flex-1 h-[1px] bg-gradient-to-r from-[#c48e12]/40 to-transparent"></div>
+            {groupByDay(nextWeekLessons).map(([giorno, lezioniGiorno], index) => {
+              const dataCorrente = lezioniGiorno.length > 0 ? lezioniGiorno[0].data : '';
+              const etichetta = getEtichettaGiorno(dataCorrente, giorno);
+
+              return (
+                <div key={index} className="mb-8">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-[11px] font-black text-[#c48e12] uppercase tracking-widest">
+                      {etichetta}
+                    </span>
+                    <div className="flex-1 h-[1px] bg-gradient-to-r from-[#c48e12]/40 to-transparent"></div>
+                  </div>
+                  
+                  <div className="grid gap-4">
+                    {lezioniGiorno.map((lezione, idx) => (
+                      <CardLezione key={idx} lezione={lezione} />
+                    ))}
+                  </div>
                 </div>
-                
-                <div className="grid gap-4">
-                  {lezioniGiorno.map((lezione, idx) => (
-                    <CardLezione key={idx} lezione={lezione} />
-                  ))}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -456,7 +478,6 @@ export default function Home() {
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex flex-col p-4 transition-opacity items-center justify-center" onClick={() => setShowResetConfirm(false)}>
           <div className="bg-[#212121] border border-[#333] p-8 rounded-[2rem] shadow-2xl w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
             <div className="bg-[#1a1a1a] border border-[#333] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-              {/* NUOVO SVG POPUP QUI */}
               <svg viewBox="0 0 800 800" fill="none" stroke="currentColor" strokeWidth="73.33" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-[#c48e12]">
                 <g><path d="M550,550l150,-150" /><path d="M700,400l-150,-150" /></g>
                 <path d="M700,400l-450,-0" />
