@@ -97,7 +97,6 @@ export default function PianoDiStudi() {
         try {
           const response = await fetch(urlAPI, { method: 'POST', body: formData, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' } });
           
-          // Se il server di UniSalento crasha su una settimana specifica, restituiamo un array vuoto senza bloccare tutto
           if (!response.ok) return { celle: [] };
           
           const text = await response.text();
@@ -114,7 +113,6 @@ export default function PianoDiStudi() {
       const dataOggi = new Date();
       const dataProssima = new Date(); dataProssima.setDate(dataProssima.getDate() + 7);
 
-      // Usiamo solo 2 settimane come nella Home: più veloce e non fa schiantare il server UniSalento
       const [res1, res2] = await Promise.all([ fetchWeek(dataOggi), fetchWeek(dataProssima) ]);
       
       let allCells: any[] = [];
@@ -277,9 +275,9 @@ export default function PianoDiStudi() {
   return (
     <div className="min-h-screen bg-[#121212] px-4 pb-32 pt-[calc(env(safe-area-inset-top)+1rem)] relative">
       
-      {/* TOAST NOTIFICATION - Abbassato per non sovrapporsi ai bottoni */}
-      {toast && (
-        <div className={`fixed bottom-[80px] left-1/2 -translate-x-1/2 z-[9999] px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center justify-center backdrop-blur-md transition-all duration-300 w-[90%] max-w-sm text-center ${
+      {/* TOAST GLOBALE (quando il popup è chiuso) */}
+      {toast && !showBackupPopup && (
+        <div className={`fixed bottom-[100px] left-1/2 -translate-x-1/2 z-[9999] px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center justify-center backdrop-blur-md transition-all duration-300 w-[90%] max-w-sm text-center ${
           toast.tipo === 'success' 
             ? 'bg-green-950/90 border-green-500/50 text-green-400' 
             : 'bg-red-950/90 border-red-500/50 text-red-400'
@@ -449,7 +447,7 @@ export default function PianoDiStudi() {
 
       {/* POPUP BACKUP & RIPRISTINO */}
       {showBackupPopup && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex flex-col p-4 items-center justify-center" onClick={() => setShowBackupPopup(false)}>
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex flex-col p-4 items-center justify-center gap-4" onClick={() => setShowBackupPopup(false)}>
           <div className="bg-[#212121] border border-[#333] p-8 rounded-[2rem] shadow-2xl w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
             <div className="bg-[#1a1a1a] border border-[#333] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
               <svg viewBox="0 0 800 800" fill="none" stroke="currentColor" strokeWidth="73.33" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-[#c48e12]">
@@ -503,6 +501,20 @@ export default function PianoDiStudi() {
               </div>
             </div>
           </div>
+          
+          {/* TOAST LOCALE (mostrato esattamente sotto il popup) */}
+          {toast && (
+            <div 
+              className={`w-full max-w-sm px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center justify-center backdrop-blur-md transition-all duration-300 text-center ${
+                toast.tipo === 'success' 
+                  ? 'bg-green-950/90 border-green-500/50 text-green-400' 
+                  : 'bg-red-950/90 border-red-500/50 text-red-400'
+              }`}
+              onClick={e => e.stopPropagation()}
+            >
+              <span className="text-[13px] font-bold tracking-wide">{toast.messaggio}</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -517,7 +529,7 @@ export default function PianoDiStudi() {
           
           <button className="flex flex-col items-center justify-center p-2 text-[#c48e12] transition-transform active:scale-95">
             <svg className="w-6 h-6 mb-1 drop-shadow-[0_0_8px_rgba(196,142,18,0.4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zM14.25 15h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zM16.5 15h.008v.008H16.5V15zm0 2.25h.008v.008H16.5v-.008z" />
             </svg>
             <span className="text-[10px] font-bold tracking-wider">PIANO DI STUDI</span>
           </button>
