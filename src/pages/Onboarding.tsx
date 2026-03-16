@@ -184,7 +184,7 @@ export default function Onboarding() {
         });
       }
 
-      showToast("🎉 Importazione completata! Riavvio in corso...", "success");
+      showToast("🎉 Importazione completata! Avvio in corso...", "success");
       setTimeout(() => {
         navigate('/'); 
       }, 1500);
