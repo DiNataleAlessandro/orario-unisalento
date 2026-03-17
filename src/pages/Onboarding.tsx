@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { elenco_corsi } from '../corsiData'; 
+import { elenco_corsi } from '../constants/courses'; 
 
 export default function Onboarding() {
   const [corso, setCorso] = useState('');

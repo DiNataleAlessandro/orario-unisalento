@@ -1,13 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { elenco_corsi } from '../corsiData';
-
-const formatDateForAPI = (data: Date) => {
-  const g = String(data.getDate()).padStart(2, '0');
-  const m = String(data.getMonth() + 1).padStart(2, '0');
-  const a = data.getFullYear();
-  return `${g}-${m}-${a}`;
-};
+import { elenco_corsi } from '../constants/courses';
+import { formatDateForAPI } from '../utils/date';
+import { cleanHtmlTags } from '../api/transformers';
 
 export default function PianoDiStudi() {
   const navigate = useNavigate();
@@ -30,8 +25,7 @@ export default function PianoDiStudi() {
   
   const [toast, setToast] = useState<{ messaggio: string; tipo: 'success' | 'error' } | null>(null);
 
-  // Recuperiamo i dati del corso principale per gestire le esclusioni
-  const mioAnnoCodice = localStorage.getItem('annoCodice') || ''; //
+  const mioAnnoCodice = localStorage.getItem('annoCodice') || ''; 
 
   const showToast = (messaggio: string, tipo: 'success' | 'error') => {
     setToast({ messaggio, tipo });
@@ -120,7 +114,7 @@ export default function PianoDiStudi() {
       if (res1?.celle) allCells = [...allCells, ...res1.celle];
       if (res2?.celle) allCells = [...allCells, ...res2.celle];
 
-      const uniqueSubjects = Array.from(new Set(allCells.map((c: any) => c.nome_insegnamento.replace(/<[^>]+>/g, '')))).sort();
+      const uniqueSubjects = Array.from(new Set(allCells.map((c: any) => cleanHtmlTags(c.nome_insegnamento)))).sort();
       
       if (uniqueSubjects.length === 0) {
         showToast("Nessuna materia trovata (orario non pubblicato).", "error");
@@ -268,7 +262,6 @@ export default function PianoDiStudi() {
     }
   };
 
-  // Modificato: non escludiamo più il corso principale dalla ricerca globale
   const corsiFiltratiSearch = listaCorsiGlobali.filter(c => 
     c.etichetta.toLowerCase().includes(ricerca.toLowerCase())
   );
@@ -276,7 +269,6 @@ export default function PianoDiStudi() {
   return (
     <div className="min-h-screen bg-[#121212] px-4 pb-32 pt-[calc(env(safe-area-inset-top)+1rem)] relative">
       
-      {/* TOAST GLOBALE */}
       {toast && !showBackupPopup && (
         <div className={`fixed bottom-[100px] left-1/2 -translate-x-1/2 z-[9999] px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center justify-center backdrop-blur-md transition-all duration-300 w-[90%] max-w-sm text-center ${
           toast.tipo === 'success' 
@@ -355,7 +347,6 @@ export default function PianoDiStudi() {
               onChange={(e) => {setAnnoSelezionato(e.target.value); setMaterieTrovate([]);}}
             >
               <option value="" className="text-gray-500">In che anno si trova questo esame?</option>
-              {/* Filtriamo gli anni/indirizzi per nascondere solo quello principale già in uso */}
               {corsoSelezionato.anni
                 .filter((a: any) => a.valore !== mioAnnoCodice)
                 .map((a: any, i: number) => (
@@ -450,7 +441,6 @@ export default function PianoDiStudi() {
         )}
       </div>
 
-      {/* POPUP BACKUP & RIPRISTINO */}
       {showBackupPopup && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex flex-col p-4 items-center justify-center gap-4" onClick={() => setShowBackupPopup(false)}>
           <div className="bg-[#212121] border border-[#333] p-8 rounded-[2rem] shadow-2xl w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
@@ -507,7 +497,6 @@ export default function PianoDiStudi() {
             </div>
           </div>
           
-          {/* TOAST LOCALE */}
           {toast && (
             <div 
               className={`w-full max-w-sm px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center justify-center backdrop-blur-md transition-all duration-300 text-center ${

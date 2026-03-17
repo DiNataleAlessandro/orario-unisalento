@@ -4,14 +4,10 @@ import { DayPicker } from 'react-day-picker';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import 'react-day-picker/dist/style.css';
-import CardLezione, { type Lezione } from '../components/CardLezione';
-
-const formatDateForAPI = (data: Date) => {
-  const g = String(data.getDate()).padStart(2, '0');
-  const m = String(data.getMonth() + 1).padStart(2, '0');
-  const a = data.getFullYear();
-  return `${g}-${m}-${a}`;
-};
+import CardLezione from '../components/features/CardLezione';
+import type { Lezione } from '../types/lezione';
+import { formatDateForAPI } from '../utils/date';
+import { cleanHtmlTags } from '../api/transformers';
 
 const parseDataString = (dStr: string) => {
   if (!dStr) return 0;
@@ -125,7 +121,7 @@ export default function Calendario() {
                 let celleDaAggiungere = datiTargetJSON.celle.filter((c:any) => c.data === dataStr);
                 if (target.materie) {
                     celleDaAggiungere = celleDaAggiungere.filter((c:any) => 
-                      c.nome_insegnamento && target.materie.includes(c.nome_insegnamento.replace(/<[^>]+>/g, '').trim())
+                      c.nome_insegnamento && target.materie.includes(cleanHtmlTags(c.nome_insegnamento))
                     );
                 }
                 celleUnite = [...celleUnite, ...celleDaAggiungere];
@@ -152,7 +148,7 @@ export default function Calendario() {
           }).filter(Boolean) as Lezione[];
 
           const lezioniDelGiorno = lezioniElaborate.filter(l => 
-            l.nome_insegnamento && !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '').trim())
+            l.nome_insegnamento && !blacklist.includes(cleanHtmlTags(l.nome_insegnamento))
           );
           
           const uniqueLessons = Array.from(new Map(lezioniDelGiorno.map(l => [l.id, l])).values());
@@ -239,7 +235,7 @@ export default function Calendario() {
                 let celleValide = result.celle;
                 if (!config.isMain) {
                   celleValide = celleValide.filter((c: any) => 
-                    c.nome_insegnamento && config.materie.includes(c.nome_insegnamento.replace(/<[^>]+>/g, '').trim())
+                    c.nome_insegnamento && config.materie.includes(cleanHtmlTags(c.nome_insegnamento))
                   );
                 }
                 tutteCelle = [...tutteCelle, ...celleValide];
@@ -282,7 +278,7 @@ export default function Calendario() {
 
       const lezioniFiltrate = lezioniElaborate.filter(l => 
         l.nome_insegnamento && 
-        !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '').trim()) &&
+        !blacklist.includes(cleanHtmlTags(l.nome_insegnamento)) &&
         l.inizioDateObj && 
         l.inizioDateObj.getTime() >= oggiMezzanotte.getTime()
       );
@@ -314,9 +310,9 @@ export default function Calendario() {
         const start = lezione.inizioDateObj.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
         const end = lezione.fineDateObj.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
-        const summary = (lezione.nome_insegnamento || '').replace(/<[^>]+>/g, '').trim();
-        const location = (lezione.aula || '').replace(/<[^>]+>/g, '').trim();
-        const description = `Docente: ${(lezione.docente || '').replace(/<[^>]+>/g, '').trim()}`;
+        const summary = cleanHtmlTags(lezione.nome_insegnamento || '');
+        const location = cleanHtmlTags(lezione.aula || '');
+        const description = `Docente: ${cleanHtmlTags(lezione.docente || '')}`;
 
         icsContent += "BEGIN:VEVENT\r\n";
         icsContent += `UID:${lezione.id}-${start}@nextlesson\r\n`;
@@ -371,7 +367,6 @@ export default function Calendario() {
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
             ) : (
-              // NUOVO SVG NELL'HEADER (Freccia giù + vassoio)
               <svg viewBox="0 0 800 800" fill="none" stroke="currentColor" strokeWidth="73.33" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
                 <g>
                   <path d="M550,400l-150,150" />
@@ -429,12 +424,10 @@ export default function Calendario() {
         )}
       </div>
 
-      {/* POPUP DI CONFERMA ESPORTAZIONE */}
       {showExportConfirm && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex flex-col p-4 transition-opacity items-center justify-center" onClick={() => setShowExportConfirm(false)}>
           <div className="bg-[#212121] border border-[#333] p-8 rounded-[2rem] shadow-2xl w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
             <div className="bg-[#1a1a1a] border border-[#333] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-              {/* NUOVO SVG NEL POPUP (Freccia giù + vassoio) */}
               <svg viewBox="0 0 800 800" fill="none" stroke="currentColor" strokeWidth="73.33" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-[#c48e12]">
                 <g>
                   <path d="M550,400l-150,150" />
@@ -466,7 +459,6 @@ export default function Calendario() {
         </div>
       )}
 
-      {/* NAVBAR */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#121212]/90 backdrop-blur-xl border-t border-[#333] pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_30px_rgba(0,0,0,0.7)] z-50">
         <div className="max-w-md mx-auto grid grid-cols-3 items-center p-2 mt-1">
           <button onClick={() => navigate('/')} className="flex flex-col items-center justify-center p-2 text-gray-500 hover:text-gray-300 transition-colors active:scale-95">

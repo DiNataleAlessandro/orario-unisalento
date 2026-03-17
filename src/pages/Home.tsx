@@ -1,13 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import CardLezione, { type Lezione } from '../components/CardLezione';
-
-const formatDateForAPI = (data: Date) => {
-  const g = String(data.getDate()).padStart(2, '0');
-  const m = String(data.getMonth() + 1).padStart(2, '0');
-  const a = data.getFullYear();
-  return `${g}-${m}-${a}`;
-};
+import CardLezione from '../components/features/CardLezione';
+import { useLessons } from '../hooks/useLessons';
+import { formatDateForAPI } from '../utils/date';
+import type { Lezione } from '../types/lezione';
+import { cleanHtmlTags } from '../api/transformers';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -15,21 +12,17 @@ export default function Home() {
   const annoCodice = localStorage.getItem('annoCodice') || '';
   const corsoNome = localStorage.getItem('corsoNome') || '';
 
-  const [lezioni, setLezioni] = useState<Lezione[]>([]);
-  const [inCaricamento, setInCaricamento] = useState(true);
-  const [errore, setErrore] = useState<string | null>(null);
+  const [refreshCount, setRefreshCount] = useState(0);
+  const { lezioni, inCaricamento, errore, ultimoAggiornamento, fineSettimanaCorrente } = useLessons({
+    corsoCodice,
+    annoCodice,
+    refreshCount
+  });
 
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
-  const [ultimoAggiornamento, setUltimoAggiornamento] = useState<string | null>(localStorage.getItem('ultimoAggiornamento'));
-  const [refreshCount, setRefreshCount] = useState(0);
-
   const [showBlacklist, setShowBlacklist] = useState(false);
   const [blacklist, setBlacklist] = useState<string[]>(JSON.parse(localStorage.getItem('blacklist_materie') || '[]'));
-
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-
-  const dataRiferimento = new Date(); 
-  const [fineSettimanaCorrente, setFineSettimanaCorrente] = useState<Date | null>(null);
   const [oraAttuale, setOraAttuale] = useState(new Date());
 
   const handleReset = () => {
@@ -54,146 +47,7 @@ export default function Home() {
     return () => clearInterval(timerId);
   }, []);
 
-  useEffect(() => {
-    const fetchScheduleData = async () => {
-      try {
-        setInCaricamento(true);
-        setErrore(null);
-        const isForced = refreshCount > 0; 
-        const urlAPI = '/api-unisalento/PortaleStudenti/grid_call.php';
-
-        const fetchSingleWeek = async (dataTarget: Date, cCodice: string, aCodice: string) => {
-          const dataStr = formatDateForAPI(dataTarget);
-          const cacheKey = `orario_${cCodice}_${aCodice}_${dataStr}`;
-          const cachedData = localStorage.getItem(cacheKey); 
-          
-          if (cachedData && !isForced) return JSON.parse(cachedData); 
-
-          if (!navigator.onLine) {
-            return cachedData ? JSON.parse(cachedData) : { celle: [] };
-          }
-
-          const formData = new URLSearchParams();
-          formData.append('view', 'easycourse');
-          formData.append('form-type', 'corso');
-          formData.append('include', 'corso');
-          formData.append('txtcurr', '1 - Percorso comune');
-          formData.append('anno', '2025'); 
-          formData.append('corso', cCodice); 
-          formData.append('anno2[]', aCodice); 
-          formData.append('visualizzazione_orario', 'cal');
-          formData.append('date', dataStr); 
-          formData.append('_lang', 'it');
-          formData.append('week_grid_type', '-1');
-          formData.append('col_cells', '0');
-          formData.append('empty_box', '0');
-          formData.append('only_grid', '0');
-          formData.append('highlighted_date', '0');
-          formData.append('all_events', '0');
-          formData.append('faculty_group', '0');
-
-          const response = await fetch(urlAPI, {
-            method: 'POST', body: formData, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' }
-          });
-
-          if (!response.ok) throw new Error(`Errore server: ${response.status}`);
-          const result = await response.json();
-          localStorage.setItem(cacheKey, JSON.stringify(result));
-          
-          const now = new Date().toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-          localStorage.setItem('ultimoAggiornamento', now);
-          setUltimoAggiornamento(now);
-
-          return result;
-        };
-
-        const fetchAllCoursesForDate = async (dataTarget: Date) => {
-          const mainRes = await fetchSingleWeek(dataTarget, corsoCodice, annoCodice);
-          let mergedCells: any[] = mainRes?.celle ? [...mainRes.celle] : [];
-
-          const materieExtra = JSON.parse(localStorage.getItem('materieExtra') || '[]');
-          const corsiToDownload = new Map();
-          
-          materieExtra.forEach((m: any) => {
-             const key = `${m.corsoCodice}_${m.annoCodice}`;
-             if (!corsiToDownload.has(key)) {
-                 corsiToDownload.set(key, { corsoCodice: m.corsoCodice, annoCodice: m.annoCodice, materie: [] });
-             }
-             corsiToDownload.get(key).materie.push(m.materiaNome);
-          });
-
-          const extraList = Array.from(corsiToDownload.values());
-          const extraResults = await Promise.all(
-            extraList.map(c => fetchSingleWeek(dataTarget, c.corsoCodice, c.annoCodice).then(res => ({ res, materieRichieste: c.materie })))
-          );
-          
-          extraResults.forEach(item => {
-            if (item.res?.celle) {
-               const filteredCells = item.res.celle.filter((cella: any) => {
-                   const cleanName = cella.nome_insegnamento.replace(/<[^>]+>/g, '');
-                   return item.materieRichieste.includes(cleanName);
-               });
-               mergedCells = [...mergedCells, ...filteredCells];
-            }
-          });
-
-          return { celle: mergedCells, last_day: mainRes?.last_day };
-        };
-
-        const nextWeekDate = new Date(dataRiferimento);
-        nextWeekDate.setDate(nextWeekDate.getDate() + 7);
-
-        const [currentWeekData, nextWeekData] = await Promise.all([
-          fetchAllCoursesForDate(dataRiferimento),
-          fetchAllCoursesForDate(nextWeekDate)
-        ]);
-
-        let allCells: any[] = [];
-        if (currentWeekData?.celle) allCells = [...allCells, ...currentWeekData.celle];
-        if (nextWeekData?.celle) allCells = [...allCells, ...nextWeekData.celle];
-
-        if (currentWeekData?.last_day) {
-            const [gEnd, mEnd, aEnd] = currentWeekData.last_day.split('-');
-            setFineSettimanaCorrente(new Date(Number(aEnd), Number(mEnd) - 1, Number(gEnd), 23, 59, 59));
-        }
-
-        if (allCells.length > 0) {
-          const processedLessons: Lezione[] = allCells.map((lezione: any) => {
-            const [oraInizioStr, oraFineStr] = lezione.orario.split(' - ');
-            const [giorno, mese, annoStr] = lezione.data.split('-');
-            const [oraInizio, minInizio] = oraInizioStr.split(':');
-            const [oraFine, minFine] = oraFineStr.split(':');
-
-            const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
-            const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
-
-            const cleanMail = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
-
-            return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
-          });
-
-          const uniqueLessons = Array.from(new Map(processedLessons.map(l => [l.id, l])).values());
-          uniqueLessons.sort((a, b) => {
-             if (!a.inizioDateObj || !b.inizioDateObj) return 0;
-             return a.inizioDateObj.getTime() - b.inizioDateObj.getTime();
-          });
-
-          setLezioni(uniqueLessons);
-        } else {
-          setLezioni([]);
-        }
-      } catch (err) {
-        setErrore("Impossibile scaricare i dati. Controlla la connessione.");
-      } finally {
-        setInCaricamento(false);
-      }
-    };
-
-    fetchScheduleData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [corsoCodice, annoCodice, refreshCount]); 
-
-  const uniqueSubjects = Array.from(new Set(lezioni.map(l => l.nome_insegnamento.replace(/<[^>]+>/g, '')))).sort();
+  const uniqueSubjects = Array.from(new Set(lezioni.map(l => cleanHtmlTags(l.nome_insegnamento)))).sort();
 
   const toggleBlacklistSubject = (materia: string) => {
     let newBlacklist = [...blacklist];
@@ -206,7 +60,7 @@ export default function Home() {
     localStorage.setItem('blacklist_materie', JSON.stringify(newBlacklist));
   };
 
-  const filteredLessons = lezioni.filter(l => !blacklist.includes(l.nome_insegnamento.replace(/<[^>]+>/g, '')));
+  const filteredLessons = lezioni.filter(l => !blacklist.includes(cleanHtmlTags(l.nome_insegnamento)));
 
   const liveLessonIndex = filteredLessons.findIndex(lezione => {
     if (!lezione.inizioDateObj || !lezione.fineDateObj) return false;
@@ -236,7 +90,6 @@ export default function Home() {
     return Array.from(groups.entries());
   };
 
-  // Helper per calcolare le date dinamiche (OGGI, DOMANI, IN ARRIVO)
   const oggiStr = formatDateForAPI(oraAttuale);
   const dataDomani = new Date(oraAttuale);
   dataDomani.setDate(dataDomani.getDate() + 1);

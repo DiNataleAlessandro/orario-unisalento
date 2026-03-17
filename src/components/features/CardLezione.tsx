@@ -1,61 +1,17 @@
 import { useState, useEffect } from 'react';
-
-export interface Lezione {
-  id: string;
-  nome_insegnamento: string;
-  docente: string;
-  orario: string;
-  aula: string;
-  nome_giorno: string;
-  data: string;
-  inizioDateObj?: Date;
-  fineDateObj?: Date;
-  mail_docente?: string;
-}
+import type { Lezione } from '../../types/lezione';
+import { getProfessorsData, cleanHtmlTags } from '../../api/transformers';
 
 interface CardLezioneProps {
   lezione: Lezione;
   isLive?: boolean; 
 }
 
-const parseDocenteEmail = (rawName: string) => {
-  if (!rawName) return '';
-  
-  const cleanName = rawName
-    .replace(/<[^>]+>/g, '')
-    .replace(/Prof\.ssa|Prof\.|Dott\.ssa|Dott\./gi, '')
-    .trim()
-    .toLowerCase()
-    .replace(/[']/g, '')
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
-                 
-  const parts = cleanName.split(/\s+/);
-  
-  if (parts.length >= 2) {
-    const firstName = parts.pop();
-    if (firstName) parts.unshift(firstName);
-  }
-  
-  return `${parts.join('.')}@unisalento.it`;
-};
-
-const getProfessorsData = (rawDocente: string, rawMail: string) => {
-  if (!rawDocente) return [];
-  
-  const names = rawDocente.split(',').map(n => n.replace(/<[^>]+>/g, '').trim()).filter(Boolean);
-  const emails = rawMail ? rawMail.split(',').map(m => m.trim()).filter(Boolean) : [];
-
-  return names.map((nome, index) => ({
-    nome,
-    email: emails[index] || parseDocenteEmail(nome)
-  }));
-};
-
 export default function CardLezione({ lezione, isLive = false }: CardLezioneProps) {
   const [profPopup, setProfPopup] = useState<{nome: string, mail: string} | null>(null);
   
-  const cleanSubjectName = lezione.nome_insegnamento.replace(/<[^>]+>/g, '').trim();
-  const cleanAula = lezione.aula.replace(/<[^>]+>/g, '').trim();
+  const cleanSubjectName = cleanHtmlTags(lezione.nome_insegnamento);
+  const cleanAula = cleanHtmlTags(lezione.aula);
 
   // Stati per le Smart Notes
   const [isNoteOpen, setIsNoteOpen] = useState(false);
@@ -95,7 +51,7 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
         
         <div className="relative flex flex-col w-full pb-1">
           <div className="flex justify-between items-start pl-2">
-              <h2 className={`font-bold leading-tight pr-14 ${isLive ? 'text-white text-xl' : 'text-white text-lg'}`}>
+              <h2 className={`font-bold leading-tight pr-14 ${isLive ? 'text-xl' : 'text-lg'} text-white`}>
                 {cleanSubjectName}
               </h2>
               
@@ -107,7 +63,6 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
                     : 'bg-[#1a1a1a] border-[#333] text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
                 }`}
               >
-                {/* Nuova Icona Taccuino notes-52.svg */}
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="currentColor" className="w-5 h-5">
                   <path d="M738.1 166.4H285.9c-66.3 0-120 53.7-120 120v452.2c0 66.3 53.7 120 120 120h452.2c66.3 0 120-53.7 120-120V286.4c0-66.3-53.7-120-120-120zM352.3 80c26.5 0 48 21.5 48 48v86.4c0 26.5-21.5 48-48 48s-48-21.5-48-48V128c0-26.5 21.5-48 48-48zm160 0c26.5 0 48 21.5 48 48v86.4c0 26.5-21.5 48-48 48s-48-21.5-48-48V128c0-26.5 21.5-48 48-48zm160 0c26.5 0 48 21.5 48 48v86.4c0 26.5-21.5 48-48 48s-48-21.5-48-48V128c0-26.5 21.5-48 48-48zM706.1 418.4H317.9c-26.5 0-48-21.5-48-48s21.5-48 48-48h388.2c26.5 0 48 21.5 48 48s-21.5 48-48 48zM608.1 590.4H317.9c-26.5 0-48-21.5-48-48s21.5-48 48-48h290.2c26.5 0 48 21.5 48 48s-21.5 48-48 48z" />
                 </svg>
@@ -182,7 +137,7 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
           onClick={() => setProfPopup(null)}
         >
           <div 
-            className="bg-[#212121] border border-[#333] p-6 rounded-3xl shadow-2xl w-full max-w-sm transform transition-all scale-100" 
+            className="bg-[#212121] border border-[#333] p-6 rounded-3xl shadow-2xl w-full max-w-sm" 
             onClick={e => e.stopPropagation()}
           >
             <div className="text-center mb-6">
