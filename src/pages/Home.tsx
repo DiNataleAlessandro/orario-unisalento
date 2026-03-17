@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CardLezione from '@/components/features/CardLezione';
 import { useLessons } from '@/hooks/useLessons';
+import { useNotifications } from '@/hooks/useNotifications';
 import { formatDateForAPI } from '@/utils/date';
 import type { Lezione } from '@/types/lezione';
 import { cleanHtmlTags } from '@/api/transformers';
@@ -18,6 +19,8 @@ export default function Home() {
     annoCodice,
     refreshCount
   });
+
+  const { isEnabled: notificationsEnabled, toggleNotifications, permission: notificationPermission } = useNotifications(lezioni);
 
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [showBlacklist, setShowBlacklist] = useState(false);
@@ -156,7 +159,41 @@ export default function Home() {
         </button>
       </div>
 
-      <div className="mb-6 flex justify-end">
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input 
+              type="checkbox" 
+              className="sr-only peer" 
+              checked={notificationsEnabled}
+              onChange={toggleNotifications}
+              disabled={notificationPermission === 'denied'}
+            />
+            <div className={`w-12 h-6.5 rounded-full transition-all duration-300 peer flex items-center px-1
+              ${notificationPermission === 'denied' ? 'bg-red-900/20 border border-red-900/30' : 'bg-[#1a1a1a] border border-[#333]'} 
+              peer-checked:bg-[#c48e12]/10 peer-checked:border-[#c48e12]/40`}>
+              <div className={`h-5 w-5 rounded-full transition-all duration-500 transform flex items-center justify-center
+                ${notificationsEnabled 
+                  ? 'translate-x-5.5 bg-[#1a1a1a] border border-[#c48e12] shadow-[0_0_15px_rgba(196,142,18,0.4)]' 
+                  : 'translate-x-0 bg-[#2a2a2a] border border-[#444]'}
+              `}>
+                {notificationsEnabled ? (
+                  <svg viewBox="0 0 1024 1024" className="w-3 h-3 text-[#c48e12] drop-shadow-[0_0_3px_rgba(196,142,18,0.8)]" fill="currentColor">
+                    <path d="M512 64c-176.7 0-320 143.3-320 320v192c0 35.2-12.8 70.4-38.4 96-25.6 25.6-25.6 64 0 89.6s64 25.6 89.6 0l12.8-12.8h640l12.8 12.8c25.6 25.6 64 25.6 89.6 0s25.6-64 0-89.6c-25.6-25.6-38.4-60.8-38.4-96V384c0-176.7-143.3-320-320-320zm64 832h-128c0 35.2 28.8 64 64 64s64-28.8 64-64z" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 1024 1024" className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" strokeWidth="60">
+                    <path d="M512 64c-176.7 0-320 143.3-320 320v192c0 35.2-12.8 70.4-38.4 96-25.6 25.6-25.6 64 0 89.6s64 25.6 89.6 0l12.8-12.8h640l12.8 12.8c25.6 25.6 64 25.6 89.6 0s25.6-64 0-89.6c-25.6-25.6-38.4-60.8-38.4-96V384c0-176.7-143.3-320-320-320zm64 832h-128c0 35.2 28.8 64 64 64s64-28.8 64-64z" />
+                  </svg>
+                )}
+              </div>
+            </div>
+          </label>
+          <span className={`text-[10px] font-black uppercase tracking-widest transition-colors duration-300 ${notificationsEnabled ? 'text-[#c48e12]' : (notificationPermission === 'denied' ? 'text-red-500 opacity-60' : 'text-gray-500')}`}>
+            {notificationPermission === 'denied' ? 'Notifiche Bloccate' : 'Notifiche'}
+          </span>
+        </div>
+
         <button 
           onClick={() => setShowBlacklist(true)} 
           className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm ${
