@@ -201,7 +201,7 @@ export default function Home() {
                     </span>
                     In Corso Ora
                 </h3>
-                <CardLezione lezione={liveLesson} isLive={true} />
+                <CardLezione key={liveLesson.id} lezione={liveLesson} isLive={true} />
             </div>
         )}
 
@@ -221,8 +221,8 @@ export default function Home() {
                   </div>
                   
                   <div className="grid gap-4">
-                    {lezioniGiorno.map((lezione, idx) => (
-                      <CardLezione key={idx} lezione={lezione} />
+                    {lezioniGiorno.map((lezione) => (
+                      <CardLezione key={lezione.id} lezione={lezione} />
                     ))}
                   </div>
                 </div>
@@ -255,8 +255,8 @@ export default function Home() {
                   </div>
                   
                   <div className="grid gap-4">
-                    {lezioniGiorno.map((lezione, idx) => (
-                      <CardLezione key={idx} lezione={lezione} />
+                    {lezioniGiorno.map((lezione) => (
+                      <CardLezione key={lezione.id} lezione={lezione} />
                     ))}
                   </div>
                 </div>

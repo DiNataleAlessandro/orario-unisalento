@@ -19,7 +19,19 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
     return localStorage.getItem(`nota_${cleanSubjectName}`) || '';
   });
 
+  // Sincronizza il testo della nota quando cambia la materia (es. cambio giorno)
   useEffect(() => {
+    const savedNote = localStorage.getItem(`nota_${cleanSubjectName}`) || '';
+    if (noteText !== savedNote) {
+      setNoteText(savedNote);
+    }
+  }, [cleanSubjectName]);
+
+  // Salva la nota solo se è effettivamente cambiata rispetto al valore memorizzato
+  useEffect(() => {
+    const savedNote = localStorage.getItem(`nota_${cleanSubjectName}`) || '';
+    if (noteText === savedNote) return;
+
     if (noteText.trim() === '') {
       localStorage.removeItem(`nota_${cleanSubjectName}`);
     } else {

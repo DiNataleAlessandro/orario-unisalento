@@ -417,8 +417,8 @@ export default function Calendario() {
 
         {!inCaricamento && lezioniGiorno.length > 0 && (
           <div className="grid gap-4">
-            {lezioniGiorno.map((lezione, index) => (
-              <CardLezione key={index} lezione={lezione} isLive={false} />
+            {lezioniGiorno.map((lezione) => (
+              <CardLezione key={lezione.id} lezione={lezione} isLive={false} />
             ))}
           </div>
         )}
