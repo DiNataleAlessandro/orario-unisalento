@@ -1,40 +1,118 @@
 # 🎓 NextLesson UniSalento
 
-**L'Agenda Universitaria definitiva, ripensata per un'esperienza premium.** Una Progressive Web App (PWA) costruita in React per gestire orari, lezioni ed esami a scelta dell'Università del Salento, superando i limiti dei sistemi tradizionali.
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-8.0-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Vitest](https://img.shields.io/badge/Vitest-Testing-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![PWA](https://img.shields.io/badge/PWA-Ready-orange?logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+**L'agenda universitaria definitiva, ripensata per un'esperienza premium e ultra-veloce.**
+
+NextLesson UniSalento è una Progressive Web App (PWA) progettata specificamente per gli studenti dell'Università del Salento. Supera i limiti dei portali tradizionali offrendo un'interfaccia mobile-first, accesso offline e una gestione intelligente del piano di studi.
 
 ---
+
+## 🌟 Perché NextLesson?
+
+Consultare gli orari delle lezioni non dovrebbe essere un compito stressante. NextLesson risolve il problema della frammentazione dei dati accademici centralizzando orari, aule e contatti dei docenti in un'unica applicazione fluida e reattiva.
+
+### 🚀 Performance & Highlights Recenti
+*   **Bundle size ridotto del 50%**: Grazie alla migrazione verso un'architettura a caricamento dinamico dei dati (JSON on-demand).
+*   **Architettura Modulare**: Refactoring completo della codebase per separare logica di business (Hooks), UI (Features) e layer API.
+*   **Robusta & Testata**: Integrazione di Vitest per garantire la correttezza dei dati trasformati dalle API universitarie.
+*   **Offline-First**: Accesso immediato ai dati salvati anche senza connessione internet.
 
 ## ✨ Features Principali
 
-* 📱 **Esperienza Nativa (PWA):** Installabile direttamente sulla Home di iOS e Android. Zero bordi del browser, navigazione fluida e supporto per la Dynamic Island.
-* 📴 **Extreme Offline Mode:** L'app funziona perfettamente anche nei sotterranei dell'università. Scarica l'orario una volta e consultalo ovunque, con indicatori di stato della connessione in tempo reale.
-* 🛠️ **Piano di Studi 100% Custom:** Non limitarti al tuo corso di base. Aggiungi "Esami a Scelta" (extra) prelevandoli da altri indirizzi, fondendoli nel tuo orario con un badge dedicato.
-* 🚫 **Blacklist Materie:** Nascondi con un tap le materie che non segui o che hai già dato, mantenendo l'agenda sempre pulita.
-* 📧 **Smart Click-to-Mail:** Algoritmo intelligente che divide i professori multipli e accoppia (o genera automaticamente) le email istituzionali corrette. Un tap e sei su Mail.
-* ⚡ **Motore di Fusione:** Unifica i duplicati forniti dalle API dell'università in un unico menù pulito e facile da navigare.
-* 🎨 **Design Premium:** Dark Mode profonda (`#121212`) progettata per schermi OLED, con accenti dorati e micro-interazioni curate (animazioni, glow effects).
-
----
+-   📱 **Esperienza Native-like**: UI ottimizzata per mobile con supporto per Safe Areas e Dark Mode OLED.
+-   📅 **Gestione Orari Avanzata**: Filtra le materie che non segui, aggiungi esami a scelta da altri corsi e visualizza le lezioni "In Corso Ora".
+-   👨‍🏫 **Contatti Docenti**: Generazione automatica delle email e popup informativi rapidi.
+-   📝 **Smart Notes**: Aggiungi appunti personali direttamente sulle schede delle lezioni.
+-   📂 **Portabilità Dati**: Sistema di backup e importazione tramite stringhe codificate per non perdere mai la configurazione.
 
 ## 🛠️ Tech Stack
 
-Questo progetto è stato costruito utilizzando le migliori tecnologie moderne per il frontend:
-
-* **Framework:** React + TypeScript
-* **Styling:** Tailwind CSS (per un design system solido e custom)
-* **Build Tool:** Vite (per un hot-reload istantaneo e build super veloci)
-* **Routing:** React Router DOM
-* **Calendario:** React Day Picker + date-fns
-* **Architettura:** Progressive Web App (PWA) ottimizzata per Mobile
+-   **Core**: React 19 + TypeScript
+-   **Bundler**: Vite (ottimizzato per build ultra-rapide)
+-   **Styling**: Tailwind CSS v4
+-   **Routing**: React Router 7
+-   **Testing**: Vitest + JSDOM
+-   **PWA**: `vite-plugin-pwa` per caching e service workers.
 
 ---
 
-## 💡 Utilizzo API
-L'app si interfaccia con le API pubbliche (`grid_call.php`) dell'Università del Salento per il recupero degli orari. I dati vengono poi parsati, puliti e unificati localmente per garantire una visualizzazione coerente. Tutte le preferenze dell'utente (Onboarding, Blacklist, Esami Extra) sono salvate localmente sul dispositivo (`localStorage`) garantendo massima privacy.
+## 🏗️ Struttura del Progetto
+
+Il progetto segue una struttura modulare basata sulle responsabilità:
+
+```text
+src/
+├── api/           # Client API UniSalento e trasformatori di dati
+├── assets/        # Risorse statiche (stili CSS e immagini)
+├── components/    # Componenti UI (common/ e features/)
+├── hooks/         # Custom hooks per fetching e logica di stato
+├── pages/         # View principali (Home, Calendario, Onboarding)
+├── types/         # Definizioni TypeScript globali
+└── utils/         # Helper puri e utility di formattazione
+```
+
+---
+
+## ⚡ Quick Start
+
+Assicurati di avere [Node.js](https://nodejs.org/) installato sul tuo sistema.
+
+1.  **Clona la repository**
+    ```bash
+    git clone https://github.com/DiNataleAlessandro/orario-unisalento.git
+    cd orario-unisalento
+    ```
+
+2.  **Installa le dipendenze**
+    ```bash
+    npm install
+    ```
+
+3.  **Avvia il server di sviluppo**
+    ```bash
+    npm run dev
+    ```
+    L'app sarà disponibile all'indirizzo `http://localhost:5173`.
+
+---
+
+## 🧪 Testing
+
+La qualità del codice è garantita da una suite di test unitari che validano la manipolazione dei dati sensibili.
+
+Esegui i test con:
+```bash
+npm run test
+```
+
+Per visualizzare l'interfaccia grafica di Vitest:
+```bash
+npx vitest --ui
+```
+
+---
+
+## 🤝 Contribuire
+
+Le Pull Request sono le benvenute! Se vuoi proporre nuove feature o segnalare un bug:
+1. Fai un fork del progetto.
+2. Crea un branch per la tua feature (`git checkout -b feature/AmazingFeature`).
+3. Fai un commit dei tuoi cambiamenti (`git commit -m 'Add some AmazingFeature'`).
+4. Pusha verso il branch (`git push origin feature/AmazingFeature`).
+5. Apri una Pull Request.
+
+## 📄 Licenza
+
+Distribuito sotto licenza **MIT**. Consulta il file `LICENSE` per maggiori informazioni.
 
 ---
 
 <div align="center">
-  <p>Progettato e sviluppato con cura.</p>
-  <p><b>made by Λlεx</b></p>
+  <p>Sviluppato con ❤️ da <b>Λlεx</b></p>
 </div>
