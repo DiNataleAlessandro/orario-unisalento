@@ -178,7 +178,7 @@ export default function Onboarding() {
           </div>
           
           <div className="text-left mt-2">
-            <h2 className="text-2xl font-black text-white tracking-tight">Benvenuti!</h2>
+            <h2 className="text-2xl font-black text-white tracking-tight">Benvenuto!</h2>
             <p className="text-[#c48e12] mt-1 font-bold tracking-widest text-xs uppercase">
               Configura il tuo piano di studi
             </p>
