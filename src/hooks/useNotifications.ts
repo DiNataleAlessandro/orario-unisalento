@@ -7,9 +7,12 @@ export const useNotifications = (lezioni: Lezione[]) => {
     return localStorage.getItem('notifications_enabled') === 'true';
   });
 
-  const [permission, setPermission] = useState<NotificationPermission>(
-    typeof window !== 'undefined' ? Notification.permission : 'default'
-  );
+  const [permission, setPermission] = useState<NotificationPermission>(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      return Notification.permission;
+    }
+    return 'default';
+  });
 
   const requestPermission = useCallback(async () => {
     if (!('Notification' in window)) {
@@ -64,11 +67,13 @@ export const useNotifications = (lezioni: Lezione[]) => {
           const subjectName = cleanHtmlTags(lezione.nome_insegnamento);
           const room = cleanHtmlTags(lezione.aula);
           
-          new Notification('Lezione in arrivo! 🎓', {
-            body: `${subjectName} inizia tra 15 minuti in ${room}`,
-            icon: '/logo192.png',
-            tag: lezione.id // Impedisce notifiche duplicate per la stessa lezione
-          });
+          if ('Notification' in window) {
+            new Notification('Lezione in arrivo! 🎓', {
+              body: `${subjectName} inizia tra 15 minuti in ${room}`,
+              icon: '/logo192.png',
+              tag: lezione.id // Impedisce notifiche duplicate per la stessa lezione
+            });
+          }
 
           notifiedLessons.add(lezione.id);
           // Mantieni solo le ultime 50 notifiche per non intasare localStorage
