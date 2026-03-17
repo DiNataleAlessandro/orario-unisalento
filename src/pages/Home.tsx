@@ -159,9 +159,9 @@ export default function Home() {
         </button>
       </div>
 
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <label className="relative inline-flex items-center cursor-pointer">
+      <div className="mb-6 flex items-center justify-between gap-4 h-7">
+        <div className="flex items-center gap-3 h-full">
+          <label className="relative inline-flex items-center cursor-pointer h-full -translate-y-[0.5px]">
             <input 
               type="checkbox" 
               className="sr-only peer" 
@@ -196,7 +196,7 @@ export default function Home() {
 
         <button 
           onClick={() => setShowBlacklist(true)} 
-          className={`flex items-center gap-2 px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm ${
+          className={`flex items-center gap-2 px-4 h-7 rounded-full border text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm ${
             blacklist.length > 0 
               ? 'bg-[#c48e12]/10 border-[#c48e12]/40 text-[#c48e12]' 
               : 'bg-[#1a1a1a] border-[#333] text-gray-400 hover:bg-[#212121] hover:text-gray-300'
