@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCourses, type Anno } from '@/hooks/useCourses';
+import Select from '@/components/common/Select';
 
 export default function Onboarding() {
   const { corsi: listaCorsi, inCaricamento, errore: erroreCorsi } = useCourses();
@@ -223,23 +224,14 @@ export default function Onboarding() {
               )}
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] ml-1">Anno e Indirizzo</label>
-              <select 
-                className={`w-full bg-[#1a1a1a] border-2 border-transparent focus:border-[#c48e12] focus:bg-[#2a2a2a] rounded-2xl p-4 outline-none transition-all font-bold text-sm shadow-inner appearance-none
-                  ${!corso ? 'text-gray-600 cursor-not-allowed' : 'text-white'}`}
-                value={anno}
-                onChange={(e) => setAnno(e.target.value)}
-                disabled={!corso}
-              >
-                <option value="" className="text-gray-500">
-                  {!corso ? "Prima seleziona un corso 👆" : "Scegli l'anno/indirizzo"}
-                </option>
-                {listaAnni.map((a, i) => (
-                  <option key={i} value={a.valore} className="text-gray-200 bg-[#2a2a2a]">{a.label}</option>
-                ))}
-              </select>
-            </div>
+            <Select 
+              label="Anno e Indirizzo"
+              placeholder={!corso ? "Prima seleziona un corso 👆" : "Scegli l'anno/indirizzo"}
+              value={anno}
+              onChange={(val) => setAnno(val)}
+              disabled={!corso}
+              options={listaAnni.map(a => ({ valore: a.valore, label: a.label }))}
+            />
             
             <div className="pt-2 space-y-4">
               <button 

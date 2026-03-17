@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCourses } from '@/hooks/useCourses';
 import { formatDateForAPI } from '@/utils/date';
 import { cleanHtmlTags } from '@/api/transformers';
+import Select from '@/components/common/Select';
 
 export default function PianoDiStudi() {
   const navigate = useNavigate();
@@ -330,19 +331,15 @@ export default function PianoDiStudi() {
               <button onClick={() => {setCorsoSelezionato(null); setMaterieTrovate([]);}} className="text-gray-500 hover:text-white p-1 bg-[#2a2a2a] rounded-full"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
             
-            <select 
-              className="w-full bg-[#2a2a2a] border border-[#444] focus:border-[#c48e12] rounded-xl p-4 outline-none transition-all font-bold text-xs text-white appearance-none mb-4"
+            <Select 
+              placeholder="In che anno si trova questo esame?"
               value={annoSelezionato}
-              onChange={(e) => {setAnnoSelezionato(e.target.value); setMaterieTrovate([]);}}
-            >
-              <option value="" className="text-gray-500">In che anno si trova questo esame?</option>
-              {corsoSelezionato.tutti_gli_anni
+              onChange={(val) => {setAnnoSelezionato(val); setMaterieTrovate([]);}}
+              options={corsoSelezionato.tutti_gli_anni
                 .filter((a: any) => a.valore !== mioAnnoCodice)
-                .map((a: any, i: number) => (
-                  <option key={i} value={a.valore}>{a.label}</option>
-                ))
+                .map((a: any) => ({ valore: a.valore, label: a.label }))
               }
-            </select>
+            />
 
             {annoSelezionato && materieTrovate.length === 0 && !inCaricamento && (
               <button onClick={cercaMaterieNelCorso} className="w-full py-4 rounded-xl font-bold text-sm bg-[#212121] border border-[#c48e12] text-[#c48e12] hover:bg-[#c48e12]/10 transition-colors active:scale-95">
