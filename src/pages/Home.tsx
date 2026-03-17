@@ -65,15 +65,15 @@ export default function Home() {
 
   const filteredLessons = lezioni.filter(l => !blacklist.includes(cleanHtmlTags(l.nome_insegnamento)));
 
-  const liveLessonIndex = filteredLessons.findIndex(lezione => {
+  const liveLessons = filteredLessons.filter(lezione => {
     if (!lezione.inizioDateObj || !lezione.fineDateObj) return false;
     return lezione.inizioDateObj <= oraAttuale && lezione.fineDateObj > oraAttuale;
   });
 
-  const liveLesson = liveLessonIndex !== -1 ? filteredLessons[liveLessonIndex] : null;
+  const liveLessonIds = new Set(liveLessons.map(l => l.id));
 
-  const futureLessons = filteredLessons.filter((lezione, index) => {
-      if (index === liveLessonIndex) return false;
+  const futureLessons = filteredLessons.filter((lezione) => {
+      if (liveLessonIds.has(lezione.id)) return false;
       if (!lezione.fineDateObj) return true;
       return lezione.fineDateObj > oraAttuale;
   });
@@ -100,7 +100,7 @@ export default function Home() {
 
   const getEtichettaGiorno = (dataLezioneStr: string, giornoOriginale: string) => {
     if (dataLezioneStr === oggiStr) {
-      return liveLesson ? "IN ARRIVO" : "OGGI";
+      return liveLessons.length > 0 ? "IN ARRIVO" : "OGGI";
     }
     if (dataLezioneStr === domaniStr) {
       return "DOMANI";
@@ -222,23 +222,27 @@ export default function Home() {
           </div>
         )}
 
-        {!inCaricamento && !errore && !liveLesson && futureLessons.length === 0 && (
+        {!inCaricamento && !errore && liveLessons.length === 0 && futureLessons.length === 0 && (
           <div className="text-center p-10 text-gray-500 font-medium bg-[#212121] rounded-2xl shadow-lg border border-[#333] flex flex-col items-center justify-center gap-3">
             <span className="text-4xl opacity-50">🥂</span>
             <p className="text-sm">Nessuna lezione in programma a breve termine.</p>
           </div>
         )}
 
-        {!inCaricamento && liveLesson && (
+        {!inCaricamento && liveLessons.length > 0 && (
             <div className="mb-6">
                 <h3 className="text-xs font-bold text-[#c48e12] uppercase tracking-[0.2em] mb-3 pl-2 flex items-center gap-2">
                     <span className="relative flex h-2.5 w-2.5">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#c48e12] opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#c48e12]"></span>
                     </span>
-                    In Corso Ora
+                    {liveLessons.length > 1 ? 'Lezioni in Corso' : 'In Corso Ora'}
                 </h3>
-                <CardLezione key={liveLesson.id} lezione={liveLesson} isLive={true} />
+                <div className="grid gap-4">
+                  {liveLessons.map(lesson => (
+                    <CardLezione key={lesson.id} lezione={lesson} isLive={true} />
+                  ))}
+                </div>
             </div>
         )}
 
