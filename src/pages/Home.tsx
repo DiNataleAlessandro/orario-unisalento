@@ -169,12 +169,12 @@ export default function Home() {
               onChange={toggleNotifications}
               disabled={notificationPermission === 'denied'}
             />
-            <div className={`w-12 h-6.5 rounded-full transition-all duration-300 peer flex items-center px-1
+            <div className={`w-11 h-7 rounded-full transition-all duration-300 peer flex items-center px-1
               ${notificationPermission === 'denied' ? 'bg-red-900/20 border border-red-900/30' : 'bg-[#1a1a1a] border border-[#333]'} 
               peer-checked:bg-[#c48e12]/10 peer-checked:border-[#c48e12]/40`}>
               <div className={`h-5 w-5 rounded-full transition-all duration-500 transform flex items-center justify-center
                 ${notificationsEnabled 
-                  ? 'translate-x-5.5 bg-[#1a1a1a] border border-[#c48e12] shadow-[0_0_15px_rgba(196,142,18,0.4)]' 
+                  ? 'translate-x-4 bg-[#1a1a1a] border border-[#c48e12] shadow-[0_0_15px_rgba(196,142,18,0.4)]' 
                   : 'translate-x-0 bg-[#2a2a2a] border border-[#444]'}
               `}>
                 {notificationsEnabled ? (
@@ -196,7 +196,7 @@ export default function Home() {
 
         <button 
           onClick={() => setShowBlacklist(true)} 
-          className={`flex items-center gap-2 px-4 py-2 rounded-full border text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm ${
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm ${
             blacklist.length > 0 
               ? 'bg-[#c48e12]/10 border-[#c48e12]/40 text-[#c48e12]' 
               : 'bg-[#1a1a1a] border-[#333] text-gray-400 hover:bg-[#212121] hover:text-gray-300'
