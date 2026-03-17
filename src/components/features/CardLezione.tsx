@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import type { Lezione } from '../../types/lezione';
-import { getProfessorsData, cleanHtmlTags } from '../../api/transformers';
+import type { Lezione } from '@/types/lezione';
+import { getProfessorsData, cleanHtmlTags } from '@/api/transformers';
 
 interface CardLezioneProps {
   lezione: Lezione;

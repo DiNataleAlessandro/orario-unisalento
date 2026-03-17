@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import CardLezione from '../components/features/CardLezione';
-import { useLessons } from '../hooks/useLessons';
-import { formatDateForAPI } from '../utils/date';
-import type { Lezione } from '../types/lezione';
-import { cleanHtmlTags } from '../api/transformers';
+import CardLezione from '@/components/features/CardLezione';
+import { useLessons } from '@/hooks/useLessons';
+import { formatDateForAPI } from '@/utils/date';
+import type { Lezione } from '@/types/lezione';
+import { cleanHtmlTags } from '@/api/transformers';
 
 export default function Home() {
   const navigate = useNavigate();

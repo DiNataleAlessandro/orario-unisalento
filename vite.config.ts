@@ -1,7 +1,9 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -19,12 +21,12 @@ export default defineConfig({
         name: 'NextLesson Unisalento',
         short_name: 'NextLesson',
         description: 'La tua prossima lezione, a portata di mano',
-        theme_color: '#121212', // <-- AGGIORNATO AL DARK THEME
-        background_color: '#121212', // <-- AGGIORNATO AL DARK THEME
-        display: 'standalone', // Fa sparire la barra di Safari!
+        theme_color: '#121212', 
+        background_color: '#121212', 
+        display: 'standalone', 
         orientation: 'portrait',
-        start_url: '/',  // <-- MAGIA APPLE 1: Il recinto inizia dalla root
-        scope: '/',      // <-- MAGIA APPLE 2: Il recinto vale per tutte le pagine
+        start_url: '/',  
+        scope: '/',      
         icons: [
           {
             src: '/icona.png',
@@ -36,7 +38,16 @@ export default defineConfig({
       }
     })
   ],
-  // <-- NUOVA MAGIA: Il ponte proxy per testare l'app in locale senza errori CORS
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+  },
   server: {
     proxy: {
       '/api-unisalento': {

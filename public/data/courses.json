@@ -1,5 +1,4 @@
-// @ts-nocheck
-export const elenco_corsi=[
+[
     {
         "elenco_anni": [
             {
@@ -26575,4 +26574,4 @@ export const elenco_corsi=[
         "facolta_id": "28",
         "facolta_code": "tecn_bio_amb"
     }
-];var elenco_cdl=elenco_corsi;var elenco_scuole=[];
+]

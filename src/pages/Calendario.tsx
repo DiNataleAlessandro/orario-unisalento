@@ -4,10 +4,10 @@ import { DayPicker } from 'react-day-picker';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import 'react-day-picker/dist/style.css';
-import CardLezione from '../components/features/CardLezione';
-import type { Lezione } from '../types/lezione';
-import { formatDateForAPI } from '../utils/date';
-import { cleanHtmlTags } from '../api/transformers';
+import CardLezione from '@/components/features/CardLezione';
+import type { Lezione } from '@/types/lezione';
+import { formatDateForAPI } from '@/utils/date';
+import { cleanHtmlTags } from '@/api/transformers';
 
 const parseDataString = (dStr: string) => {
   if (!dStr) return 0;

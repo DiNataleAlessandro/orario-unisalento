@@ -1,25 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { elenco_corsi } from '../constants/courses'; 
+import { useCourses, type Anno } from '@/hooks/useCourses';
 
 export default function Onboarding() {
+  const { corsi: listaCorsi, inCaricamento, errore: erroreCorsi } = useCourses();
+  
   const [corso, setCorso] = useState('');
   const [anno, setAnno] = useState('');
   
-  const [listaCorsi, setListaCorsi] = useState<{
-    etichetta: string, 
-    tutti_gli_anni: { label: string, valore: string, codiceCorsoReale: string }[]
-  }[]>([]);
-  
-  const [listaAnni, setListaAnni] = useState<{
-    label: string, valore: string, codiceCorsoReale: string
-  }[]>([]);
+  const [listaAnni, setListaAnni] = useState<Anno[]>([]);
 
   const [ricerca, setRicerca] = useState('');
   const [tendinaAperta, setTendinaAperta] = useState(false);
   const tendinaRef = useRef<HTMLDivElement>(null);
 
-  // Stati per il popup di Importazione e i Toast
   const [showImportPopup, setShowImportPopup] = useState(false);
   const [importString, setImportString] = useState('');
   const [toast, setToast] = useState<{ messaggio: string; tipo: 'success' | 'error' } | null>(null);
@@ -32,41 +26,6 @@ export default function Onboarding() {
       setToast(null);
     }, 3000);
   };
-
-  // Group raw course data into a unified map to handle multiple years/paths per course
-  useEffect(() => {
-    const corsiUnificati = new Map<string, { etichetta: string, tutti_gli_anni: any[] }>();
-
-    elenco_corsi.forEach((item: any) => {
-      const chiave = `${item.label} (${item.tipo})`;
-      
-      if (!corsiUnificati.has(chiave)) {
-        corsiUnificati.set(chiave, {
-          etichetta: chiave,
-          tutti_gli_anni: []
-        });
-      } 
-      
-      const corsoEsistente = corsiUnificati.get(chiave)!;
-      
-      (item.elenco_anni || []).forEach((annoNuovo: any) => {
-        const annoEsistente = corsoEsistente.tutti_gli_anni.find(a => a.label === annoNuovo.label);
-        
-        if (!annoEsistente) {
-          corsoEsistente.tutti_gli_anni.push({
-            label: annoNuovo.label,
-            valore: annoNuovo.valore,
-            codiceCorsoReale: item.valore 
-          });
-        }
-      });
-    });
-
-    const mappati = Array.from(corsiUnificati.values());
-    mappati.sort((a: any, b: any) => a.etichetta.localeCompare(b.etichetta));
-    
-    setListaCorsi(mappati);
-  }, []);
 
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
@@ -82,7 +41,7 @@ export default function Onboarding() {
     if (corso) {
       const corsoIntero = listaCorsi.find(c => c.etichetta === corso);
       if (corsoIntero && corsoIntero.tutti_gli_anni) {
-        const anniOrdinati = [...corsoIntero.tutti_gli_anni].sort((a: any, b: any) => 
+        const anniOrdinati = [...corsoIntero.tutti_gli_anni].sort((a, b) => 
           a.label.localeCompare(b.label)
         );
         setListaAnni(anniOrdinati);
@@ -125,7 +84,6 @@ export default function Onboarding() {
     localStorage.setItem('corsoNome', corso);
     localStorage.setItem('annoNome', annoScelto.label); 
     
-    // Wipe existing schedule cache when changing course to prevent data pollution
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith('orario_')) {
@@ -137,7 +95,6 @@ export default function Onboarding() {
     navigate('/'); 
   };
 
-  // Funzione per gestire l'importazione direttamente dall'Onboarding
   const handleImport = () => {
     if (!importString.trim()) return;
 
@@ -197,7 +154,6 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen bg-[#121212] flex flex-col items-center justify-center p-6 font-sans relative">
       
-      {/* TOAST GLOBALE (quando il popup è chiuso) */}
       {toast && !showImportPopup && (
         <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 z-[9999] px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center justify-center backdrop-blur-md transition-all duration-300 w-[90%] max-w-sm text-center ${
           toast.tipo === 'success' 
@@ -228,91 +184,99 @@ export default function Onboarding() {
           </div>
         </div>
 
-        <div className="space-y-6">
-          <div className="space-y-2 relative" ref={tendinaRef}>
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] ml-1">Cerca il tuo Corso</label>
-            <input 
-              type="text"
-              placeholder="Es. Ingegneria Informatica..."
-              className="w-full bg-[#1a1a1a] border-2 border-transparent focus:border-[#c48e12] focus:bg-[#2a2a2a] rounded-2xl p-4 outline-none transition-all font-bold text-white placeholder-gray-600 shadow-inner text-sm"
-              value={ricerca}
-              onChange={gestisciRicerca}
-              onClick={() => setTendinaAperta(true)}
-            />
-            {tendinaAperta && (
-              <ul className="absolute z-50 w-full mt-2 bg-[#2a2a2a] border border-[#444] rounded-2xl shadow-2xl max-h-60 overflow-y-auto">
-                {corsiFiltrati.length > 0 ? (
-                  corsiFiltrati.map((c, i) => (
-                    <li 
-                      key={i} 
-                      onClick={() => selezionaCorso(c.etichetta)}
-                      className="p-4 hover:bg-[#383838] cursor-pointer border-b border-[#333] last:border-none text-sm font-medium text-gray-300 transition-colors"
-                    >
-                      {c.etichetta}
-                    </li>
-                  ))
-                ) : (
-                  <li className="p-4 text-sm text-gray-500 text-center font-medium">Nessun corso trovato</li>
-                )}
-              </ul>
-            )}
+        {inCaricamento ? (
+          <div className="py-10 text-center text-[#c48e12] font-bold animate-pulse">
+            Caricamento corsi in corso...
           </div>
+        ) : erroreCorsi ? (
+          <div className="py-10 text-center text-red-400 font-bold">
+            ⚠️ {erroreCorsi}
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="space-y-2 relative" ref={tendinaRef}>
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] ml-1">Cerca il tuo Corso</label>
+              <input 
+                type="text"
+                placeholder="Es. Ingegneria Informatica..."
+                className="w-full bg-[#1a1a1a] border-2 border-transparent focus:border-[#c48e12] focus:bg-[#2a2a2a] rounded-2xl p-4 outline-none transition-all font-bold text-white placeholder-gray-600 shadow-inner text-sm"
+                value={ricerca}
+                onChange={gestisciRicerca}
+                onClick={() => setTendinaAperta(true)}
+              />
+              {tendinaAperta && (
+                <ul className="absolute z-50 w-full mt-2 bg-[#2a2a2a] border border-[#444] rounded-2xl shadow-2xl max-h-60 overflow-y-auto">
+                  {corsiFiltrati.length > 0 ? (
+                    corsiFiltrati.map((c, i) => (
+                      <li 
+                        key={i} 
+                        onClick={() => selezionaCorso(c.etichetta)}
+                        className="p-4 hover:bg-[#383838] cursor-pointer border-b border-[#333] last:border-none text-sm font-medium text-gray-300 transition-colors"
+                      >
+                        {c.etichetta}
+                      </li>
+                    ))
+                  ) : (
+                    <li className="p-4 text-sm text-gray-500 text-center font-medium">Nessun corso trovato</li>
+                  )}
+                </ul>
+              )}
+            </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] ml-1">Anno e Indirizzo</label>
-            <select 
-              className={`w-full bg-[#1a1a1a] border-2 border-transparent focus:border-[#c48e12] focus:bg-[#2a2a2a] rounded-2xl p-4 outline-none transition-all font-bold text-sm shadow-inner appearance-none
-                ${!corso ? 'text-gray-600 cursor-not-allowed' : 'text-white'}`}
-              value={anno}
-              onChange={(e) => setAnno(e.target.value)}
-              disabled={!corso}
-            >
-              <option value="" className="text-gray-500">
-                {!corso ? "Prima seleziona un corso 👆" : "Scegli l'anno/indirizzo"}
-              </option>
-              {listaAnni.map((a, i) => (
-                <option key={i} value={a.valore} className="text-gray-200 bg-[#2a2a2a]">{a.label}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="pt-2 space-y-4">
-            <button 
-              onClick={salvaImpostazioni}
-              className="w-full font-black py-4 rounded-2xl transition-all shadow-lg active:scale-95 bg-[#c48e12] text-[#121212] hover:bg-[#d89e17] shadow-[#c48e12]/20"
-            >
-              Configurazione Completata
-            </button>
-            
-            <div className="text-center">
-              <button 
-                onClick={() => setShowImportPopup(true)}
-                className="text-[11px] font-bold text-gray-500 hover:text-[#c48e12] transition-colors underline decoration-gray-700 hover:decoration-[#c48e12] underline-offset-4"
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] ml-1">Anno e Indirizzo</label>
+              <select 
+                className={`w-full bg-[#1a1a1a] border-2 border-transparent focus:border-[#c48e12] focus:bg-[#2a2a2a] rounded-2xl p-4 outline-none transition-all font-bold text-sm shadow-inner appearance-none
+                  ${!corso ? 'text-gray-600 cursor-not-allowed' : 'text-white'}`}
+                value={anno}
+                onChange={(e) => setAnno(e.target.value)}
+                disabled={!corso}
               >
-                Hai già una configurazione? Importala qui
+                <option value="" className="text-gray-500">
+                  {!corso ? "Prima seleziona un corso 👆" : "Scegli l'anno/indirizzo"}
+                </option>
+                {listaAnni.map((a, i) => (
+                  <option key={i} value={a.valore} className="text-gray-200 bg-[#2a2a2a]">{a.label}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="pt-2 space-y-4">
+              <button 
+                onClick={salvaImpostazioni}
+                className="w-full font-black py-4 rounded-2xl transition-all shadow-lg active:scale-95 bg-[#c48e12] text-[#121212] hover:bg-[#d89e17] shadow-[#c48e12]/20"
+              >
+                Configurazione Completata
               </button>
+              
+              <div className="text-center">
+                <button 
+                  onClick={() => setShowImportPopup(true)}
+                  className="text-[11px] font-bold text-gray-500 hover:text-[#c48e12] transition-colors underline decoration-gray-700 hover:decoration-[#c48e12] underline-offset-4"
+                >
+                  Hai già una configurazione? Importala qui
+                </button>
+              </div>
             </div>
           </div>
+        )}
 
-          <div className="pt-2 text-center">
-            <p className="text-[10px] font-bold text-gray-600 tracking-widest uppercase">
-              made by {' '}
-              <a 
-                href="https://github.com/DiNataleAlessandro" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-[#c48e12]/80 no-underline hover:no-underline"
-                style={{ color: 'inherit', textDecoration: 'none' }}
-              >
-                <span className="text-[#c48e12]/80">Λlεx</span>
-              </a>
-            </p>
-          </div>
-
+        <div className="pt-6 text-center border-t border-[#333] mt-6">
+          <p className="text-[10px] font-bold text-gray-600 tracking-widest uppercase">
+            made by {' '}
+            <a 
+              href="https://github.com/DiNataleAlessandro" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-[#c48e12]/80 no-underline hover:no-underline"
+              style={{ color: 'inherit', textDecoration: 'none' }}
+            >
+              <span className="text-[#c48e12]/80">Λlεx</span>
+            </a>
+          </p>
         </div>
       </div>
 
-      {/* POPUP IMPORTAZIONE ONBOARDING */}
       {showImportPopup && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex flex-col p-4 items-center justify-center gap-4" onClick={() => setShowImportPopup(false)}>
           <div className="bg-[#212121] border border-[#333] p-8 rounded-[2rem] shadow-2xl w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
@@ -356,7 +320,6 @@ export default function Onboarding() {
             </div>
           </div>
 
-          {/* TOAST LOCALE (mostrato esattamente sotto il popup) */}
           {toast && (
             <div 
               className={`w-full max-w-sm px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center justify-center backdrop-blur-md transition-all duration-300 text-center ${

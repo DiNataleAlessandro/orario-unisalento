@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Lezione } from '../types/lezione';
-import { fetchSingleWeek } from '../api/unisalento';
-import { cleanHtmlTags } from '../api/transformers';
+import type { Lezione } from '@/types/lezione';
+import { fetchSingleWeek } from '@/api/unisalento';
+import { cleanHtmlTags } from '@/api/transformers';
 
 interface UseLessonsProps {
   corsoCodice: string;

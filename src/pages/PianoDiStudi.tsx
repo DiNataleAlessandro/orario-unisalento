@@ -1,15 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { elenco_corsi } from '../constants/courses';
-import { formatDateForAPI } from '../utils/date';
-import { cleanHtmlTags } from '../api/transformers';
+import { useCourses } from '@/hooks/useCourses';
+import { formatDateForAPI } from '@/utils/date';
+import { cleanHtmlTags } from '@/api/transformers';
 
 export default function PianoDiStudi() {
   const navigate = useNavigate();
+  const { corsi: listaCorsiGlobali, inCaricamento: inCaricamentoCorsi, errore: erroreCorsi } = useCourses();
   
   const [materieSalvate, setMaterieSalvate] = useState<{ id: string, corsoCodice: string, annoCodice: string, corsoNome: string, materiaNome: string }[]>(JSON.parse(localStorage.getItem('materieExtra') || '[]'));
   
-  const [listaCorsiGlobali, setListaCorsiGlobali] = useState<any[]>([]);
   const [ricerca, setRicerca] = useState('');
   const [corsoSelezionato, setCorsoSelezionato] = useState<any>(null);
   const [annoSelezionato, setAnnoSelezionato] = useState('');
@@ -35,21 +35,6 @@ export default function PianoDiStudi() {
   };
 
   useEffect(() => {
-    const corsiMap = new Map();
-    elenco_corsi.forEach((item: any) => {
-      const chiave = `${item.label} (${item.tipo})`;
-      if (!corsiMap.has(chiave)) corsiMap.set(chiave, { etichetta: chiave, anni: [] });
-      const corso = corsiMap.get(chiave);
-      (item.elenco_anni || []).forEach((a: any) => {
-        if (!corso.anni.find((x: any) => x.label === a.label)) {
-          corso.anni.push({ label: a.label, valore: a.valore, codiceReale: item.valore });
-        }
-      });
-    });
-    setListaCorsiGlobali(Array.from(corsiMap.values()).sort((a,b) => a.etichetta.localeCompare(b.etichetta)));
-  }, []);
-
-  useEffect(() => {
     function handleOutsideClick(e: MouseEvent) {
       if (tendinaRef.current && !tendinaRef.current.contains(e.target as Node)) setTendinaAperta(false);
     }
@@ -59,7 +44,7 @@ export default function PianoDiStudi() {
 
   const cercaMaterieNelCorso = async () => {
     if (!corsoSelezionato || !annoSelezionato) return;
-    const annoObj = corsoSelezionato.anni.find((a: any) => a.valore === annoSelezionato);
+    const annoObj = corsoSelezionato.tutti_gli_anni.find((a: any) => a.valore === annoSelezionato);
     if (!annoObj) return;
 
     setInCaricamento(true);
@@ -76,7 +61,7 @@ export default function PianoDiStudi() {
         formData.append('include', 'corso');
         formData.append('txtcurr', '1 - Percorso comune');
         formData.append('anno', '2025'); 
-        formData.append('corso', annoObj.codiceReale); 
+        formData.append('corso', annoObj.codiceCorsoReale); 
         formData.append('anno2[]', annoObj.valore); 
         formData.append('visualizzazione_orario', 'cal');
         formData.append('date', formatDateForAPI(dataTarget)); 
@@ -137,17 +122,17 @@ export default function PianoDiStudi() {
   };
 
   const salvaEsamiExtra = () => {
-    const annoObj = corsoSelezionato.anni.find((a: any) => a.valore === annoSelezionato);
+    const annoObj = corsoSelezionato.tutti_gli_anni.find((a: any) => a.valore === annoSelezionato);
     
     const nuoviSalvataggi = materieSpuntate
       .filter(materia => !materieSalvate.some(ms => 
-         ms.corsoCodice === annoObj.codiceReale && 
+         ms.corsoCodice === annoObj.codiceCorsoReale && 
          ms.annoCodice === annoObj.valore && 
          ms.materiaNome === materia
       ))
       .map(materia => ({
         id: Date.now().toString() + Math.random().toString(),
-        corsoCodice: annoObj.codiceReale,
+        corsoCodice: annoObj.codiceCorsoReale,
         annoCodice: annoObj.valore,
         corsoNome: corsoSelezionato.etichetta,
         materiaNome: materia
@@ -310,7 +295,11 @@ export default function PianoDiStudi() {
       <div className="mb-8">
         <h3 className="text-[10px] font-black text-[#c48e12] uppercase tracking-[0.2em] mb-3 ml-2">Aggiungi nuovo esame a scelta</h3>
         
-        {!corsoSelezionato ? (
+        {inCaricamentoCorsi ? (
+          <div className="py-10 text-center text-[#c48e12] font-bold animate-pulse">Caricamento corsi...</div>
+        ) : erroreCorsi ? (
+          <div className="py-10 text-center text-red-400 font-bold">⚠️ {erroreCorsi}</div>
+        ) : !corsoSelezionato ? (
           <div className="space-y-2 relative" ref={tendinaRef}>
             <input 
               type="text"
@@ -347,7 +336,7 @@ export default function PianoDiStudi() {
               onChange={(e) => {setAnnoSelezionato(e.target.value); setMaterieTrovate([]);}}
             >
               <option value="" className="text-gray-500">In che anno si trova questo esame?</option>
-              {corsoSelezionato.anni
+              {corsoSelezionato.tutti_gli_anni
                 .filter((a: any) => a.valore !== mioAnnoCodice)
                 .map((a: any, i: number) => (
                   <option key={i} value={a.valore}>{a.label}</option>
@@ -372,9 +361,9 @@ export default function PianoDiStudi() {
                 <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-3">Seleziona le materie da seguire:</p>
                 <div className="space-y-2 mb-4 max-h-60 overflow-y-auto">
                   {materieTrovate.map((materia, idx) => {
-                    const annoObj = corsoSelezionato.anni.find((a: any) => a.valore === annoSelezionato);
+                    const annoObj = corsoSelezionato.tutti_gli_anni.find((a: any) => a.valore === annoSelezionato);
                     const giaSalvata = materieSalvate.some(ms => 
-                       ms.corsoCodice === annoObj?.codiceReale && 
+                       ms.corsoCodice === annoObj?.codiceCorsoReale && 
                        ms.annoCodice === annoObj?.valore && 
                        ms.materiaNome === materia
                     );
