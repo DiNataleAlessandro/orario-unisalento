@@ -340,7 +340,7 @@ export default function PianoDiStudi() {
                 .map((a: any) => {
                   const mioCorsoCodice = localStorage.getItem('corsoCodice');
                   const eCorsoBase = (
-                    corsoSelezionato.codiceCorsoReale === mioCorsoCodice && 
+                    a.codiceCorsoReale === mioCorsoCodice && 
                     a.valore === mioAnnoCodice
                   );
                   return { 
@@ -371,30 +371,18 @@ export default function PianoDiStudi() {
                   {materieTrovate.map((materia, idx) => {
                     const annoObj = corsoSelezionato.tutti_gli_anni.find((a: any) => a.valore === annoSelezionato);
                     
-                    // Verifica se è già tra le materie extra
-                    const giaSalvataComeExtra = materieSalvate.some(ms => 
+                    const giaSalvata = materieSalvate.some(ms => 
                        ms.corsoCodice === annoObj?.codiceCorsoReale && 
                        ms.annoCodice === annoObj?.valore && 
                        ms.materiaNome === materia
                     );
 
-                    // Verifica se è la materia del corso principale (onboarding)
-                    const mioCorsoCodice = localStorage.getItem('corsoCodice');
-                    const eMateriaPrincipale = (
-                      annoObj?.codiceCorsoReale === mioCorsoCodice && 
-                      annoObj?.valore === mioAnnoCodice
-                    );
-
-                    const giaPresente = giaSalvataComeExtra || eMateriaPrincipale;
-
-                    if (giaPresente) {
+                    if (giaSalvata) {
                       return (
                         <label key={`saved-${idx}`} className="flex items-center gap-3 p-3 rounded-xl border bg-[#1a1a1a] border-[#333] opacity-60 cursor-not-allowed">
                           <input type="checkbox" disabled checked className="w-5 h-5 accent-[#c48e12] rounded opacity-50" />
                           <span className="text-sm font-bold text-gray-500 line-through">{materia}</span>
-                          <span className="ml-auto text-[10px] text-[#c48e12] font-bold uppercase tracking-widest">
-                            {eMateriaPrincipale ? 'Corso Base' : 'Già Aggiunta'}
-                          </span>
+                          <span className="ml-auto text-[10px] text-[#c48e12] font-bold uppercase tracking-widest">Già Aggiunta</span>
                         </label>
                       );
                     }
