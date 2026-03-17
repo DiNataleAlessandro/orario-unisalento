@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 interface Option {
   valore: string;
   label: string;
+  disabled?: boolean;
 }
 
 interface SelectProps {
@@ -61,13 +62,20 @@ export default function Select({ label, options, value, onChange, placeholder, d
               <li 
                 key={i} 
                 onClick={() => {
+                  if (opt.disabled) return;
                   onChange(opt.valore);
                   setIsOpen(false);
                 }}
-                className={`p-4 hover:bg-[#383838] cursor-pointer border-b border-[#333] last:border-none text-sm font-medium transition-colors
-                  ${value === opt.valore ? 'text-[#c48e12] bg-[#1a1a1a]' : 'text-gray-300'}`}
+                className={`p-4 border-b border-[#333] last:border-none text-sm font-medium transition-colors
+                  ${opt.disabled 
+                    ? 'text-gray-600 bg-[#1a1a1a]/50 cursor-not-allowed opacity-70' 
+                    : `hover:bg-[#383838] cursor-pointer ${value === opt.valore ? 'text-[#c48e12] bg-[#1a1a1a]' : 'text-gray-300'}`
+                  }`}
               >
-                {opt.label}
+                <div className="flex justify-between items-center">
+                  <span>{opt.label}</span>
+                  {opt.disabled && <span className="text-[9px] font-black uppercase tracking-widest text-[#c48e12]/60 ml-2">Corso Base</span>}
+                </div>
               </li>
             ))
           ) : (
