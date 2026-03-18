@@ -1,4 +1,7 @@
 import React from 'react';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 interface LocationModalProps {
   name: string;
@@ -8,10 +11,22 @@ interface LocationModalProps {
 }
 
 export default function LocationModal({ name, lat, lng, onClose }: LocationModalProps) {
-  // Configurazione per la minimappa OpenStreetMap
-  const zoom = 0.002;
-  const mapSrc = `https://www.openstreetmap.org/export/embed.html?bbox=${lng - zoom},${lat - zoom},${lng + zoom},${lat + zoom}&layer=mapnik&marker=${lat},${lng}`;
   const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+
+  // Creazione di un'icona personalizzata coerente con il brand (#c48e12)
+  const customIcon = L.divIcon({
+    className: 'custom-div-icon',
+    html: `
+      <div class="relative flex items-center justify-center">
+        <div class="absolute w-8 h-8 bg-[#c48e12]/30 rounded-full animate-ping"></div>
+        <div class="relative w-5 h-5 bg-[#c48e12] rounded-full border-2 border-white shadow-lg flex items-center justify-center">
+          <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
+        </div>
+      </div>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+  });
 
   return (
     <div 
@@ -23,7 +38,7 @@ export default function LocationModal({ name, lat, lng, onClose }: LocationModal
         onClick={e => e.stopPropagation()}
       >
         <div className="text-center mb-5">
-          <div className="bg-[#1a1a1a] w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3 border border-[#c48e12]/30 shadow-[0_0_15px_rgba(196,142,18,0.2)]">
+          <div className="bg-[#1a1a1a] w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3 border border-[#c48e12]/30 shadow-[0_0_15px_rgba(196,142,18,0.25)]">
             <span className="text-2xl">📍</span>
           </div>
           <h3 className="text-xl font-bold text-white leading-tight">
@@ -32,20 +47,24 @@ export default function LocationModal({ name, lat, lng, onClose }: LocationModal
           <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-2">Sede Universitaria</p>
         </div>
 
-        {/* Minimappa */}
-        <div className="relative w-full aspect-video mb-6 rounded-2xl overflow-hidden border border-[#333] bg-[#1a1a1a]">
-          <iframe
-            title="Mappa Sede"
-            width="100%"
-            height="100%"
-            frameBorder="0"
-            scrolling="no"
-            marginHeight={0}
-            marginWidth={0}
-            src={mapSrc}
-            className="filter grayscale-[0.3] contrast-[1.1]"
-          />
-          <div className="absolute inset-0 pointer-events-none border border-white/5 rounded-2xl"></div>
+        {/* Mappa Interattiva Leaflet */}
+        <div className="relative w-full h-64 mb-6 rounded-2xl overflow-hidden border border-[#333] bg-[#1a1a1a] isolate">
+          <MapContainer 
+            center={[lat, lng]} 
+            zoom={16} 
+            scrollWheelZoom={false}
+            zoomControl={false}
+            className="w-full h-full grayscale-[0.2] contrast-[1.1]"
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            />
+            <Marker position={[lat, lng]} icon={customIcon} />
+          </MapContainer>
+          
+          {/* Overlay per i bordi e per impedire click accidentali se non desiderati (opzionale) */}
+          <div className="absolute inset-0 pointer-events-none border border-white/5 rounded-2xl z-[1000]"></div>
         </div>
 
         <div className="flex gap-3">
