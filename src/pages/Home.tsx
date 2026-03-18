@@ -20,7 +20,7 @@ export default function Home() {
     refreshCount
   });
 
-  const { isEnabled: notificationsEnabled, toggleNotifications, permission: notificationPermission } = useNotifications();
+  const { isEnabled: notificationsEnabled, toggleNotifications, permission: notificationPermission, isSupported: notificationsSupported } = useNotifications();
 
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [showBlacklist, setShowBlacklist] = useState(false);
@@ -167,17 +167,17 @@ export default function Home() {
               className="sr-only peer" 
               checked={notificationsEnabled}
               onChange={toggleNotifications}
-              disabled={notificationPermission === 'denied'}
+              disabled={notificationPermission === 'denied' || !notificationsSupported}
             />
             <div className={`w-11 h-7 rounded-full transition-all duration-300 peer flex items-center px-1
-              ${notificationPermission === 'denied' ? 'bg-red-900/20 border border-red-900/30' : 'bg-[#1a1a1a] border border-[#333]'} 
+              ${(notificationPermission === 'denied' || !notificationsSupported) ? 'bg-red-900/20 border border-red-900/30' : 'bg-[#1a1a1a] border border-[#333]'} 
               peer-checked:bg-[#c48e12]/10 peer-checked:border-[#c48e12]/40`}>
               <div className={`h-5 w-5 rounded-full transition-all duration-500 transform flex items-center justify-center
                 ${notificationsEnabled 
                   ? 'translate-x-4 bg-[#1a1a1a] border border-[#c48e12] shadow-[0_0_15px_rgba(196,142,18,0.4)]' 
                   : 'translate-x-0 bg-[#2a2a2a] border border-[#444]'}
               `}>
-                {notificationPermission === 'denied' ? (
+                {notificationPermission === 'denied' || !notificationsSupported ? (
                   <svg viewBox="0 0 48 48" className="w-3.5 h-3.5 text-red-500/70" fill="currentColor">
                     <path d="M43.4,29.4l-3.2-3.2A4.5,4.5,0,0,1,39,23.3V17C39,8.9,33.6,2,24,2S9,8.7,9,17v7a2.6,2.6,0,0,1-.7,1.7L4.6,29.4A2,2,0,0,0,4,30.8V38a2,2,0,0,0,2,2H17.1a7,7,0,0,0,13.8,0H42a2,2,0,0,0,2-2V30.8A2,2,0,0,0,43.4,29.4ZM40,36H8V31.7l3.1-3.2A6.4,6.4,0,0,0,13,24V17c0-5.3,2.9-11,11-11s11,5.9,11,11v6.3A8.6,8.6,0,0,0,37.3,29L40,31.7Z"/>
                     <rect x="16" y="20" width="16" height="4" rx="2" ry="2"/>
@@ -197,8 +197,8 @@ export default function Home() {
               </div>
             </div>
           </label>
-          <span className={`text-[10px] font-black uppercase tracking-widest transition-colors duration-300 ${notificationsEnabled ? 'text-[#c48e12]' : (notificationPermission === 'denied' ? 'text-red-500 opacity-60' : 'text-gray-500')}`}>
-            {notificationPermission === 'denied' ? 'Notifiche Bloccate' : 'Notifiche'}
+          <span className={`text-[10px] font-black uppercase tracking-widest transition-colors duration-300 ${notificationsEnabled ? 'text-[#c48e12]' : (notificationPermission === 'denied' || !notificationsSupported ? 'text-red-500 opacity-60' : 'text-gray-500')}`}>
+            {!notificationsSupported ? 'Non Supportate' : (notificationPermission === 'denied' ? 'Notifiche Bloccate' : 'Notifiche')}
           </span>
         </div>
 

@@ -34,12 +34,14 @@ function getUserData() {
 }
 
 export const useNotifications = () => {
+  const isSupported = typeof window !== 'undefined' && 'Notification' in window;
+
   const [isEnabled, setIsEnabled] = useState(() => {
-    return localStorage.getItem('notifications_enabled') === 'true';
+    return localStorage.getItem('notifications_enabled') === 'true' && isSupported;
   });
 
   const [permission, setPermission] = useState<NotificationPermission>(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
+    if (isSupported) {
       return Notification.permission;
     }
     return 'default';
@@ -81,7 +83,7 @@ export const useNotifications = () => {
   const subscribeToPush = useCallback(async () => {
     console.log('[PUSH] Inizio subscribeToPush...');
     try {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !isSupported) {
         console.error('[PUSH] Browser non supportato');
         throw new Error('Push notifications non supportate da questo browser.');
       }
@@ -200,5 +202,5 @@ export const useNotifications = () => {
     }
   }, [isEnabled, permission, subscribeToPush, sendSubscriptionToBackend]);
 
-  return { isEnabled, permission, subscription, requestPermission, toggleNotifications };
+  return { isSupported, isEnabled, permission, subscription, requestPermission, toggleNotifications };
 };
