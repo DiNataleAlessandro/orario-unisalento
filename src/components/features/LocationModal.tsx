@@ -13,19 +13,24 @@ interface LocationModalProps {
 export default function LocationModal({ name, lat, lng, onClose }: LocationModalProps) {
   const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 
-  // Creazione di un'icona personalizzata coerente con il brand (#c48e12)
+  // Creazione di un'icona personalizzata a forma di goccia (Classic Map Pin)
   const customIcon = L.divIcon({
-    className: 'custom-div-icon',
+    className: 'custom-pin-icon',
     html: `
-      <div class="relative flex items-center justify-center">
-        <div class="absolute w-8 h-8 bg-[#c48e12]/30 rounded-full animate-ping"></div>
-        <div class="relative w-5 h-5 bg-[#c48e12] rounded-full border-2 border-white shadow-lg flex items-center justify-center">
-          <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
-        </div>
+      <div class="flex items-center justify-center drop-shadow-md">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path 
+            d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2Z" 
+            fill="#c48e12" 
+            stroke="#121212" 
+            stroke-width="1"
+          />
+          <circle cx="12" cy="9" r="3" fill="rgba(255,255,255,0.8)" />
+        </svg>
       </div>
     `,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
+    iconSize: [36, 36],
+    iconAnchor: [18, 36], // Punta della goccia al centro in basso
   });
 
   return (
@@ -47,23 +52,36 @@ export default function LocationModal({ name, lat, lng, onClose }: LocationModal
           <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-2">Sede Universitaria</p>
         </div>
 
-        {/* Mappa Interattiva Leaflet */}
+        {/* Mappa Statica con Filtri Dark */}
         <div className="relative w-full h-64 mb-6 rounded-2xl overflow-hidden border border-[#333] bg-[#1a1a1a] isolate">
+          {/* Stile CSS per applicare il filtro solo ai tile della mappa, mantenendo il Pin colorato */}
+          <style>{`
+            .dark-map-tiles .leaflet-tile-pane {
+              filter: grayscale(1) invert(0.9) hue-rotate(180deg) brightness(1.2) contrast(1.2);
+            }
+          `}</style>
+          
           <MapContainer 
             center={[lat, lng]} 
-            zoom={16} 
-            scrollWheelZoom={false}
+            zoom={17} 
+            // Disabilita tutte le interazioni
+            dragging={false}
             zoomControl={false}
-            className="w-full h-full grayscale-[0.2] contrast-[1.1]"
+            scrollWheelZoom={false}
+            doubleClickZoom={false}
+            touchZoom={false}
+            boxZoom={false}
+            keyboard={false}
+            attributionControl={false}
+            className="w-full h-full dark-map-tiles"
           >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             <Marker position={[lat, lng]} icon={customIcon} />
           </MapContainer>
           
-          {/* Overlay per i bordi e per impedire click accidentali se non desiderati (opzionale) */}
+          {/* Overlay di protezione e bordi */}
           <div className="absolute inset-0 pointer-events-none border border-white/5 rounded-2xl z-[1000]"></div>
         </div>
 
