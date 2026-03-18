@@ -17,7 +17,7 @@
   "crons": [
     {
       "path": "/api/check-lessons",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 5 * * *"
     }
   ]
 }

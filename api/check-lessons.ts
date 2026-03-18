@@ -31,10 +31,22 @@ webpush.setVapidDetails(
 );
 
 export default async function handler(req, res) {
-  // Solo per Vercel Cron o chiamate autorizzate
-  // if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-  //   return res.status(401).end('Unauthorized');
-  // }
+  // Protezione dell'endpoint
+  const authHeader = req.headers.authorization;
+  const cronSecret = process.env.CRON_SECRET;
+  
+  // Verifica se la richiesta arriva da Vercel Cron o ha il CRON_SECRET corretto
+  const isVercelCron = req.headers['x-vercel-cron'] === '1';
+  const isAuthorized = !cronSecret || authHeader === `Bearer ${cronSecret}` || req.query.secret === cronSecret;
+
+  if (!isVercelCron && !isAuthorized) {
+    console.warn('Tentativo di accesso non autorizzato a /api/check-lessons');
+    return res.status(401).json({ error: 'Non autorizzato' });
+  }
+
+  if (!cronSecret) {
+    console.warn('ATTENZIONE: CRON_SECRET non definito. L\'endpoint è accessibile pubblicamente.');
+  }
 
   try {
     const client = await getRedisClient();
