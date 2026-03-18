@@ -244,7 +244,7 @@ export default function Home() {
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#c48e12] opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#c48e12]"></span>
                     </span>
-                    {liveLessons.length > 1 ? 'Lezioni in Corso' : 'In Corso Ora'}
+                    In Corso Ora
                 </h3>
                 <div className="grid gap-4">
                   {liveLessons.map(lesson => (

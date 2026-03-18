@@ -99,6 +99,10 @@ export const useNotifications = () => {
       console.log('[PUSH] Sottoscrizione esistente:', sub ? 'Sì' : 'No');
 
       if (!sub) {
+        if (!VAPID_PUBLIC_KEY) {
+          console.error('[PUSH] Errore: VITE_VAPID_PUBLIC_KEY non è definita nelle variabili d\'ambiente!');
+          throw new Error('Chiave VAPID mancante. Controlla il file .env.local e riavvia il server.');
+        }
         console.log('[PUSH] Creazione nuova sottoscrizione...');
         const convertedKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
         sub = await registration.pushManager.subscribe({
