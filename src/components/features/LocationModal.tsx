@@ -64,6 +64,7 @@ export default function LocationModal({ name, lat, lng, onClose }: LocationModal
           <MapContainer 
             center={[lat, lng]} 
             zoom={17} 
+            maxZoom={19}
             // Disabilita tutte le interazioni
             dragging={false}
             zoomControl={false}
@@ -77,6 +78,8 @@ export default function LocationModal({ name, lat, lng, onClose }: LocationModal
           >
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              detectRetina={true}
+              maxZoom={19}
             />
             <Marker position={[lat, lng]} icon={customIcon} />
           </MapContainer>
