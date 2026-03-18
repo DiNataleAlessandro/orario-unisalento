@@ -155,8 +155,9 @@ export default async function handler(req, res) {
             const [startTimeStr] = cell.orario.split(' - ');
             const lessonDate = parse(`${cell.data} ${startTimeStr}`, 'dd-MM-yyyy HH:mm', new Date());
 
-            // Point 1: Check 15-minute window
-            if (isAfter(lessonDate, now) && isBefore(lessonDate, windowEnd)) {
+            // Point 1: Check 15-minute window (Inclusive of the start of the windowEnd)
+            // We use a small overlap to ensure lessons starting exactly on the hour/half-hour are caught.
+            if (isAfter(lessonDate, now) && !isAfter(lessonDate, windowEnd)) {
               
               // Point 2: Idempotency with Redis
               const idempotencyKey = `notified:${subscription.endpoint}:${cleanMateria}:${startTimeStr}`;
