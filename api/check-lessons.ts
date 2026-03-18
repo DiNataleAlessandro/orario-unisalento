@@ -81,6 +81,8 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  const isTest = req.query.test === 'true';
+
   try {
     const client = await getRedisClient();
     const now = new Date();
@@ -92,86 +94,119 @@ export default async function handler(req, res) {
     const notificationPromises = [];
     const localScheduleCache = new Map(); // Avoid redundant Redis calls in same execution
 
-    for (const key of keys) {
-      if (key.startsWith('uni_cache:') || key.startsWith('notified:')) continue;
-
-      const dataStr = await client.get(key);
-      if (!dataStr) continue;
-
-      const { subscription, corsi } = JSON.parse(dataStr);
-      if (!corsi?.corso?.codice) continue;
-
-      // Identify courses to check (Main + Extra)
-      const coursesToCheck = [
-        { codice: corsi.corso.codice, anno: corsi.corso.annoCodice },
-        ...(corsi.materieExtra || []).map(m => ({ codice: m.corsoCodice, anno: m.annoCodice }))
-      ];
-
-      // Remove duplicates
-      const uniqueCourses = Array.from(new Map(coursesToCheck.map(c => [`${c.codice}-${c.anno}`, c])).values());
-
-      for (const course of uniqueCourses) {
-        const cacheId = `${course.codice}-${course.anno}`;
-        let schedule = localScheduleCache.get(cacheId);
+    if (isTest) {
+      // --- TEST MODE ---
+      for (const key of keys) {
+        if (key.startsWith('uni_cache:') || key.startsWith('notified:')) continue;
         
-        if (!schedule) {
-          schedule = await fetchScheduleWithCache(client, course.codice, course.anno, todayStr);
-          localScheduleCache.set(cacheId, schedule);
-        }
+        const dataStr = await client.get(key);
+        if (!dataStr) continue;
 
-        if (!schedule?.celle) continue;
+        const { subscription } = JSON.parse(dataStr);
+        if (!subscription?.endpoint) continue;
 
-        for (const cell of schedule.celle) {
-          // Filter by user blacklist
-          const cleanMateria = cell.nome_insegnamento.replace(/<[^>]+>/g, '').trim();
-          if (corsi.blacklist?.includes(cleanMateria)) continue;
+        const promise = (async () => {
+          try {
+            await webpush.sendNotification(subscription, JSON.stringify({
+              title: '🔔 Test Sistema Operativo!',
+              body: 'Se leggi questo, il sistema di notifiche push, Redis e Vercel funzionano alla perfezione.',
+              data: { url: '/home' }
+            }));
+            return { key, status: 'sent', type: 'test' };
+          } catch (err) {
+            if (err.statusCode === 410 || err.statusCode === 404) {
+              await client.del(key);
+              return { key, status: 'removed' };
+            }
+            return { key, status: 'error', error: err.message };
+          }
+        })();
+        notificationPromises.push(promise);
+      }
+    } else {
+      // --- REGULAR MODE ---
+      for (const key of keys) {
+        if (key.startsWith('uni_cache:') || key.startsWith('notified:')) continue;
 
-          // Parse lesson time
-          const [startTimeStr] = cell.orario.split(' - ');
-          const lessonDate = parse(`${cell.data} ${startTimeStr}`, 'dd-MM-yyyy HH:mm', new Date());
+        const dataStr = await client.get(key);
+        if (!dataStr) continue;
 
-          // Point 1: Check 15-minute window
-          if (isAfter(lessonDate, now) && isBefore(lessonDate, windowEnd)) {
-            
-            // Point 2: Idempotency with Redis
-            const idempotencyKey = `notified:${subscription.endpoint}:${cleanMateria}:${startTimeStr}`;
-            const alreadyNotified = await client.get(idempotencyKey);
-            
-            if (!alreadyNotified) {
-              // Prepare Notification Promise
-              const promise = (async () => {
-                try {
-                  await webpush.sendNotification(subscription, JSON.stringify({
-                    title: 'Lezione in arrivo! 🎓',
-                    body: `${cleanMateria} inizia alle ${startTimeStr} in ${cell.aula || 'aula non specificata'}`,
-                    tag: `lesson-${cleanMateria}-${startTimeStr}`,
-                    data: { url: '/home' }
-                  }));
-                  
-                  // Mark as notified in Redis (Point 2)
-                  await client.setEx(idempotencyKey, REDIS_NOTIFIED_TTL, '1');
-                  return { key, status: 'sent', materia: cleanMateria };
-                } catch (err) {
-                  if (err.statusCode === 410 || err.statusCode === 404) {
-                    await client.del(key); // Cleanup dead subscriptions
-                    return { key, status: 'removed' };
-                  }
-                  return { key, status: 'error', error: err.message };
-                }
-              })();
+        const { subscription, corsi } = JSON.parse(dataStr);
+        if (!corsi?.corso?.codice) continue;
+
+        // Identify courses to check (Main + Extra)
+        const coursesToCheck = [
+          { codice: corsi.corso.codice, anno: corsi.corso.annoCodice },
+          ...(corsi.materieExtra || []).map(m => ({ codice: m.corsoCodice, anno: m.annoCodice }))
+        ];
+
+        // Remove duplicates
+        const uniqueCourses = Array.from(new Map(coursesToCheck.map(c => [`${c.codice}-${c.anno}`, c])).values());
+
+        for (const course of uniqueCourses) {
+          const cacheId = `${course.codice}-${course.anno}`;
+          let schedule = localScheduleCache.get(cacheId);
+          
+          if (!schedule) {
+            schedule = await fetchScheduleWithCache(client, course.codice, course.anno, todayStr);
+            localScheduleCache.set(cacheId, schedule);
+          }
+
+          if (!schedule?.celle) continue;
+
+          for (const cell of schedule.celle) {
+            // Filter by user blacklist
+            const cleanMateria = cell.nome_insegnamento.replace(/<[^>]+>/g, '').trim();
+            if (corsi.blacklist?.includes(cleanMateria)) continue;
+
+            // Parse lesson time
+            const [startTimeStr] = cell.orario.split(' - ');
+            const lessonDate = parse(`${cell.data} ${startTimeStr}`, 'dd-MM-yyyy HH:mm', new Date());
+
+            // Point 1: Check 15-minute window
+            if (isAfter(lessonDate, now) && isBefore(lessonDate, windowEnd)) {
               
-              notificationPromises.push(promise);
+              // Point 2: Idempotency with Redis
+              const idempotencyKey = `notified:${subscription.endpoint}:${cleanMateria}:${startTimeStr}`;
+              const alreadyNotified = await client.get(idempotencyKey);
+              
+              if (!alreadyNotified) {
+                // Prepare Notification Promise
+                const promise = (async () => {
+                  try {
+                    await webpush.sendNotification(subscription, JSON.stringify({
+                      title: 'Lezione in arrivo! 🎓',
+                      body: `${cleanMateria} inizia alle ${startTimeStr} in ${cell.aula || 'aula non specificata'}`,
+                      tag: `lesson-${cleanMateria}-${startTimeStr}`,
+                      data: { url: '/home' }
+                    }));
+                    
+                    // Mark as notified in Redis (Point 2)
+                    await client.setEx(idempotencyKey, REDIS_NOTIFIED_TTL, '1');
+                    return { key, status: 'sent', materia: cleanMateria };
+                  } catch (err) {
+                    if (err.statusCode === 410 || err.statusCode === 404) {
+                      await client.del(key); // Cleanup dead subscriptions
+                      return { key, status: 'removed' };
+                    }
+                    return { key, status: 'error', error: err.message };
+                  }
+                })();
+                
+                notificationPromises.push(promise);
+              }
             }
           }
         }
       }
     }
 
-    // Point 4: Parallel execution (Promise.allSettled to avoid one failure blocking others)
+    // Point 4: Parallel execution (Promise.allSettled)
     const summary = await Promise.allSettled(notificationPromises);
     
     return res.status(200).json({
       success: true,
+      mode: isTest ? 'test' : 'regular',
       timestamp: now.toISOString(),
       notifications_attempted: notificationPromises.length,
       results: summary.map(s => s.status === 'fulfilled' ? s.value : { status: 'failed', error: s.reason })
