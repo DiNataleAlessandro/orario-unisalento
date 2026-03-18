@@ -119,7 +119,7 @@ export const useNotifications = () => {
   }, [sendSubscriptionToBackend]);
 
   /**
-   * Annulla la sottoscrizione push sul browser.
+   * Annulla la sottoscrizione push sul browser e la rimuove dal database.
    */
   const unsubscribeFromPush = useCallback(async () => {
     try {
@@ -127,6 +127,14 @@ export const useNotifications = () => {
       const sub = await registration.pushManager.getSubscription();
       
       if (sub) {
+        // 1. Chiamata al backend per rimuovere la chiave da Redis
+        await fetch('/api/unsubscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: sub.endpoint }),
+        });
+
+        // 2. Unsubscribe effettivo dal browser
         await sub.unsubscribe();
         setSubscription(null);
       }
