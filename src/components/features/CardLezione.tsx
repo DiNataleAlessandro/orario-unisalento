@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import type { Lezione } from '@/types/lezione';
 import { getProfessorsData, cleanHtmlTags } from '@/api/transformers';
+import { sediUniSalento } from '@/utils/locations';
+import LocationModal from './LocationModal';
 
 interface CardLezioneProps {
   lezione: Lezione;
@@ -9,9 +11,18 @@ interface CardLezioneProps {
 
 export default function CardLezione({ lezione, isLive = false }: CardLezioneProps) {
   const [profPopup, setProfPopup] = useState<{nome: string, mail: string} | null>(null);
+  const [locationModal, setLocationModal] = useState<{name: string, lat: number, lng: number} | null>(null);
   
   const cleanSubjectName = cleanHtmlTags(lezione.nome_insegnamento);
   const cleanAula = cleanHtmlTags(lezione.aula);
+
+  // Estrazione info sede per la mappa
+  const { sedeName, coords } = (() => {
+    const match = cleanAula.match(/\[(.*?)\]/);
+    const name = match ? match[1] : cleanAula;
+    const locationCoords = (sediUniSalento as Record<string, {lat: number, lng: number}>)[name];
+    return { sedeName: name, coords: locationCoords };
+  })();
 
   // Stati per le Smart Notes
   const [isNoteOpen, setIsNoteOpen] = useState(false);
@@ -88,7 +99,20 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
               </p>
               <p className="flex items-center gap-2">
                 <span className={isLive ? 'opacity-80' : 'opacity-70'}>📍</span> 
-                <span className="font-medium">{cleanAula}</span>
+                {coords ? (
+                  <button 
+                    onClick={() => setLocationModal({ name: sedeName, ...coords })}
+                    className={`font-medium text-left underline decoration-2 underline-offset-4 transition-colors ${
+                      isLive 
+                        ? 'text-[#c48e12] hover:text-white decoration-[#c48e12]/30 hover:decoration-white' 
+                        : 'text-gray-200 hover:text-white decoration-white/20 hover:decoration-white'
+                    }`}
+                  >
+                    {cleanAula}
+                  </button>
+                ) : (
+                  <span className="font-medium">{cleanAula}</span>
+                )}
               </p>
               <div className="flex items-start gap-2">
                 <span className={isLive ? 'opacity-80' : 'opacity-70'}>👨‍🏫</span> 
@@ -190,6 +214,15 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
             </div>
           </div>
         </div>
+      )}
+
+      {locationModal && (
+        <LocationModal
+          name={locationModal.name}
+          lat={locationModal.lat}
+          lng={locationModal.lng}
+          onClose={() => setLocationModal(null)}
+        />
       )}
     </>
   );
