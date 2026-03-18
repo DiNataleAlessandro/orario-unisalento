@@ -22,8 +22,8 @@ async function getRedisClient() {
 }
 
 // Web Push Configuration
-const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BBB-NGYcP_fNTNrlGBSIDVPhLlzcQme4lRD67aWaGUywWTSWJCvJvkcMEf45V69w4BP_eKcOjdtpJR7b0T188bE';
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'DPO4obXLNPVVeviyX0hsPd7MFVbYBH4thA3q-SvDfzE';
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY!;
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY!;
 
 webpush.setVapidDetails(
   'mailto:info@nextlesson.it',

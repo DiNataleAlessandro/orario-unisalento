@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 // VAPID Public Key
-const VAPID_PUBLIC_KEY = 'BBB-NGYcP_fNTNrlGBSIDVPhLlzcQme4lRD67aWaGUywWTSWJCvJvkcMEf45V69w4BP_eKcOjdtpJR7b0T188bE';
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
 /**
  * Utility per convertire la chiave VAPID Base64 in Uint8Array.
