@@ -1,118 +1,62 @@
 # 🎓 NextLesson UniSalento
 
-[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Vite](https://img.shields.io/badge/Vite-8.0-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
-[![Vitest](https://img.shields.io/badge/Vitest-Testing-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
-[![PWA](https://img.shields.io/badge/PWA-Ready-orange?logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+**NextLesson UniSalento** è una Progressive Web App (PWA) premium progettata per gli studenti dell'Università del Salento. L'obiettivo è fornire un'interfaccia ultra-rapida, mobile-first e affidabile per la consultazione degli orari delle lezioni, con un sistema di notifiche push intelligente che avvisa lo studente prima dell'inizio di ogni lezione.
 
-**L'agenda universitaria definitiva, ripensata per un'esperienza premium e ultra-veloce.**
+## 🚀 Caratteristiche Principali
 
-NextLesson UniSalento è una Progressive Web App (PWA) progettata specificamente per gli studenti dell'Università del Salento. Supera i limiti dei portali tradizionali offrendo un'interfaccia mobile-first, accesso offline e una gestione intelligente del piano di studi.
-
----
-
-## 🌟 Perché NextLesson?
-
-Consultare gli orari delle lezioni non dovrebbe essere un compito stressante. NextLesson risolve il problema della frammentazione dei dati accademici centralizzando orari, aule e contatti dei docenti in un'unica applicazione fluida e reattiva.
-
-### 🚀 Performance & Highlights Recenti
-*   **Bundle size ridotto del 50%**: Grazie alla migrazione verso un'architettura a caricamento dinamico dei dati (JSON on-demand).
-*   **Architettura Modulare**: Refactoring completo della codebase per separare logica di business (Hooks), UI (Features) e layer API.
-*   **Robusta & Testata**: Integrazione di Vitest per garantire la correttezza dei dati trasformati dalle API universitarie.
-*   **Offline-First**: Accesso immediato ai dati salvati anche senza connessione internet.
-
-## ✨ Features Principali
-
--   📱 **Esperienza Native-like**: UI ottimizzata per mobile con supporto per Safe Areas e Dark Mode OLED.
--   📅 **Gestione Orari Avanzata**: Filtra le materie che non segui, aggiungi esami a scelta da altri corsi e visualizza le lezioni "In Corso Ora".
--   👨‍🏫 **Contatti Docenti**: Generazione automatica delle email e popup informativi rapidi.
--   📝 **Smart Notes**: Aggiungi appunti personali direttamente sulle schede delle lezioni.
--   📂 **Portabilità Dati**: Sistema di backup e importazione tramite stringhe codificate per non perdere mai la configurazione.
+-   **Notifiche Push Real-time**: Ricevi una notifica 30 minuti prima dell'inizio della lezione, direttamente sul tuo smartphone o desktop.
+-   **Offline-First**: Consulta l'orario anche senza connessione internet grazie alla cache intelligente del Service Worker.
+-   **Dashboard "In Corso"**: Visualizzazione dinamica della lezione attuale e di quelle successive.
+-   **Personalizzazione**: Sistema di "Blacklist" per nascondere materie non seguite e supporto per "Materie Extra" da altri corsi.
+-   **Esportazione Calendario**: Generazione di file `.ics` per sincronizzare l'intero semestre con Google Calendar o Apple Calendar.
+-   **Privacy & Performance**: OLED Dark Mode nativa e caricamento dinamico dei metadati dei corsi per ridurre il bundle size.
 
 ## 🛠️ Tech Stack
 
--   **Core**: React 19 + TypeScript
--   **Bundler**: Vite (ottimizzato per build ultra-rapide)
--   **Styling**: Tailwind CSS v4
--   **Routing**: React Router 7
--   **Testing**: Vitest + JSDOM
--   **PWA**: `vite-plugin-pwa` per caching e service workers.
+-   **Frontend**: React 19, TypeScript, Vite 8.
+-   **Styling**: Tailwind CSS v4.
+-   **Backend (Serverless)**: Vercel Functions (Node.js).
+-   **Database**: Redis (per l'archiviazione sicura delle sottoscrizioni Push).
+-   **Notifiche**: Web Push API (VAPID) tramite la libreria `web-push`.
+-   **PWA**: `vite-plugin-pwa` con strategia `injectManifest`.
 
----
+## ⚙️ Configurazione Variabili d'Ambiente
 
-## 🏗️ Struttura del Progetto
+Per far funzionare il sistema di notifiche e il backend, è necessario configurare le seguenti variabili nel file `.env.local` (e nella dashboard di Vercel):
 
-Il progetto segue una struttura modulare basata sulle responsabilità:
+```env
+# Connessione Redis (es. Redis Labs o Upstash)
+REDIS_URL="redis://default:password@host:port"
 
-```text
-src/
-├── api/           # Client API UniSalento e trasformatori di dati
-├── assets/        # Risorse statiche (stili CSS e immagini)
-├── components/    # Componenti UI (common/ e features/)
-├── hooks/         # Custom hooks per fetching e logica di stato
-├── pages/         # View principali (Home, Calendario, Onboarding)
-├── types/         # Definizioni TypeScript globali
-└── utils/         # Helper puri e utility di formattazione
+# Chiavi per Web Push (Generate con 'npx web-push generate-vapid-keys')
+VAPID_PUBLIC_KEY="la-tua-chiave-pubblica"
+VAPID_PRIVATE_KEY="la-tua-chiave-privata"
+
+# Sicurezza per il Cron Job
+CRON_SECRET="una-stringa-segreta-a-tua-scelta"
 ```
 
----
+## 🤖 Architettura del Cron Job (Hobby Plan Bypass)
 
-## ⚡ Quick Start
+Vercel limita l'esecuzione dei Cron Job a una volta al giorno per i piani gratuiti (Hobby). Per garantire un controllo degli orari ogni 15 minuti senza costi aggiuntivi, abbiamo implementato la seguente architettura:
 
-Assicurati di avere [Node.js](https://nodejs.org/) installato sul tuo sistema.
+1.  **Endpoint Dedicato**: Creato `/api/check-lessons.ts` che scansiona Redis e invia le notifiche.
+2.  **Configurazione Vercel**: Nel file `vercel.json`, lo schedule è impostato su `0 5 * * *` (una volta al giorno) per soddisfare i requisiti di validazione del deploy.
+3.  **Trigger Esterno**: Abbiamo configurato [cron-job.org](https://cron-job.org/) per chiamare l'endpoint ogni 15 minuti.
+4.  **Sicurezza**: L'endpoint è protetto tramite `CRON_SECRET`. Accetta chiamate solo se contengono l'header `Authorization: Bearer <secret>` o il parametro URL `?secret=<secret>`, garantendo che solo il nostro trigger esterno possa attivare le notifiche.
 
-1.  **Clona la repository**
-    ```bash
-    git clone https://github.com/DiNataleAlessandro/orario-unisalento.git
-    cd orario-unisalento
-    ```
+## 📦 Installazione e Sviluppo
 
-2.  **Installa le dipendenze**
-    ```bash
-    npm install
-    ```
-
-3.  **Avvia il server di sviluppo**
-    ```bash
-    npm run dev
-    ```
-    L'app sarà disponibile all'indirizzo `http://localhost:5173`.
-
----
-
-## 🧪 Testing
-
-La qualità del codice è garantita da una suite di test unitari che validano la manipolazione dei dati sensibili.
-
-Esegui i test con:
 ```bash
-npm run test
+# Installa le dipendenze
+npm install
+
+# Avvia l'ambiente di sviluppo (Frontend + Backend)
+npx vercel dev
+
+# Build per la produzione
+npm run build
 ```
-
-Per visualizzare l'interfaccia grafica di Vitest:
-```bash
-npx vitest --ui
-```
-
----
-
-## 🤝 Contribuire
-
-Le Pull Request sono le benvenute! Se vuoi proporre nuove feature o segnalare un bug:
-1. Fai un fork del progetto.
-2. Crea un branch per la tua feature (`git checkout -b feature/AmazingFeature`).
-3. Fai un commit dei tuoi cambiamenti (`git commit -m 'Add some AmazingFeature'`).
-4. Pusha verso il branch (`git push origin feature/AmazingFeature`).
-5. Apri una Pull Request.
 
 ## 📄 Licenza
-
-Distribuito sotto licenza **MIT**. Consulta il file `LICENSE` per maggiori informazioni.
-
----
-
-<div align="center">
-  <p>Sviluppato con ❤️ da <b>Λlεx</b></p>
-</div>
+Questo progetto è sviluppato per uso personale e didattico. Tutti i dati degli orari sono proprietà dell'Università del Salento.
