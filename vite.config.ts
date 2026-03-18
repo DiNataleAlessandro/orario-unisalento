@@ -11,11 +11,14 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      workbox: {
-        // Salva in memoria questi file per far funzionare l'app velocemente
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+      devOptions: {
+        enabled: true,
+        type: 'module'
       },
       manifest: {
         name: 'NextLesson Unisalento',
@@ -49,6 +52,10 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
   },
   server: {
+    host: true,
+    watch: {
+      ignored: [path.resolve(__dirname, 'api')]
+    },
     proxy: {
       '/api-unisalento': {
         target: 'https://logistica.unisalento.it',

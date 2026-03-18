@@ -20,7 +20,7 @@ export default function Home() {
     refreshCount
   });
 
-  const { isEnabled: notificationsEnabled, toggleNotifications, permission: notificationPermission } = useNotifications(lezioni);
+  const { isEnabled: notificationsEnabled, toggleNotifications, permission: notificationPermission } = useNotifications();
 
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [showBlacklist, setShowBlacklist] = useState(false);

@@ -1,15 +1,23 @@
 {
-  "routes": [
+  "framework": "vite",
+  "rewrites": [
     {
-      "src": "/api-unisalento/(.*)",
-      "dest": "https://logistica.unisalento.it/$1"
+      "source": "/api-unisalento/:path*",
+      "destination": "https://logistica.unisalento.it/:path*"
     },
     {
-      "handle": "filesystem"
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
     },
     {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/((?!api/|@|src/|node_modules/|public/|favicon.ico|manifest.json|icona.png|.*\\.).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/check-lessons",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

@@ -1,8 +1,39 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Lezione } from '@/types/lezione';
-import { cleanHtmlTags } from '@/api/transformers';
 
-export const useNotifications = (lezioni: Lezione[]) => {
+// VAPID Public Key
+const VAPID_PUBLIC_KEY = 'BBB-NGYcP_fNTNrlGBSIDVPhLlzcQme4lRD67aWaGUywWTSWJCvJvkcMEf45V69w4BP_eKcOjdtpJR7b0T188bE';
+
+/**
+ * Utility per convertire la chiave VAPID Base64 in Uint8Array.
+ */
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+/**
+ * Recupera i dati dei corsi e delle materie salvati nel localStorage.
+ */
+function getUserData() {
+  return {
+    corso: {
+      codice: localStorage.getItem('corsoCodice'),
+      annoCodice: localStorage.getItem('annoCodice'),
+      nome: localStorage.getItem('corsoNome'),
+      annoNome: localStorage.getItem('annoNome'),
+    },
+    materieExtra: JSON.parse(localStorage.getItem('materieExtra') || '[]'),
+    blacklist: JSON.parse(localStorage.getItem('blacklist_materie') || '[]'),
+  };
+}
+
+export const useNotifications = () => {
   const [isEnabled, setIsEnabled] = useState(() => {
     return localStorage.getItem('notifications_enabled') === 'true';
   });
@@ -14,6 +45,98 @@ export const useNotifications = (lezioni: Lezione[]) => {
     return 'default';
   });
 
+  const [subscription, setSubscription] = useState<PushSubscription | null>(null);
+
+  /**
+   * Invia la sottoscrizione e i dati dei corsi al backend.
+   */
+  const sendSubscriptionToBackend = useCallback(async (sub: PushSubscription) => {
+    try {
+      const userData = getUserData();
+      
+      const response = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subscription: sub,
+          corsi: userData,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Errore durante l\'invio della sottoscrizione al backend');
+      }
+
+      console.log('Sottoscrizione inviata con successo al backend');
+    } catch (error) {
+      console.error('Errore di rete durante l\'invio della sottoscrizione:', error);
+    }
+  }, []);
+
+  /**
+   * Registra o recupera il Service Worker e sottoscrive alle notifiche push.
+   */
+  const subscribeToPush = useCallback(async () => {
+    console.log('[PUSH] Inizio subscribeToPush...');
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        console.error('[PUSH] Browser non supportato');
+        throw new Error('Push notifications non supportate da questo browser.');
+      }
+
+      console.log('[PUSH] In attesa di navigator.serviceWorker.ready...');
+      const swReadyPromise = navigator.serviceWorker.ready;
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout attesa Service Worker Ready')), 5000)
+      );
+
+      const registration = await Promise.race([swReadyPromise, timeoutPromise]) as ServiceWorkerRegistration;
+      console.log('[PUSH] Service Worker pronto');
+
+      let sub = await registration.pushManager.getSubscription();
+      console.log('[PUSH] Sottoscrizione esistente:', sub ? 'Sì' : 'No');
+
+      if (!sub) {
+        console.log('[PUSH] Creazione nuova sottoscrizione...');
+        const convertedKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+        sub = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: convertedKey
+        });
+        console.log('[PUSH] Sottoscrizione creata!');
+      }
+
+      setSubscription(sub);
+      await sendSubscriptionToBackend(sub);
+      console.log('[PUSH] Fine processo con successo');
+      return true;
+    } catch (error) {
+      console.error('[PUSH] Errore critico:', error);
+      return false;
+    }
+  }, [sendSubscriptionToBackend]);
+
+  /**
+   * Annulla la sottoscrizione push sul browser.
+   */
+  const unsubscribeFromPush = useCallback(async () => {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const sub = await registration.pushManager.getSubscription();
+      
+      if (sub) {
+        await sub.unsubscribe();
+        setSubscription(null);
+      }
+      return true;
+    } catch (error) {
+      console.error('Errore durante l\'annullamento della sottoscrizione:', error);
+      return false;
+    }
+  }, []);
+
   const requestPermission = useCallback(async () => {
     if (!('Notification' in window)) {
       console.warn('Questo browser non supporta le notifiche desktop');
@@ -24,73 +147,46 @@ export const useNotifications = (lezioni: Lezione[]) => {
     setPermission(result);
     
     if (result === 'granted') {
-      setIsEnabled(true);
-      localStorage.setItem('notifications_enabled', 'true');
-      return true;
+      const success = await subscribeToPush();
+      if (success) {
+        setIsEnabled(true);
+        localStorage.setItem('notifications_enabled', 'true');
+      }
+      return success;
     } else {
       setIsEnabled(false);
       localStorage.setItem('notifications_enabled', 'false');
       return false;
     }
-  }, []);
+  }, [subscribeToPush]);
 
-  const toggleNotifications = useCallback(() => {
+  const toggleNotifications = useCallback(async () => {
     if (!isEnabled) {
-      requestPermission();
+      return await requestPermission();
     } else {
+      await unsubscribeFromPush();
       setIsEnabled(false);
       localStorage.setItem('notifications_enabled', 'false');
+      return true;
     }
-  }, [isEnabled, requestPermission]);
+  }, [isEnabled, requestPermission, unsubscribeFromPush]);
 
-  // Logica per inviare le notifiche
+  // All'avvio, controlla se siamo ancora sottoscritti se le notifiche sono abilitate
   useEffect(() => {
-    if (!isEnabled || permission !== 'granted' || lezioni.length === 0) return;
-
-    const notifiedLessons = new Set<string>(
-      JSON.parse(localStorage.getItem('notified_lessons') || '[]')
-    );
-
-    const checkUpcomingLessons = () => {
-      const now = new Date();
-      const fifteenMinutesFromNow = new Date(now.getTime() + 15 * 60 * 1000);
-      const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
-
-      lezioni.forEach(lezione => {
-        if (!lezione.inizioDateObj) return;
-
-        const startTime = new Date(lezione.inizioDateObj).getTime();
-        const currentTime = now.getTime();
-        
-        // Se la lezione inizia tra 10 e 15 minuti e non è ancora stata notificata
-        if (startTime > currentTime && startTime <= fifteenMinutesFromNow.getTime() && !notifiedLessons.has(lezione.id)) {
-          const subjectName = cleanHtmlTags(lezione.nome_insegnamento);
-          const room = cleanHtmlTags(lezione.aula);
-          
-          if ('Notification' in window) {
-            new Notification('Lezione in arrivo! 🎓', {
-              body: `${subjectName} inizia tra 15 minuti in ${room}`,
-              icon: '/logo192.png',
-              tag: lezione.id // Impedisce notifiche duplicate per la stessa lezione
-            });
+    if (isEnabled && permission === 'granted') {
+      navigator.serviceWorker.ready.then(reg => {
+        reg.pushManager.getSubscription().then(sub => {
+          if (sub) {
+            setSubscription(sub);
+            // Invia nuovamente per sicurezza in caso i corsi siano cambiati
+            sendSubscriptionToBackend(sub);
+          } else {
+            subscribeToPush();
           }
-
-          notifiedLessons.add(lezione.id);
-          // Mantieni solo le ultime 50 notifiche per non intasare localStorage
-          const updatedNotified = Array.from(notifiedLessons).slice(-50);
-          localStorage.setItem('notified_lessons', JSON.stringify(updatedNotified));
-        }
+        });
       });
-    };
+    }
+  }, [isEnabled, permission, subscribeToPush, sendSubscriptionToBackend]);
 
-    // Controlla ogni minuto
-    const intervalId = setInterval(checkUpcomingLessons, 60000);
-    
-    // Esegui un controllo immediato all'avvio
-    checkUpcomingLessons();
-
-    return () => clearInterval(intervalId);
-  }, [isEnabled, permission, lezioni]);
-
-  return { isEnabled, permission, requestPermission, toggleNotifications };
+  return { isEnabled, permission, subscription, requestPermission, toggleNotifications };
 };
