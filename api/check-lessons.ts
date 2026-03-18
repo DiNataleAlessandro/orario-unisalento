@@ -5,7 +5,6 @@ import { format, addMinutes, isAfter, isBefore, parse } from 'date-fns';
 
 // --- CONFIGURATION ---
 const NOTIFICATION_WINDOW_MINUTES = 15; // Point 1: 15 minutes window
-const REDIS_SCHEDULE_TTL = 900; // Point 3: 15 minutes cache for Uni API (900s)
 const REDIS_NOTIFIED_TTL = 10800; // Point 2: 3 hours idempotency (10800s)
 
 let redisClient;
@@ -32,21 +31,16 @@ webpush.setVapidDetails(
 );
 
 /**
- * Point 3: Unified function to fetch schedule with Redis caching.
+ * Point 3: Simple function to fetch schedule from University API.
+ * NO LONGER USES REDIS CACHE (Local Map is used in handler instead).
  */
-async function fetchScheduleWithCache(client, corsoCodice, annoCodice, dateStr) {
-  const cacheKey = `uni_cache:${corsoCodice}:${annoCodice}:${dateStr}`;
-  
-  // Check Redis Cache
-  const cached = await client.get(cacheKey);
-  if (cached) return JSON.parse(cached);
-
+async function fetchUniversitySchedule(corsoCodice, annoCodice, dateStr) {
   // Fetch from University API
   const formData = new URLSearchParams();
   formData.append('view', 'easycourse');
   formData.append('form-type', 'corso');
   formData.append('include', 'corso');
-  formData.append('anno', '2025'); // Dynamic update needed?
+  formData.append('anno', '2025'); 
   formData.append('corso', corsoCodice);
   formData.append('anno2[]', annoCodice);
   formData.append('date', dateStr);
@@ -60,12 +54,7 @@ async function fetchScheduleWithCache(client, corsoCodice, annoCodice, dateStr) 
     });
 
     if (!response.ok) return { celle: [] };
-    
-    const data = await response.json();
-    
-    // Save to Redis
-    await client.setEx(cacheKey, REDIS_SCHEDULE_TTL, JSON.stringify(data));
-    return data;
+    return await response.json();
   } catch (err) {
     console.error(`Error fetching schedule for ${corsoCodice}:`, err);
     return { celle: [] };
@@ -90,9 +79,11 @@ export default async function handler(req, res) {
     const todayStr = format(now, 'dd-MM-yyyy');
 
     // Fetch all subscription keys
-    const keys = await client.keys('*'); // Ideally use SCAN for > 1000 users
+    const keys = await client.keys('*'); 
     const notificationPromises = [];
-    const localScheduleCache = new Map(); // Avoid redundant Redis calls in same execution
+    
+    // Point 3: Local cache to avoid redundant API calls within the SAME execution
+    const localScheduleCache = new Map(); 
 
     if (isTest) {
       // --- TEST MODE ---
@@ -148,7 +139,8 @@ export default async function handler(req, res) {
           let schedule = localScheduleCache.get(cacheId);
           
           if (!schedule) {
-            schedule = await fetchScheduleWithCache(client, course.codice, course.anno, todayStr);
+            // Local Memory Cache: Call API only once per course in this execution
+            schedule = await fetchUniversitySchedule(course.codice, course.anno, todayStr);
             localScheduleCache.set(cacheId, schedule);
           }
 
