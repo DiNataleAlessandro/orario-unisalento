@@ -105,10 +105,10 @@ export default async function handler(req, res) {
             }));
             results.push({ user: key, status: 'Notified' });
           } catch (error) {
-            // 4. Se errore 410 (Gone), cancella sottoscrizione
-            if (error.statusCode === 410) {
-              await redisClient.del(key);
-              results.push({ user: key, status: 'Deleted (410)' });
+            // 4. Se errore 410 (Gone) o 404 (Not Found), cancella sottoscrizione
+            if (error.statusCode === 410 || error.statusCode === 404) {
+              await client.del(key);
+              results.push({ user: key, status: `Deleted (${error.statusCode})` });
             } else {
               results.push({ user: key, status: 'Error', error: error.message });
             }
