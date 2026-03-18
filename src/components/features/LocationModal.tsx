@@ -13,12 +13,12 @@ interface LocationModalProps {
 export default function LocationModal({ name, lat, lng, onClose }: LocationModalProps) {
   const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 
-  // Creazione di un'icona personalizzata usando l'SVG fornito dall'utente
+  // Creazione di un'icona personalizzata usando l'SVG fornito dall'utente (versione ridotta)
   const customIcon = L.divIcon({
     className: 'custom-pin-icon',
     html: `
       <div class="flex items-center justify-center drop-shadow-lg">
-        <svg width="48" height="48" viewBox="0 0 512 512" fill="#c48e12" xmlns="http://www.w3.org/2000/svg">
+        <svg width="32" height="32" viewBox="0 0 512 512" fill="#c48e12" xmlns="http://www.w3.org/2000/svg">
           <g>
             <g>
               <g>
@@ -43,8 +43,8 @@ export default function LocationModal({ name, lat, lng, onClose }: LocationModal
         </svg>
       </div>
     `,
-    iconSize: [48, 48],
-    iconAnchor: [24, 40], // Posizionamento sulla punta del pin
+    iconSize: [32, 32],
+    iconAnchor: [16, 28], // Punta del pin proporzionata
   });
 
   return (
