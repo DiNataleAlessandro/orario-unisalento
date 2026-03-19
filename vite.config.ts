@@ -16,6 +16,10 @@ export default defineConfig({
       filename: 'sw.ts',
       registerType: 'autoUpdate',
       injectRegister: 'auto',
+      workbox: {
+        clientsClaim: true,
+        skipWaiting: true,
+      },
       devOptions: {
         enabled: true,
         type: 'module'
