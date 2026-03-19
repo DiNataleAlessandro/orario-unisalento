@@ -74,15 +74,14 @@ export default async function handler(req, res) {
   try {
     const client = await getRedisClient();
     
-    // Forza il fuso orario italiano per "now"
-    const nowSystem = new Date();
-    const now = toZonedTime(nowSystem, TIMEZONE);
+    // Istante globale assoluto corretto
+    const now = new Date();
     
     // Finestra temporale allargata per gestire jitter dei cron job
     const windowStart = subMinutes(now, 5);
     const windowEnd = addMinutes(now, 25);
     
-    const todayStr = format(now, 'dd-MM-yyyy');
+    const todayStr = format(toZonedTime(now, TIMEZONE), 'dd-MM-yyyy');
 
     const keys = await client.keys('*'); 
     const notificationPromises = [];
