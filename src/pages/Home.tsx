@@ -112,7 +112,7 @@ export default function Home() {
     <div className="min-h-screen bg-[#121212] px-4 pb-32 pt-[calc(env(safe-area-inset-top)+1rem)] relative">
       <header className="flex justify-between items-center mb-4 bg-[#212121] p-5 rounded-2xl shadow-lg border border-[#333]">
         <div className="flex-1 pr-2">
-          <h1 className="text-2xl font-black text-[#c48e12] tracking-tight">Lezioni</h1>
+          <h1 className="text-2xl font-black text-[#c48e12] tracking-tight">Lezioni sceme</h1>
           <p className="text-[10px] font-bold text-gray-500 mt-1 uppercase tracking-widest line-clamp-1">
             {corsoNome}
           </p>
