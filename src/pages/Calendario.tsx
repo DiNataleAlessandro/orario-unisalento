@@ -7,7 +7,7 @@ import 'react-day-picker/dist/style.css';
 import CardLezione from '@/components/features/CardLezione';
 import type { Lezione } from '@/types/lezione';
 import { formatDateForAPI } from '@/utils/date';
-import { cleanHtmlTags } from '@/api/transformers';
+import { cleanHtmlTags, isValidLesson } from '@/api/transformers';
 
 const parseDataString = (dStr: string) => {
   if (!dStr) return 0;
@@ -133,19 +133,23 @@ export default function Calendario() {
         }
 
         if (celleUnite.length > 0) {
-          const lezioniElaborate: Lezione[] = celleUnite.map((lezione: any) => {
-            if (!lezione || !lezione.orario || !lezione.orario.includes(' - ') || !lezione.data || !lezione.nome_insegnamento) return null;
-            
-            const [oraInizioStr, oraFineStr] = lezione.orario.split(' - ');
-            const [giorno, mese, annoStr] = lezione.data.split('-');
-            const [oraInizio, minInizio] = oraInizioStr.split(':');
-            const [oraFine, minFine] = oraFineStr.split(':');
-            const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
-            const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
-            
-            const cleanMail = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
-            return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
-          }).filter(Boolean) as Lezione[];
+          const lezioniElaborate: Lezione[] = celleUnite
+            .filter(isValidLesson)
+            .map((lezione: any) => {
+              try {
+                const [oraInizioStr, oraFineStr] = lezione.orario.split(' - ');
+                const [giorno, mese, annoStr] = lezione.data.split('-');
+                const [oraInizio, minInizio] = oraInizioStr.split(':');
+                const [oraFine, minFine] = oraFineStr.split(':');
+                const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
+                const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
+                
+                const cleanMail = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
+                return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
+              } catch (e) {
+                return null;
+              }
+            }).filter((l): l is Lezione => l !== null);
 
           const lezioniDelGiorno = lezioniElaborate.filter(l => 
             l.nome_insegnamento && !blacklist.includes(cleanHtmlTags(l.nome_insegnamento))
@@ -252,26 +256,24 @@ export default function Calendario() {
           return;
       }
 
-      const lezioniElaborate: Lezione[] = tutteCelle.map((lezione: any) => {
-        try {
-          if (!lezione || !lezione.orario || typeof lezione.orario !== 'string' || !lezione.orario.includes(' - ') || !lezione.data || !lezione.nome_insegnamento) {
-              return null;
+      const lezioniElaborate: Lezione[] = tutteCelle
+        .filter(isValidLesson)
+        .map((lezione: any) => {
+          try {
+            const [oraInizioStr, oraFineStr] = lezione.orario.split(' - ');
+            const [giorno, mese, annoStr] = lezione.data.split('-');
+            const [oraInizio, minInizio] = oraInizioStr.split(':');
+            const [oraFine, minFine] = oraFineStr.split(':');
+            
+            const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
+            const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
+            
+            const cleanMail = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
+            return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
+          } catch (err) {
+            return null;
           }
-
-          const [oraInizioStr, oraFineStr] = lezione.orario.split(' - ');
-          const [giorno, mese, annoStr] = lezione.data.split('-');
-          const [oraInizio, minInizio] = oraInizioStr.split(':');
-          const [oraFine, minFine] = oraFineStr.split(':');
-          
-          const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
-          const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
-          
-          const cleanMail = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
-          return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
-        } catch (err) {
-          return null;
-        }
-      }).filter(Boolean) as Lezione[];
+        }).filter((l): l is Lezione => l !== null);
 
       const oggiMezzanotte = new Date();
       oggiMezzanotte.setHours(0, 0, 0, 0);

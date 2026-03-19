@@ -41,3 +41,18 @@ export const cleanHtmlTags = (text: string): string => {
   if (!text) return '';
   return text.replace(/<[^>]+>/g, '').trim();
 };
+
+export const isValidLesson = (lezione: any): boolean => {
+  if (!lezione) return false;
+  const name = cleanHtmlTags(lezione.nome_insegnamento);
+  return !!(
+    name && 
+    name.toLowerCase() !== 'undefined' && 
+    name.trim() !== '' && 
+    lezione.orario && 
+    lezione.orario.includes(' - ') &&
+    lezione.data &&
+    lezione.data.includes('-') &&
+    lezione.nome_giorno
+  );
+};

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Lezione } from '@/types/lezione';
 import { fetchSingleWeek } from '@/api/unisalento';
-import { cleanHtmlTags } from '@/api/transformers';
+import { cleanHtmlTags, isValidLesson } from '@/api/transformers';
 
 interface UseLessonsProps {
   corsoCodice: string;
@@ -75,19 +75,27 @@ export const useLessons = ({ corsoCodice, annoCodice, refreshCount }: UseLessons
         }
 
         if (allCells.length > 0) {
-          const processedLessons: Lezione[] = allCells.map((lezione: any) => {
-            const [oraInizioStr, oraFineStr] = lezione.orario.split(' - ');
-            const [giorno, mese, annoStr] = lezione.data.split('-');
-            const [oraInizio, minInizio] = oraInizioStr.split(':');
-            const [oraFine, minFine] = oraFineStr.split(':');
+          const processedLessons: Lezione[] = allCells
+            .filter(isValidLesson)
+            .map((lezione: any) => {
+              try {
+                const [oraInizioStr, oraFineStr] = lezione.orario.split(' - ');
+                const [giorno, mese, annoStr] = lezione.data.split('-');
+                const [oraInizio, minInizio] = oraInizioStr.split(':');
+                const [oraFine, minFine] = oraFineStr.split(':');
 
-            const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
-            const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
+                const inizioDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraInizio), Number(minInizio));
+                const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
 
-            const cleanMail = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
+                const cleanMail = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
 
-            return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
-          });
+                return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
+              } catch (e) {
+                console.error("Errore nel parsing della lezione:", lezione, e);
+                return null;
+              }
+            })
+            .filter((l): l is Lezione => l !== null);
 
           const uniqueLessons = Array.from(new Map(processedLessons.map(l => [l.id, l])).values());
           uniqueLessons.sort((a, b) => {

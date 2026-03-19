@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCourses } from '@/hooks/useCourses';
 import { formatDateForAPI } from '@/utils/date';
-import { cleanHtmlTags } from '@/api/transformers';
+import { cleanHtmlTags, isValidLesson } from '@/api/transformers';
 import Select from '@/components/common/Select';
 
 export default function PianoDiStudi() {
@@ -99,7 +99,11 @@ export default function PianoDiStudi() {
       if (res1?.celle) allCells = [...allCells, ...res1.celle];
       if (res2?.celle) allCells = [...allCells, ...res2.celle];
 
-      const uniqueSubjects = Array.from(new Set(allCells.map((c: any) => cleanHtmlTags(c.nome_insegnamento)))).sort();
+      const uniqueSubjects = Array.from(new Set(
+        allCells
+          .filter(isValidLesson)
+          .map((c: any) => cleanHtmlTags(c.nome_insegnamento))
+      )).sort();
       
       if (uniqueSubjects.length === 0) {
         showToast("Nessuna materia trovata (orario non pubblicato).", "error");

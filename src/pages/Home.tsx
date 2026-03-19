@@ -105,7 +105,7 @@ export default function Home() {
     if (dataLezioneStr === domaniStr) {
       return "DOMANI";
     }
-    return giornoOriginale;
+    return giornoOriginale || "DATA IGNOTA";
   };
 
   return (
