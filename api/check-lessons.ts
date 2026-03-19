@@ -58,14 +58,19 @@ async function fetchUniversitySchedule(corsoCodice, annoCodice, dateStr) {
 }
 
 export default async function handler(req, res) {
+  // Parsing dei parametri tramite WHATWG URL API per evitare DEP0169
+  const protocol = req.headers['x-forwarded-proto'] || 'http';
+  const fullUrl = new URL(req.url!, `${protocol}://${req.headers.host}`);
+  
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
-  const isAuthorized = req.query.secret === process.env.CRON_SECRET || req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
+  const querySecret = fullUrl.searchParams.get('secret');
+  const isAuthorized = querySecret === process.env.CRON_SECRET || req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
 
   if (!isVercelCron && !isAuthorized) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const isTest = req.query.test === 'true';
+  const isTest = fullUrl.searchParams.get('test') === 'true';
 
   try {
     const client = await getRedisClient();
