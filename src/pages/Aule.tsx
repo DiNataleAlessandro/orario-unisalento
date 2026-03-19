@@ -33,8 +33,8 @@ const sediEasyroom = [
 export default function Aule() {
   const navigate = useNavigate();
   
-  const [area, setArea] = useState(() => localStorage.getItem('ultimaSedeId') || 'ET - 6');
-  const [nomeSede, setNomeSede] = useState(() => localStorage.getItem('ultimaSedeCercata') || 'ET Stecca');
+  const [area, setArea] = useState(() => localStorage.getItem('ultimaSedeId') || '');
+  const [nomeSede, setNomeSede] = useState(() => localStorage.getItem('ultimaSedeCercata') || '');
   const [ricerca, setRicerca] = useState(nomeSede);
   const [tendinaAperta, setTendinaAperta] = useState(false);
   const tendinaRef = useRef<HTMLDivElement>(null);
@@ -311,6 +311,19 @@ export default function Aule() {
             <div className="w-16 h-16 border-4 border-[#c48e12] border-t-transparent rounded-full animate-spin absolute top-0 left-0 shadow-[0_0_15px_#c48e12]"></div>
           </div>
           <p className="text-[#c48e12] font-black uppercase tracking-[0.3em] text-[10px] mt-8 animate-pulse">Analisi Disponibilità...</p>
+        </div>
+      ) : !area ? (
+        <div className="flex flex-col items-center justify-center py-20 px-10 text-center animate-in zoom-in-95 duration-500">
+          <div className="w-24 h-24 bg-[#212121] rounded-[2.5rem] flex items-center justify-center mb-8 border border-[#333] shadow-xl">
+            <svg className="w-10 h-10 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-black text-white tracking-tight mb-3">Nessuna Sede</h2>
+          <p className="text-sm text-gray-500 font-bold leading-relaxed max-w-[240px]">
+            Seleziona un plesso universitario per consultare la disponibilità delle aule.
+          </p>
         </div>
       ) : error ? (
         <div className="bg-[#212121] border border-[#333] p-12 rounded-2xl text-center shadow-xl animate-in zoom-in-95 duration-300">
