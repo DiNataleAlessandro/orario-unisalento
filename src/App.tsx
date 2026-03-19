@@ -4,6 +4,7 @@ import Onboarding from './pages/Onboarding';
 import Home from './pages/Home';
 import Calendario from './pages/Calendario';
 import PianoDiStudi from './pages/PianoDiStudi';
+import Aule from './pages/Aule';
 
 // Ora controlliamo "corsoCodice" invece del vecchio nome
 const ProteggiRotta = ({ children }: { children: React.ReactNode }) => {
@@ -20,6 +21,10 @@ function App() {
         <Route 
           path="/" 
           element={<ProteggiRotta><Home /></ProteggiRotta>} 
+        />
+        <Route 
+          path="/aule" 
+          element={<ProteggiRotta><Aule /></ProteggiRotta>} 
         />
         <Route 
           path="/calendario" 
