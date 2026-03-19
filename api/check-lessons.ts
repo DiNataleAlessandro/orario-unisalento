@@ -1,11 +1,12 @@
-// @ts-nocheck
 import { createClient } from 'redis';
 import webpush from 'web-push';
-import { format, addMinutes, isAfter, isBefore, parse } from 'date-fns';
+import { addMinutes, isAfter, format } from 'date-fns';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 // --- CONFIGURATION ---
-const NOTIFICATION_WINDOW_MINUTES = 15; // Point 1: 15 minutes window
-const REDIS_NOTIFIED_TTL = 10800; // Point 2: 3 hours idempotency (10800s)
+const TIMEZONE = 'Europe/Rome';
+const NOTIFICATION_WINDOW_MINUTES = 15; 
+const REDIS_NOTIFIED_TTL = 10800; // 3 ore
 
 let redisClient;
 
@@ -30,12 +31,7 @@ webpush.setVapidDetails(
   VAPID_PRIVATE_KEY
 );
 
-/**
- * Point 3: Simple function to fetch schedule from University API.
- * NO LONGER USES REDIS CACHE (Local Map is used in handler instead).
- */
 async function fetchUniversitySchedule(corsoCodice, annoCodice, dateStr) {
-  // Fetch from University API
   const formData = new URLSearchParams();
   formData.append('view', 'easycourse');
   formData.append('form-type', 'corso');
@@ -62,7 +58,6 @@ async function fetchUniversitySchedule(corsoCodice, annoCodice, dateStr) {
 }
 
 export default async function handler(req, res) {
-  // Authorization check (Vercel Cron or Secret)
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const isAuthorized = req.query.secret === process.env.CRON_SECRET || req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
 
@@ -74,19 +69,19 @@ export default async function handler(req, res) {
 
   try {
     const client = await getRedisClient();
-    const now = new Date();
+    
+    // Forza il fuso orario italiano per "now"
+    const nowSystem = new Date();
+    const now = toZonedTime(nowSystem, TIMEZONE);
+    
     const windowEnd = addMinutes(now, NOTIFICATION_WINDOW_MINUTES);
     const todayStr = format(now, 'dd-MM-yyyy');
 
-    // Fetch all subscription keys
     const keys = await client.keys('*'); 
     const notificationPromises = [];
-    
-    // Point 3: Local cache to avoid redundant API calls within the SAME execution
     const localScheduleCache = new Map(); 
 
     if (isTest) {
-      // --- TEST MODE ---
       for (const key of keys) {
         if (key.startsWith('uni_cache:') || key.startsWith('notified:')) continue;
         
@@ -115,7 +110,6 @@ export default async function handler(req, res) {
         notificationPromises.push(promise);
       }
     } else {
-      // --- REGULAR MODE ---
       for (const key of keys) {
         if (key.startsWith('uni_cache:') || key.startsWith('notified:')) continue;
 
@@ -125,13 +119,11 @@ export default async function handler(req, res) {
         const { subscription, corsi } = JSON.parse(dataStr);
         if (!corsi?.corso?.codice) continue;
 
-        // Identify courses to check (Main + Extra)
         const coursesToCheck = [
           { codice: corsi.corso.codice, anno: corsi.corso.annoCodice },
           ...(corsi.materieExtra || []).map(m => ({ codice: m.corsoCodice, anno: m.annoCodice }))
         ];
 
-        // Remove duplicates
         const uniqueCourses = Array.from(new Map(coursesToCheck.map(c => [`${c.codice}-${c.anno}`, c])).values());
 
         for (const course of uniqueCourses) {
@@ -139,7 +131,6 @@ export default async function handler(req, res) {
           let schedule = localScheduleCache.get(cacheId);
           
           if (!schedule) {
-            // Local Memory Cache: Call API only once per course in this execution
             schedule = await fetchUniversitySchedule(course.codice, course.anno, todayStr);
             localScheduleCache.set(cacheId, schedule);
           }
@@ -147,24 +138,24 @@ export default async function handler(req, res) {
           if (!schedule?.celle) continue;
 
           for (const cell of schedule.celle) {
-            // Filter by user blacklist
             const cleanMateria = cell.nome_insegnamento.replace(/<[^>]+>/g, '').trim();
             if (corsi.blacklist?.includes(cleanMateria)) continue;
 
-            // Parse lesson time
             const [startTimeStr] = cell.orario.split(' - ');
-            const lessonDate = parse(`${cell.data} ${startTimeStr}`, 'dd-MM-yyyy HH:mm', new Date());
+            
+            // Parsing esplicito come Europe/Rome
+            // cell.data (dd-MM-yyyy) + startTimeStr (HH:mm)
+            const [g, m, a] = cell.data.split('-');
+            const [ore, min] = startTimeStr.split(':');
+            const dateStrISO = `${a}-${m}-${g}T${ore}:${min}:00`;
+            const lessonDate = fromZonedTime(dateStrISO, TIMEZONE);
 
-            // Point 1: Check 15-minute window (Inclusive of the start of the windowEnd)
-            // We use a small overlap to ensure lessons starting exactly on the hour/half-hour are caught.
+            // Confronto tra orari entrambi in Europe/Rome (o normalizzati)
             if (isAfter(lessonDate, now) && !isAfter(lessonDate, windowEnd)) {
-              
-              // Point 2: Idempotency with Redis
               const idempotencyKey = `notified:${subscription.endpoint}:${cleanMateria}:${startTimeStr}`;
               const alreadyNotified = await client.get(idempotencyKey);
               
               if (!alreadyNotified) {
-                // Prepare Notification Promise
                 const promise = (async () => {
                   try {
                     await webpush.sendNotification(subscription, JSON.stringify({
@@ -174,12 +165,11 @@ export default async function handler(req, res) {
                       data: { url: '/home' }
                     }));
                     
-                    // Mark as notified in Redis (Point 2)
                     await client.setEx(idempotencyKey, REDIS_NOTIFIED_TTL, '1');
                     return { key, status: 'sent', materia: cleanMateria };
                   } catch (err) {
                     if (err.statusCode === 410 || err.statusCode === 404) {
-                      await client.del(key); // Cleanup dead subscriptions
+                      await client.del(key); 
                       return { key, status: 'removed' };
                     }
                     return { key, status: 'error', error: err.message };
@@ -194,7 +184,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // Point 4: Parallel execution (Promise.allSettled)
     const summary = await Promise.allSettled(notificationPromises);
     
     return res.status(200).json({
