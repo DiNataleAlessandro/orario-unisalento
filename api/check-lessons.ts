@@ -1,12 +1,11 @@
 import { createClient } from 'redis';
 import webpush from 'web-push';
-import { addMinutes, isAfter, format } from 'date-fns';
+import { addMinutes, subMinutes, isAfter, format } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 // --- CONFIGURATION ---
 const TIMEZONE = 'Europe/Rome';
-const NOTIFICATION_WINDOW_MINUTES = 15; 
-const REDIS_NOTIFIED_TTL = 10800; // 3 ore
+const REDIS_NOTIFIED_TTL = 7200; // 2 ore (auto-pulizia dopo l'inizio lezione)
 
 let redisClient;
 
@@ -79,7 +78,10 @@ export default async function handler(req, res) {
     const nowSystem = new Date();
     const now = toZonedTime(nowSystem, TIMEZONE);
     
-    const windowEnd = addMinutes(now, NOTIFICATION_WINDOW_MINUTES);
+    // Finestra temporale allargata per gestire jitter dei cron job
+    const windowStart = subMinutes(now, 5);
+    const windowEnd = addMinutes(now, 25);
+    
     const todayStr = format(now, 'dd-MM-yyyy');
 
     const keys = await client.keys('*'); 
@@ -149,15 +151,15 @@ export default async function handler(req, res) {
             const [startTimeStr] = cell.orario.split(' - ');
             
             // Parsing esplicito come Europe/Rome
-            // cell.data (dd-MM-yyyy) + startTimeStr (HH:mm)
             const [g, m, a] = cell.data.split('-');
             const [ore, min] = startTimeStr.split(':');
             const dateStrISO = `${a}-${m}-${g}T${ore}:${min}:00`;
             const lessonDate = fromZonedTime(dateStrISO, TIMEZONE);
 
-            // Confronto tra orari entrambi in Europe/Rome (o normalizzati)
-            if (isAfter(lessonDate, now) && !isAfter(lessonDate, windowEnd)) {
-              const idempotencyKey = `notified:${subscription.endpoint}:${cleanMateria}:${startTimeStr}`;
+            // Controllo all'interno della finestra temporale resiliente
+            if (isAfter(lessonDate, windowStart) && !isAfter(lessonDate, windowEnd)) {
+              // Chiave di idempotenza perfezionata con data per evitare conflitti
+              const idempotencyKey = `notified:${subscription.endpoint}:${cleanMateria}:${cell.data}:${startTimeStr}`;
               const alreadyNotified = await client.get(idempotencyKey);
               
               if (!alreadyNotified) {
@@ -170,7 +172,8 @@ export default async function handler(req, res) {
                       data: { url: '/home' }
                     }));
                     
-                    await client.setEx(idempotencyKey, REDIS_NOTIFIED_TTL, '1');
+                    // Salvataggio con TTL per auto-pulizia del database Redis
+                    await client.set(idempotencyKey, '1', { EX: REDIS_NOTIFIED_TTL });
                     return { key, status: 'sent', materia: cleanMateria };
                   } catch (err) {
                     if (err.statusCode === 410 || err.statusCode === 404) {
