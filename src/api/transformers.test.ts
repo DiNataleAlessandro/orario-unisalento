@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseDocenteEmail, getProfessorsData, cleanHtmlTags } from './transformers';
+import { parseDocenteEmail, getProfessorsData, cleanHtmlTags, formatSubjectName, toTitleCase } from './transformers';
 
 describe('transformers', () => {
   describe('parseDocenteEmail', () => {
@@ -36,8 +36,8 @@ describe('transformers', () => {
   });
 
   describe('getProfessorsData', () => {
-    it('should handle comma separated professors and emails', () => {
-      const names = 'Mario Rossi, Maria Bianchi';
+    it('should handle comma separated professors and emails and apply Title Case', () => {
+      const names = 'MARIO ROSSI, maria bianchi';
       const emails = 'mario.rossi@unisalento.it, maria.bianchi@unisalento.it';
       const result = getProfessorsData(names, emails);
       
@@ -46,12 +46,39 @@ describe('transformers', () => {
       expect(result[1]).toEqual({ nome: 'Maria Bianchi', email: 'maria.bianchi@unisalento.it' });
     });
 
-    it('should generate emails if missing', () => {
-      const names = 'Mario Rossi';
+    it('should generate emails if missing and apply Title Case', () => {
+      const names = 'mario rossi';
       const emails = '';
       const result = getProfessorsData(names, emails);
       
+      expect(result[0].nome).toBe('Mario Rossi');
       expect(result[0].email).toBe('mario.rossi@unisalento.it');
+    });
+  });
+
+  describe('toTitleCase', () => {
+    it('should convert to Title Case', () => {
+      expect(toTitleCase('MARIO ROSSI')).toBe('Mario Rossi');
+      expect(toTitleCase('mario rossi')).toBe('Mario Rossi');
+    });
+
+    it('should handle hyphens and apostrophes', () => {
+      expect(toTitleCase('D-AGOSTINO')).toBe('D-Agostino');
+      expect(toTitleCase("DELL'ANNA")).toBe("Dell'Anna");
+    });
+  });
+
+  describe('formatSubjectName', () => {
+    it('should convert to UPPERCASE', () => {
+      expect(formatSubjectName('Analisi Matematica')).toBe('ANALISI MATEMATICA');
+    });
+
+    it('should clean HTML and convert to UPPERCASE', () => {
+      expect(formatSubjectName('<b>Analisi</b> Matematica')).toBe('ANALISI MATEMATICA');
+    });
+
+    it('should trim and handle multiple spaces', () => {
+      expect(formatSubjectName('  Analisi    Matematica  ')).toBe('ANALISI MATEMATICA');
     });
   });
 });

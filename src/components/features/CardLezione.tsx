@@ -27,17 +27,29 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
     }
   })();
 
-  const displayBuilding = lezione.buildingName ? formatSubjectName(lezione.buildingName) : null;
+  const displayBuilding = lezione.buildingName ? cleanHtmlTags(lezione.buildingName) : null;
   const locationDisplay = isSingleLesson && displayBuilding 
     ? `${cleanAula} [${displayBuilding}]` 
     : cleanAula;
 
-  // Estrazione info sede per la mappa
+  // Estrazione info sede per la mappa con lookup robusto
   const { sedeName, coords } = (() => {
     const match = cleanAula.match(/\[(.*?)\]/);
     const name = displayBuilding || (match ? match[1] : cleanAula);
-    const locationCoords = (sediUniSalento as Record<string, {lat: number, lng: number}>)[name];
-    return { sedeName: name, coords: locationCoords };
+    
+    // Lookup case-insensitive e normalizzato
+    const normalizedTarget = name.trim().toLowerCase();
+    const foundEntry = Object.entries(sediUniSalento).find(([key]) => {
+      const normalizedKey = key.trim().toLowerCase();
+      return normalizedKey === normalizedTarget || 
+             normalizedKey.includes(normalizedTarget) || 
+             normalizedTarget.includes(normalizedKey);
+    });
+
+    return { 
+      sedeName: foundEntry ? foundEntry[0] : name, 
+      coords: foundEntry ? (foundEntry[1] as {lat: number, lng: number}) : null 
+    };
   })();
 
   // Stati per le Smart Notes
@@ -94,7 +106,10 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
   const isExtra = (() => {
     try {
       const extraSubjects = JSON.parse(localStorage.getItem('materieExtra') || '[]');
-      return extraSubjects.some((m: { materiaNome: string }) => m.materiaNome === cleanSubjectName);
+      const normalizedCurrent = cleanSubjectName.trim().toUpperCase();
+      return extraSubjects.some((m: { materiaNome: string }) => 
+        m.materiaNome.trim().toUpperCase() === normalizedCurrent
+      );
     } catch {
       return false;
     }

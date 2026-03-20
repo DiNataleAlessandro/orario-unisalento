@@ -25,6 +25,12 @@ export const parseDocenteEmail = (rawName: string): string => {
   return parts.length === 1 ? `${parts[0]}@unisalento.it` : '';
 };
 
+export const toTitleCase = (text: string): string => {
+  if (!text) return '';
+  return text.toLowerCase()
+    .replace(/(?:^|\s|-|')\S/g, (match) => match.toUpperCase());
+};
+
 export const getProfessorsData = (rawDocente: string, rawMail: string): ProfessorData[] => {
   if (!rawDocente) return [];
   
@@ -32,7 +38,7 @@ export const getProfessorsData = (rawDocente: string, rawMail: string): Professo
   const emails = rawMail ? rawMail.split(',').map(m => m.trim()).filter(Boolean) : [];
 
   return names.map((nome, index) => ({
-    nome,
+    nome: toTitleCase(nome),
     email: emails[index] || parseDocenteEmail(nome)
   }));
 };
@@ -46,16 +52,8 @@ export const formatSubjectName = (name: string): string => {
   if (!name) return '';
   let clean = cleanHtmlTags(name);
   
-  // Rimuovi spazi eccessivi
-  clean = clean.replace(/\s+/g, ' ').trim();
-
-  // Se tutto maiuscolo (e lungo), Title Case
-  if (clean.length > 5 && clean === clean.toUpperCase()) {
-    clean = clean.toLowerCase()
-      .replace(/(^|\s)\S/g, l => l.toUpperCase());
-  }
-
-  return clean;
+  // Rimuovi spazi eccessivi e rendi tutto MAIUSCOLO
+  return clean.replace(/\s+/g, ' ').trim().toUpperCase();
 };
 
 export const isValidLesson = (lezione: any): boolean => {
