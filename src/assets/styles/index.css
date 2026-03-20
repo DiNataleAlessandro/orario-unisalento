@@ -22,20 +22,20 @@
 }
 
 .light {
-  /* SOFT LIGHT MODE - Molto soft, contrasti ridotti */
-  --bg-app: #fcfcfc; 
+  /* MODERN SOFT LIGHT MODE - Toni meno riflettenti per ridurre l'affaticamento visivo */
+  --bg-app: #f2f2f7; 
   --bg-surface: #ffffff;
-  --bg-surface-alt: #f3f4f6;
-  --bg-surface-hover: #f9fafb;
+  --bg-surface-alt: #e5e5ea;
+  --bg-surface-hover: #ebebeb;
   
-  --text-primary: #1f2937; 
-  --text-secondary: #4b5563;
-  --text-muted: #9ca3af;
+  --text-primary: #1c1c1e; 
+  --text-secondary: #3a3a3c;
+  --text-muted: #8e8e93;
   
-  --border-primary: #e5e7eb;
-  --border-secondary: #d1d5db;
+  --border-primary: #d1d1d6;
+  --border-secondary: #c7c7cc;
   
-  --accent-gold: #cc8500; /* Oro più caldo e vibrante, rimosso il tono "olivastro" */
+  --accent-gold: #b38210; /* Oro più profondo e meno "neon" per la modalità light */
 }
 
 /* =========================================
@@ -154,12 +154,13 @@ body {
 }
 
 /* Navigazione Bottom Bar */
-.light .fixed.bottom-0 {
+.light .fixed.bottom-0,
+.light .bg-\[\#121212\]\/90.backdrop-blur-xl {
   background-color: rgba(255, 255, 255, 0.85) !important;
   border-top: 1px solid var(--border-primary) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.03) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.05) !important;
 }
 
 .light .fixed.bottom-0 button.text-gray-500 {
@@ -178,19 +179,32 @@ body {
   backdrop-filter: blur(8px) !important;
 }
 
-/* Gradienti (Card Live e Materie) - Rendiamoli molto soft */
+/* Gradienti (Card Live e Materie) - Rendiamoli molto soft e meno riflettenti */
 .light .from-\[\#2a2215\].to-\[\#1a150c\],
 .light .from-\[\#2a2215\].to-\[\#212121\] {
-  background-image: linear-gradient(to bottom right, #fffdf5, #ffffff) !important;
-  border-color: rgba(179, 130, 16, 0.15) !important;
+  background-image: linear-gradient(to bottom right, #fff9e6, #fdfcf0) !important;
+  border-color: rgba(179, 130, 16, 0.2) !important;
 }
 
-/* Shadows morbide */
+/* Day Separator Gradient */
+.light .from-\[\#c48e12\]\/40 {
+  background-image: linear-gradient(to right, rgba(179, 130, 16, 0.3), transparent) !important;
+}
+
+/* Shadows morbide per ridurre l'effetto "tagliente" del bianco */
 .light .shadow-lg,
 .light .shadow-xl,
 .light .shadow-2xl,
 .light .shadow-\[0_20px_50px_rgba\(0\,0\,0\,0\.5\)\] {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.03), 0 4px 6px -4px rgba(0, 0, 0, 0.01) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02) !important;
+}
+
+/* Backdrop blur più opaco per ridurre la luce che passa dai layer sottostanti */
+.light .backdrop-blur-sm,
+.light .backdrop-blur-md,
+.light .backdrop-blur-xl {
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
 }
 
 /* =========================================
