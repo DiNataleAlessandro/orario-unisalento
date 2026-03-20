@@ -39,7 +39,23 @@ export const getProfessorsData = (rawDocente: string, rawMail: string): Professo
 
 export const cleanHtmlTags = (text: string): string => {
   if (!text) return '';
-  return text.replace(/<[^>]+>/g, '').trim();
+  return text.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
+};
+
+export const formatSubjectName = (name: string): string => {
+  if (!name) return '';
+  let clean = cleanHtmlTags(name);
+  
+  // Rimuovi spazi eccessivi
+  clean = clean.replace(/\s+/g, ' ').trim();
+
+  // Se tutto maiuscolo (e lungo), Title Case
+  if (clean.length > 5 && clean === clean.toUpperCase()) {
+    clean = clean.toLowerCase()
+      .replace(/(^|\s)\S/g, l => l.toUpperCase());
+  }
+
+  return clean;
 };
 
 export const isValidLesson = (lezione: any): boolean => {

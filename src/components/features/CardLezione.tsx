@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Lezione } from '@/types/lezione';
-import { getProfessorsData, cleanHtmlTags } from '@/api/transformers';
+import { getProfessorsData, cleanHtmlTags, formatSubjectName } from '@/api/transformers';
 import { sediUniSalento } from '@/utils/locations';
 import LocationModal from './LocationModal';
 
@@ -13,13 +13,29 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
   const [profPopup, setProfPopup] = useState<{nome: string, mail: string} | null>(null);
   const [locationModal, setLocationModal] = useState<{name: string, lat: number, lng: number} | null>(null);
   
-  const cleanSubjectName = cleanHtmlTags(lezione.nome_insegnamento);
+  const cleanSubjectName = formatSubjectName(lezione.nome_insegnamento);
   const cleanAula = cleanHtmlTags(lezione.aula);
+
+  const isSingleLesson = (() => {
+    try {
+      const saved = localStorage.getItem('lezioniSingolePrenotate');
+      if (!saved) return false;
+      const list = JSON.parse(saved);
+      return list.some((l: any) => l.id === lezione.id);
+    } catch {
+      return false;
+    }
+  })();
+
+  const displayBuilding = lezione.buildingName ? formatSubjectName(lezione.buildingName) : null;
+  const locationDisplay = isSingleLesson && displayBuilding 
+    ? `${cleanAula} [${displayBuilding}]` 
+    : cleanAula;
 
   // Estrazione info sede per la mappa
   const { sedeName, coords } = (() => {
     const match = cleanAula.match(/\[(.*?)\]/);
-    const name = match ? match[1] : cleanAula;
+    const name = displayBuilding || (match ? match[1] : cleanAula);
     const locationCoords = (sediUniSalento as Record<string, {lat: number, lng: number}>)[name];
     return { sedeName: name, coords: locationCoords };
   })();
@@ -73,6 +89,7 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
   };
 
   const professors = getProfessorsData(lezione.docente, lezione.mail_docente || '');
+  const isGenericTeacher = lezione.docente === 'Docente non specificato' || lezione.docente === 'Docente non assegnato';
 
   const isExtra = (() => {
     try {
@@ -97,9 +114,11 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
         
         <div className="relative flex flex-col w-full pb-1">
           <div className="flex justify-between items-start pl-2">
-              <h2 className={`font-bold leading-tight pr-14 ${isLive ? 'text-xl' : 'text-lg'} text-white`}>
-                {cleanSubjectName}
-              </h2>
+              <div className="flex flex-col gap-1 pr-14">
+                <h2 className={`font-bold leading-tight ${isLive ? 'text-xl' : 'text-lg'} text-white`}>
+                  {cleanSubjectName}
+                </h2>
+              </div>
               
               <button 
                 onClick={() => setIsNoteOpen(!isNoteOpen)}
@@ -115,7 +134,6 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
               </button>
           </div>
           
-          {/* ... (rest of info) */}
           <div className={`pl-2 flex flex-col gap-1.5 mt-2 text-sm ${isLive ? 'text-[#e8d5a5]' : 'text-gray-400'}`}>
               <p className="flex items-center gap-2">
                 <span className={isLive ? 'opacity-80' : 'opacity-70'}>🕒</span> 
@@ -132,45 +150,58 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
                         : 'text-gray-200 hover:text-white decoration-white/20 hover:decoration-white'
                     }`}
                   >
-                    {cleanAula}
+                    {locationDisplay}
                   </button>
                 ) : (
-                  <span className="font-medium">{cleanAula}</span>
+                  <span className="font-medium text-gray-200">
+                    {locationDisplay}
+                  </span>
                 )}
               </p>
-              <div className="flex items-start gap-2">
-                <span className={isLive ? 'opacity-80' : 'opacity-70'}>👨‍🏫</span> 
-                <div className="flex flex-wrap gap-x-1 pr-14">
-                  {professors.length > 0 ? (
-                    professors.map((prof, index) => (
-                      <span key={index}>
-                        <button 
-                          onClick={() => prof.email && setProfPopup({ nome: prof.nome, mail: prof.email })}
-                          disabled={!prof.email}
-                          className={`font-medium transition-colors text-left ${
-                            prof.email 
-                              ? 'text-[#c48e12] hover:text-white underline decoration-[#c48e12]/30 hover:decoration-white decoration-2 underline-offset-4' 
-                              : (isLive ? 'text-gray-300 cursor-default' : 'text-gray-500 cursor-default')
-                          }`}
-                        >
-                          {prof.nome}
-                        </button>
-                        {index < professors.length - 1 && <span className={isLive ? 'text-[#e8d5a5]' : 'text-gray-400'}>, </span>}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-gray-500 italic">Docente non assegnato</span>
-                  )}
+              
+              {!isGenericTeacher && (
+                <div className="flex items-start gap-2">
+                  <span className={isLive ? 'opacity-80' : 'opacity-70'}>👨‍🏫</span> 
+                  <div className="flex flex-wrap gap-x-1 pr-14">
+                    {professors.length > 0 ? (
+                      professors.map((prof, index) => (
+                        <span key={index}>
+                          <button 
+                            onClick={() => prof.email && setProfPopup({ nome: prof.nome, mail: prof.email })}
+                            disabled={!prof.email}
+                            className={`font-medium transition-colors text-left ${
+                              prof.email 
+                                ? 'text-[#c48e12] hover:text-white underline decoration-[#c48e12]/30 hover:decoration-white decoration-2 underline-offset-4' 
+                                : (isLive ? 'text-gray-300 cursor-default' : 'text-gray-500 cursor-default')
+                            }`}
+                          >
+                            {prof.nome}
+                          </button>
+                          {index < professors.length - 1 && <span className={isLive ? 'text-[#e8d5a5]' : 'text-gray-400'}>, </span>}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-gray-500 italic">Docente non assegnato</span>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
           </div>
 
-          {isExtra && (
+          {isExtra && !isSingleLesson && (
             <div className="absolute bottom-0 right-0 flex items-center gap-1.5 opacity-50 pointer-events-none select-none">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-[#c48e12]">
                 <path fillRule="evenodd" d="M9 4.5a.75.75 0 01.721.544l.813 2.846a3.75 3.75 0 002.576 2.576l2.846.813a.75.75 0 010 1.442l-2.846.813a3.75 3.75 0 00-2.576 2.576l-.813 2.846a.75.75 0 01-1.442 0l-.813-2.846a3.75 3.75 0 00-2.576-2.576l-2.846-.813a.75.75 0 010-1.442l2.846-.813A3.75 3.75 0 007.466 7.89l.813-2.846A.75.75 0 019 4.5zM18 1.5a.75.75 0 01.728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 010 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 01-1.456 0l-.258-1.036a2.625 2.625 0 00-1.91-1.91l-1.036-.258a.75.75 0 010-1.456l1.036-.258a2.625 2.625 0 001.91-1.91l.258-1.036A.75.75 0 0118 1.5zM16.5 15a.75.75 0 01.712.513l.394 1.183c.15.447.5.799.948.948l1.183.395a.75.75 0 010 1.422l-1.183.395c-.447.15-.799.5-.948.948l-.395 1.183a.75.75 0 01-1.422 0l-.395-1.183a1.5 1.5 0 00-.948-.948l-1.183-.395a.75.75 0 010-1.422l1.183-.395c.447-.15.799-.5.948-.948l.395-1.183A.75.75 0 0116.5 15z" clipRule="evenodd" />
               </svg>
-              <span className="text-[10px] font-bold text-[#c48e12] uppercase tracking-[0.2em] mt-[1px]">A Scelta</span>
+              <span className="text-[10px] font-bold text-[#c48e12] uppercase tracking-[0.2em] mt-[1px]">A SCELTA</span>
+            </div>
+          )}
+          {isSingleLesson && (
+            <div className="absolute bottom-0 right-0 flex items-center gap-1 opacity-50 pointer-events-none select-none">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-[#c48e12] mt-[1.5px]">
+                <path d="M10.75 4.75a1.25 1.25 0 00-2.5 0v4.5h-4.5a1.25 1.25 0 000 2.5h4.5v4.5a1.25 1.25 0 002.5 0v-4.5h4.5a1.25 1.25 0 000-2.5h-4.5v-4.5z" />
+              </svg>
+              <span className="text-[10px] font-bold text-[#c48e12] uppercase tracking-[0.2em] leading-none">Extra</span>
             </div>
           )}
         </div>

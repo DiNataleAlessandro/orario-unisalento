@@ -128,6 +128,13 @@ export default function Calendario() {
             }
         }
 
+        // Integrazione Lezioni Singole Prenotate
+        const lezioniSingole = JSON.parse(localStorage.getItem('lezioniSingolePrenotate') || '[]');
+        const singoleOggi = lezioniSingole.filter((l: any) => l.data === dataStr);
+        if (singoleOggi.length > 0) {
+            celleUnite = [...celleUnite, ...singoleOggi];
+        }
+
         if (datiMancantiOffline && celleUnite.length === 0) {
             throw new Error("Dati non disponibili offline per questa data. Connettiti per scaricarli.");
         }

@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { addMinutes, format, isWithinInterval, parse, isSameDay, setHours, setMinutes } from 'date-fns';
+import { format, isWithinInterval, isSameDay, setHours, setMinutes } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { DayPicker } from 'react-day-picker';
 import { formatDateForAPI } from '@/utils/date';
+import { useNotifications } from '@/hooks/useNotifications';
 
 interface Evento {
+  id?: string;
   stato: 'libera' | 'occupata';
   testo: string;
   tipo?: string;
@@ -171,6 +173,55 @@ export default function Aule() {
     } else {
       const colore = getColoreEvento(eventoInCorso.tipo);
       return { tipo: 'occupata', msg: `Occupata fino alle ${eventoInCorso.oraFine}`, evento: eventoInCorso, colore };
+    }
+  };
+
+  const { subscription, sendSubscriptionToBackend } = useNotifications();
+  const [singolePrenotate, setSingolePrenotate] = useState<string[]>(() => {
+    const saved = localStorage.getItem('lezioniSingolePrenotate');
+    if (!saved) return [];
+    try {
+      return JSON.parse(saved).map((l: any) => l.id);
+    } catch {
+      return [];
+    }
+  });
+
+  const toggleLezioneSingola = (aula: Aula, ev: Evento) => {
+    const lessonId = `lezione-${aula.id}-${ev.timestamp_from}`;
+    const saved = localStorage.getItem('lezioniSingolePrenotate');
+    let list = saved ? JSON.parse(saved) : [];
+    
+    const exists = list.find((l: any) => l.id === lessonId);
+    
+    if (exists) {
+      list = list.filter((l: any) => l.id !== lessonId);
+    } else {
+      const dataStr = format(new Date(ev.timestamp_from * 1000), 'dd-MM-yyyy');
+      const orarioStr = `${ev.oraInizio} - ${ev.oraFine}`;
+      
+      const newLesson = {
+        id: lessonId,
+        nome_insegnamento: ev.testo,
+        docente: 'Docente non specificato',
+        orario: orarioStr,
+        aula: aula.nomeAula,
+        buildingName: nomeSede,
+        nome_giorno: format(new Date(ev.timestamp_from * 1000), 'EEEE', { locale: it }),
+        data: dataStr,
+        isSingleLesson: true,
+        buildingId: area,
+        timestamp_from: ev.timestamp_from,
+        timestamp_to: ev.timestamp_to
+      };
+      list.push(newLesson);
+    }
+    
+    localStorage.setItem('lezioniSingolePrenotate', JSON.stringify(list));
+    setSingolePrenotate(list.map((l: any) => l.id));
+    
+    if (subscription) {
+      sendSubscriptionToBackend(subscription);
     }
   };
 
@@ -431,14 +482,40 @@ export default function Aule() {
                             <span>{ev.oraFine}</span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            {ev.stato === 'occupata' && ev.tipo && (
-                              <div 
-                                className="text-[9px] font-black uppercase tracking-widest mb-1"
-                                style={{ color: evColor }}
-                              >
-                                {ev.tipo}
-                              </div>
-                            )}
+                            <div className="flex justify-between items-start gap-2">
+                              {ev.stato === 'occupata' && ev.tipo && (
+                                <div 
+                                  className="text-[9px] font-black uppercase tracking-widest mb-1"
+                                  style={{ color: evColor }}
+                                >
+                                  {ev.tipo}
+                                </div>
+                              )}
+                              {ev.stato === 'occupata' && (
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleLezioneSingola(aula, ev);
+                                  }}
+                                  className={`shrink-0 p-1.5 rounded-lg border transition-all active:scale-90 ${
+                                    singolePrenotate.includes(`lezione-${aula.id}-${ev.timestamp_from}`)
+                                      ? 'bg-[#c48e12] border-[#c48e12] text-black shadow-[0_0_10px_rgba(196,142,18,0.3)]'
+                                      : 'bg-[#2a2a2a] border-[#444] text-gray-400 hover:text-white'
+                                  }`}
+                                  title={singolePrenotate.includes(`lezione-${aula.id}-${ev.timestamp_from}`) ? "Rimuovi dall'agenda" : "Aggiungi all'agenda"}
+                                >
+                                  {singolePrenotate.includes(`lezione-${aula.id}-${ev.timestamp_from}`) ? (
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-3.5 h-3.5">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                    </svg>
+                                  ) : (
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-3.5 h-3.5">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                    </svg>
+                                  )}
+                                </button>
+                              )}
+                            </div>
                             <div className={`text-[12px] font-bold leading-snug ${ev.stato === 'libera' ? 'text-green-500/60 italic font-medium' : 'text-gray-200'}`}>
                               {ev.testo}
                             </div>

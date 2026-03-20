@@ -69,6 +69,32 @@ export const useLessons = ({ corsoCodice, annoCodice, refreshCount }: UseLessons
         if (currentWeekData?.celle) allCells = [...allCells, ...currentWeekData.celle];
         if (nextWeekData?.celle) allCells = [...allCells, ...nextWeekData.celle];
 
+        // Integrazione Lezioni Singole Prenotate con filtraggio date
+        const lezioniSingole = JSON.parse(localStorage.getItem('lezioniSingolePrenotate') || '[]');
+        if (lezioniSingole.length > 0) {
+          // Calcoliamo il limite superiore (fine della settimana successiva)
+          let fineSettimanaProssima: Date | null = null;
+          if (nextWeekData?.last_day) {
+            const [g, m, a] = nextWeekData.last_day.split('-');
+            fineSettimanaProssima = new Date(Number(a), Number(m) - 1, Number(g), 23, 59, 59);
+          }
+
+          const singoleFiltrate = lezioniSingole.filter((l: any) => {
+            const [g, m, a] = l.data.split('-');
+            const dataLezione = new Date(Number(a), Number(m) - 1, Number(g));
+            const oggi = new Date();
+            oggi.setHours(0, 0, 0, 0);
+
+            // Deve essere >= oggi e <= fine della prossima settimana (se disponibile)
+            const isDopoOggi = dataLezione >= oggi;
+            const isEntroLimite = fineSettimanaProssima ? dataLezione <= fineSettimanaProssima : true;
+            
+            return isDopoOggi && isEntroLimite;
+          });
+
+          allCells = [...allCells, ...singoleFiltrate];
+        }
+
         if (currentWeekData?.last_day) {
             const [gEnd, mEnd, aEnd] = currentWeekData.last_day.split('-');
             setFineSettimanaCorrente(new Date(Number(aEnd), Number(mEnd) - 1, Number(gEnd), 23, 59, 59));

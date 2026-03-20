@@ -9,6 +9,7 @@ export interface Lezione {
   inizioDateObj?: Date;
   fineDateObj?: Date;
   mail_docente?: string;
+  buildingName?: string;
 }
 
 export interface ProfessorData {

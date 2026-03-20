@@ -30,6 +30,7 @@ function getUserData() {
     },
     materieExtra: JSON.parse(localStorage.getItem('materieExtra') || '[]'),
     blacklist: JSON.parse(localStorage.getItem('blacklist_materie') || '[]'),
+    lezioniSingolePrenotate: JSON.parse(localStorage.getItem('lezioniSingolePrenotate') || '[]'),
   };
 }
 
@@ -202,5 +203,5 @@ export const useNotifications = () => {
     }
   }, [isEnabled, permission, subscribeToPush, sendSubscriptionToBackend]);
 
-  return { isSupported, isEnabled, permission, subscription, requestPermission, toggleNotifications };
+  return { isSupported, isEnabled, permission, subscription, requestPermission, toggleNotifications, sendSubscriptionToBackend };
 };

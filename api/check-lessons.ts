@@ -56,6 +56,32 @@ async function fetchUniversitySchedule(corsoCodice, annoCodice, dateStr) {
   }
 }
 
+async function fetchRoomSchedule(area, dateStr) {
+  const params = new URLSearchParams();
+  params.append('form-type', 'rooms');
+  params.append('view', 'rooms');
+  params.append('include', 'rooms');
+  params.append('sede[]', area);
+  params.append('aula[]', 'all');
+  params.append('date', dateStr);
+  params.append('_lang', 'it');
+  params.append('all_events', '0');
+
+  try {
+    const response = await fetch('https://logistica.unisalento.it/PortaleStudenti/rooms_call.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString()
+    });
+
+    if (!response.ok) return { events: [] };
+    return await response.json();
+  } catch (err) {
+    console.error(`Error fetching room schedule for ${area}:`, err);
+    return { events: [] };
+  }
+}
+
 export default async function handler(req, res) {
   // Parsing dei parametri tramite WHATWG URL API per evitare DEP0169
   const protocol = req.headers['x-forwarded-proto'] || 'http';
@@ -86,6 +112,7 @@ export default async function handler(req, res) {
     const keys = await client.keys('*'); 
     const notificationPromises = [];
     const localScheduleCache = new Map(); 
+    const localRoomCache = new Map(); 
 
     if (isTest) {
       for (const key of keys) {
@@ -124,6 +151,59 @@ export default async function handler(req, res) {
 
         const { subscription, corsi } = JSON.parse(dataStr);
         if (!corsi?.corso?.codice) continue;
+
+        // --- CONTROLLO LEZIONI SINGOLE ---
+        const singleLessons = corsi.lezioniSingolePrenotate || [];
+        for (const single of singleLessons) {
+          if (single.data !== todayStr) continue;
+
+          const [startTimeStr] = single.orario.split(' - ');
+          const [ore, min] = startTimeStr.split(':');
+          const [g, m, a] = single.data.split('-');
+          const dateStrISO = `${a}-${m}-${g}T${ore}:${min}:00`;
+          const lessonDate = fromZonedTime(dateStrISO, TIMEZONE);
+
+          if (isAfter(lessonDate, windowStart) && !isAfter(lessonDate, windowEnd)) {
+            // Verifica opzionale: esiste ancora l'evento in quell'aula?
+            if (single.buildingId) {
+              let roomData = localRoomCache.get(single.buildingId);
+              if (!roomData) {
+                roomData = await fetchRoomSchedule(single.buildingId, todayStr);
+                localRoomCache.set(single.buildingId, roomData);
+              }
+              const exists = roomData.events?.find(ev => 
+                String(ev.timestamp_from) === String(single.timestamp_from) && 
+                (ev.name === single.nome_insegnamento || ev.nome === single.nome_insegnamento)
+              );
+              if (!exists) continue;
+            }
+
+            const idempotencyKey = `notified:${subscription.endpoint}:${single.nome_insegnamento}:${single.data}:${startTimeStr}`;
+            const alreadyNotified = await client.get(idempotencyKey);
+            
+            if (!alreadyNotified) {
+              const promise = (async () => {
+                try {
+                  await webpush.sendNotification(subscription, JSON.stringify({
+                    title: 'Promemoria Lezione! 📌',
+                    body: `${single.nome_insegnamento} inizia alle ${startTimeStr} in ${single.aula}`,
+                    tag: `single-${single.id}`,
+                    data: { url: '/home' }
+                  }));
+                  await client.set(idempotencyKey, '1', { EX: REDIS_NOTIFIED_TTL });
+                  return { key, status: 'sent', materia: single.nome_insegnamento, type: 'single' };
+                } catch (err) {
+                  if (err.statusCode === 410 || err.statusCode === 404) {
+                    await client.del(key); 
+                    return { key, status: 'removed' };
+                  }
+                  return { key, status: 'error', error: err.message };
+                }
+              })();
+              notificationPromises.push(promise);
+            }
+          }
+        }
 
         const coursesToCheck = [
           { codice: corsi.corso.codice, anno: corsi.corso.annoCodice },
