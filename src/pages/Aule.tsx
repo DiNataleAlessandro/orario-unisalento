@@ -225,6 +225,16 @@ export default function Aule() {
     }
   };
 
+  const pulisciRicerca = () => {
+    setRicerca('');
+    setArea('');
+    setNomeSede('');
+    setAule([]);
+    setTendinaAperta(false);
+    localStorage.removeItem('ultimaSedeId');
+    localStorage.removeItem('ultimaSedeCercata');
+  };
+
   const selezionaSede = (sede: { id: string, nome: string }) => {
     setArea(sede.id);
     setNomeSede(sede.nome);
@@ -269,7 +279,7 @@ export default function Aule() {
               <input 
                 type="text"
                 placeholder="Es. Ecotekne..."
-                className="w-full bg-[#1a1a1a] border border-[#444] focus:border-[#c48e12] rounded-xl p-4 outline-none transition-all font-bold text-white placeholder-gray-600 shadow-inner text-sm"
+                className="w-full bg-[#1a1a1a] border border-[#444] focus:border-[#c48e12] rounded-xl p-4 pr-10 outline-none transition-all font-bold text-white placeholder-gray-600 shadow-inner text-sm"
                 value={ricerca}
                 onChange={(e) => {
                   setRicerca(e.target.value);
@@ -277,6 +287,19 @@ export default function Aule() {
                 }}
                 onClick={() => setTendinaAperta(true)}
               />
+              {ricerca && (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    pulisciRicerca();
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-1 bg-[#2a2a2a] rounded-md border border-[#444]"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-3 h-3">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
             </div>
             
             {tendinaAperta && (
