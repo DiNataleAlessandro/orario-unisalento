@@ -1,48 +1,88 @@
-# 🎓 NextLesson UniSalento
+# 🎓 NextLesson UniSalento: The Student's Companion
 
-**NextLesson UniSalento** è una Progressive Web App (PWA) premium progettata per gli studenti dell'Università del Salento. L'obiettivo è fornire un'interfaccia ultra-rapida, mobile-first e affidabile per la consultazione degli orari delle lezioni, con un sistema di notifiche push intelligente e strumenti avanzati di personalizzazione.
+[![Status](https://img.shields.io/badge/Status-Production--Ready-success?style=flat-square)](https://nextlesson.it)
+[![Version](https://img.shields.io/badge/Version-1.0.0-blue?style=flat-square)](https://github.com/aless/orario-unisalento)
+[![Tech Stack](https://img.shields.io/badge/Stack-React_19_|_Vercel_|_Redis-000000?style=flat-square)](https://nextlesson.it)
 
-## 🚀 Caratteristiche Principali
+**NextLesson** is a meticulously crafted Progressive Web App (PWA) that reimagines how students at the **Università del Salento** interact with their academic schedules. Built for speed and reliability, it bridges the gap between complex university portals and the modern mobile experience.
 
--   **Dashboard "In Corso"**: Identificazione automatica e risalto visivo della lezione attualmente in svolgimento.
--   **Notifiche Push Real-time**: Ricevi avvisi 30 minuti prima dell'inizio delle lezioni (necessita configurazione VAPID).
--   **Disponibilità Aule**: Scansione in tempo reale delle aule libere e occupate in tutti i plessi dell'Ateneo (Ecotekne, Studium, ecc.).
--   **Personalizzazione Avanzata**: 
-    - **Smart Notes**: Aggiungi note testuali specifiche per ogni materia.
-    - **Color Coding**: Personalizza il colore delle card lezioni per una distinzione visiva immediata.
-    - **Blacklist**: Nascondi le materie che non segui per pulire l'agenda.
-    - **Piano di Studi Dinamico**: Aggiungi singoli esami da qualsiasi altro corso di laurea dell'Ateneo.
--   **Esportazione Calendario**: Genera file `.ics` per sincronizzare il semestre con Google/Apple Calendar.
--   **Offline-First & PWA**: Funzionamento completo senza rete e tutorial integrato per l'installazione su iOS e Android.
--   **Multi-Tema**: Supporto per Dark Mode OLED-friendly (#121212), Light Mode e sincronizzazione con il sistema.
--   **Portabilità Dati**: Sistema di backup e ripristino istantaneo tramite stringhe Base64 compresse.
+---
 
-## 🛠️ Tech Stack
+## ✨ Experience the Future of Study
 
--   **Frontend**: React 19, TypeScript, Vite 8.
--   **Styling**: Tailwind CSS v4.
--   **Routing**: React Router DOM v7.
--   **PWA**: `vite-plugin-pwa` con strategia `injectManifest`.
--   **Backend**: Vercel Functions (Node.js) + Redis (per le sottoscrizioni Push).
+### 🚀 Performance & Accessibility
+-   **Instant Load:** Near-zero latency through intelligent `localStorage` caching and Service Worker asset management.
+-   **Offline-First:** View your timetable anywhere, even in the most isolated classroom, thanks to advanced precaching.
+-   **Native Experience:** Installable on iOS and Android with a dedicated splash screen and standalone display mode.
 
-## ⚙️ Variabili d'Ambiente
+### 🔔 Intelligent Notification System
+-   **Timely Alerts:** Stay ahead with push notifications sent before your classes begin.
+-   **Smart Merging:** Unified timetable that aggregates your primary course with "Extra Subjects" from any other degree program.
+-   **Idempotent Delivery:** Powered by **Redis**, ensuring you never get the same notification twice.
 
-Configura queste chiavi in `.env.local` per abilitare le notifiche:
+### 🗺️ Context-Aware Features
+-   **Dynamic Maps:** One-tap navigation to classroom locations via integrated Leaflet maps.
+-   **Blacklist Support:** Hide subjects you've already passed or aren't interested in to keep your view clean.
+-   **Day Picker:** Effortlessly jump between weeks and months with a native-feeling date picker.
 
-```env
-REDIS_URL="redis://default:password@host:port"
-VAPID_PUBLIC_KEY="chiave-pubblica"
-VAPID_PRIVATE_KEY="chiave-privata"
-CRON_SECRET="stringa-segreta"
-```
+---
 
-## 📦 Installazione
+## 🏗️ Architecture & Stack
 
-```bash
-npm install
-npm run dev # Sviluppo
-npm run build # Produzione
-```
+| Layer | Technology | Role |
+|:--- |:--- |:--- |
+| **Frontend** | React 19 + TypeScript | Core UI and state management |
+| **Styles** | Tailwind CSS 4 | Modern, utility-first design system |
+| **Runtime** | Vite + PWA Plugin | Build toolchain and Service Worker |
+| **Backend** | Vercel Edge Functions | Serverless logic and scraping |
+| **Database** | Redis (Upstash) | Notification tracking and session storage |
 
-## 📄 Licenza
-Sviluppato per uso personale e didattico. I dati degli orari sono forniti dai sistemi grid UniSalento.
+---
+
+## 🚀 Deployment & Installation
+
+### For Developers
+
+1.  **Clone the Repository:**
+    ```bash
+    git clone https://github.com/yourusername/orario-unisalento.git
+    cd orario-unisalento
+    ```
+
+2.  **Install & Start:**
+    ```bash
+    npm install
+    npm run dev
+    ```
+
+3.  **Environment Configuration:**
+    Ensure these secrets are available in your `.env` or Vercel dashboard:
+    -   `REDIS_URL`: Endpoint for your Redis instance.
+    -   `VAPID_PUBLIC_KEY` & `VAPID_PRIVATE_KEY`: Generated for Web-Push notifications.
+    -   `CRON_SECRET`: Authorization key for the Vercel Cron service.
+
+### For Students
+Simply visit [nextlesson.it](https://nextlesson.it) on your mobile browser and select **"Add to Home Screen"** for the full experience.
+
+---
+
+## 🛠️ Project Ecosystem
+
+-   `/api`: Serverless functions for backend operations.
+-   `/src/hooks`: Custom hooks (`useLessons`, `useNotifications`) encapsulating business logic.
+-   `/src/sw.ts`: Advanced Service Worker for PWA capabilities and push events.
+-   `/public/data`: Static metadata for courses and classroom locations.
+
+---
+
+## 🤝 Contribution & Support
+
+We believe in open-source for students, by students. If you find a bug or have a feature idea:
+1.  Check the existing [Issues](https://github.com/aless/orario-unisalento/issues).
+2.  Fork the repo and create a branch.
+3.  Submit a Pull Request with a clear description of your changes.
+
+---
+
+*Designed and developed to make university life just a little bit easier.*  
+**Made with ❤️ in Salento.**

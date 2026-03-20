@@ -1,67 +1,56 @@
-# 🎓 NextLesson UniSalento - GEMINI.md
+# 🖋️ NextLesson UniSalento: Core Mandates & Architecture
 
-This file contains foundational mandates, architectural patterns, and a detailed functional map of the project. Adhere to these instructions for all development tasks.
+This document provides a comprehensive technical guide for development within the NextLesson ecosystem. It establishes the architectural boundaries and operational standards necessary for maintaining high code quality and system reliability.
 
-## 🚀 Project Overview
-**NextLesson UniSalento** is a premium, mobile-first Progressive Web App (PWA) designed for students of the University of Salento. It provides a highly optimized interface for managing lesson schedules, exam plans, and academic calendars, with a focus on offline reliability and a "native-like" mobile experience.
+## 🏗️ Architectural Blueprint
 
-## 🛠️ Tech Stack & Standards
-- **Framework:** React 19 (TypeScript)
-- **Build Tool:** Vite 8
-- **Styling:** Tailwind CSS v4 (with custom light/dark theme overrides)
-- **Routing:** React Router DOM v7
-- **Testing:** Vitest + JSDOM
-- **Date Management:** `date-fns` and `react-day-picker`
-- **PWA:** `vite-plugin-pwa` with custom manifest and service worker.
-- **Persistence:** `localStorage` for user preferences, notes, and color coding.
+### 1. Hybrid Rendering & Data Fetching
+NextLesson operates as a high-performance Progressive Web App (PWA) with a decoupled backend:
+- **Client-Side:** React 19 handles the reactive UI and complex timetable merging logic.
+- **Serverless Edge:** Vercel functions handle high-stakes operations like scraping, push notification orchestration, and Redis synchronization.
+- **The Proxy Layer:** A specialized proxy (`/api-unisalento`) is used to bypass CORS when interacting with the legacy `logistica.unisalento.it` endpoint.
 
-## 🎨 Architectural Mandates
-1. **Mobile-First & PWA:** Optimized for mobile devices, respecting safe areas (`env(safe-area-inset-top)`). Includes a PWA installation tutorial for browser users.
-2. **Offline-First:** All core features function offline using cached data in `localStorage`.
-3. **Multi-Theme:** OLED-friendly Dark Mode (#121212) by default, with Light Mode and System sync support.
-4. **Data Integrity:** API responses are sanitized (HTML cleaning) and transformed in a dedicated layer.
+### 2. Timetable Merging Strategy
+The core business logic resides in `src/hooks/useLessons.ts`. It performs a multi-stage data merge:
+1. **Primary Course Fetch:** Retrieves the main schedule for the user's selected course and year.
+2. **Extra Subject Merging:** Iteratively fetches schedules for "materie extra" (subjects from other courses) and filters them before merging into the main array.
+3. **Deduplication:** Uses a `Map`-based strategy to ensure no overlapping or duplicate lesson IDs are rendered.
 
----
-
-## 🗺️ Functional Map
-
-### 📡 API Layer (`src/api/`)
-- **`unisalento.ts`**: Client for UniSalento PHP APIs. Implements caching per course/week.
-- **`easyroom.ts`**: Integration with UniSalento EasyRoom for classroom availability.
-- **`transformers.ts`**: HTML sanitization and professor email prediction logic.
-
-### 🪝 Custom Hooks (`src/hooks/`)
-- **`useLessons.ts`**: Orchestrates current/next week schedules, merging main course with extra exams.
-- **`useCourses.ts`**: Dynamically fetches the `courses.json` metadata.
-- **`useNotifications.ts`**: Manages Web Push subscriptions and permissions.
-
-### 📄 Pages (`src/pages/`)
-- **`Home.tsx`**: Main dashboard with "Live" lesson highlighting, grouping, and settings (theme/reset).
-- **`Aule.tsx`**: Real-time classroom availability scanner with gap-filling logic (Free/Busy slots).
-- **`PianoDiStudi.tsx`**: Add extra exams from any course and manage data portability (Export/Import).
-- **`Calendario.tsx`**: Daily lookup and full-semester `.ics` calendar export.
-- **`Onboarding.tsx`**: Initial setup and backup recovery.
-
-### 🧩 Components (`src/components/`)
-- **`features/CardLezione.tsx`**: Atomic unit with Smart Notes and Color Customization per subject.
-- **`features/PwaTutorial.tsx`**: Context-aware tutorial for PWA installation on iOS/Android.
-- **`features/SplashScreen.tsx`**: Initial animated loading screen with brand logo.
-- **`common/Select.tsx`**: Styled searchable dropdown component.
+### 3. Notification Lifecycle
+Push notifications follow a strict state-machine flow:
+- **Subscription:** Client generates a VAPID-signed push subscription, stored in Redis.
+- **Orchestration:** `api/check-lessons.ts` (Cron) iterates through all active Redis subscriptions.
+- **Idempotency:** A unique `notified:{endpoint}:{materia}:{time}` key is set in Redis with a 2-hour TTL to prevent duplicate notifications for the same event.
+- **Service Worker:** `src/sw.ts` intercepts the `push` event, parses the JSON payload, and renders a native-feeling notification with vibration patterns.
 
 ---
 
-## 📝 Coding Conventions
-- **Path Aliasing**: Always use `@/` for imports.
-- **Persistence Keys**: 
-    - `orario_`: cache
-    - `nota_`: subject notes
-    - `color_`: subject color coding
-    - `blacklist_materie`: hidden subjects
-    - `theme`: user theme preference
-    - `materieExtra`: additional exams
+## 🛠️ Technical Standards
 
-## ✅ Quality Checklist
-- [ ] **Build Check**: `npm run build` must pass without chunk warnings.
-- [ ] **Theme Check**: Ensure UI elements are readable in both Light and Dark modes.
-- [ ] **PWA Audit**: Verify the installation tutorial triggers correctly on mobile browsers.
-- [ ] **Responsive**: Test on narrow screens (iPhone SE) for layout shifts.
+### ⚙️ State & Storage
+- **Local Persistence:** Use `localStorage` sparingly for configuration (`corsoCodice`, `annoCodice`, `materieExtra`).
+- **Cache Management:** Timetable data is cached in `localStorage` with keys formatted as `orario_{course}_{year}_{date}`.
+- **Forced Refresh:** The `isForced` flag in API calls must bypass local caches to ensure students see real-time changes (e.g., room changes or cancellations).
+
+### 🎨 Styling & UI
+- **Tailwind 4:** Leverage `@tailwindcss/vite` for a zero-runtime CSS experience. Prefer CSS variables for theme-specific colors.
+- **Responsive Design:** Every component must be mobile-first. Desktop views are secondary but must remain functional.
+
+### 🧪 Testing & Validation
+- **Vitest:** All utility functions (especially `transformers.ts`) must have corresponding unit tests.
+- **Offline Testing:** Changes to the Service Worker (`sw.ts`) must be validated in Incognito/Private modes to ensure proper lifecycle management (`skipWaiting`, `clientsClaim`).
+
+---
+
+## 📡 Backend & Redis Key Schema
+
+| Key Pattern | Purpose | Expiration (TTL) |
+|:--- |:--- |:--- |
+| `user_sub:{id}` | Stores Web-Push subscription + course metadata | Permanent |
+| `notified:{hash}` | Idempotency lock for notifications | 2 Hours |
+| `uni_cache:{id}` | Server-side cache for UniSalento API responses | 30 Minutes |
+
+## ⚠️ Critical Safety Rules
+- **DO NOT** modify the scraping logic in `api/check-lessons.ts` without verifying the POST payload requirements for `grid_call.php`.
+- **DO NOT** remove the `idempotencyKey` check; doing so will cause notification spam for thousands of users.
+- **ALWAYS** ensure `VAPID` keys are treated as sensitive environment secrets.
