@@ -68,9 +68,9 @@ export default function LocationModal({ name, lat, lng, onClose }: LocationModal
 
         {/* Mappa Statica con Filtri Dark */}
         <div className="relative w-full h-64 mb-6 rounded-2xl overflow-hidden border border-[#333] bg-[#1a1a1a] isolate">
-          {/* Stile CSS per applicare il filtro solo ai tile della mappa, mantenendo il Pin colorato */}
+          {/* Stile CSS per applicare il filtro solo ai tile della mappa in Dark Mode, mantenendo il Pin colorato */}
           <style>{`
-            .dark-map-tiles .leaflet-tile-pane {
+            .dark .dark-map-tiles .leaflet-tile-pane {
               filter: grayscale(1) invert(0.9) hue-rotate(180deg) brightness(1.2) contrast(1.2);
             }
           `}</style>
