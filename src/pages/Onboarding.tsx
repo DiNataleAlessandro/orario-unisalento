@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCourses, type Anno } from '@/hooks/useCourses';
 import Select from '@/components/common/Select';
+import PwaTutorial from '@/components/features/PwaTutorial';
 
 export default function Onboarding() {
   const { corsi: listaCorsi, inCaricamento, errore: erroreCorsi } = useCourses();
@@ -291,7 +292,7 @@ export default function Onboarding() {
               </svg>
             </div>
             <h2 className="text-xl font-black text-white mb-2 tracking-tight">Importa Dati</h2>
-            
+
             <p className="text-xs text-gray-400 mb-8 font-medium leading-relaxed">
               Recupera il tuo piano di studi, appunti ed esami a scelta istantaneamente.
             </p>
@@ -330,7 +331,7 @@ export default function Onboarding() {
           )}
         </div>
       )}
-
-    </div>
-  );
-}
+      <PwaTutorial />
+      </div>
+      );
+      }

@@ -467,7 +467,11 @@ export default function PianoDiStudi() {
             <h2 className="text-xl font-black text-white mb-2 tracking-tight">Portabilità Dati</h2>
             
             <p className="text-xs text-gray-400 mb-6 font-medium leading-relaxed">
-              Esporta la configurazione o incollane una esistente istantaneamente.
+              Esporta o importa la tua configurazione in un clic.
+              <br />
+              <span className="text-[#c48e12] font-bold mt-1 block">
+                Salva il codice per non perdere i tuoi dati.
+              </span>
             </p>
 
             <div className="space-y-4">

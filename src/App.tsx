@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import Calendario from './pages/Calendario';
 import PianoDiStudi from './pages/PianoDiStudi';
 import Aule from './pages/Aule';
+import SplashScreen from './components/features/SplashScreen';
 
 // Ora controlliamo "corsoCodice" invece del vecchio nome
 const ProteggiRotta = ({ children }: { children: React.ReactNode }) => {
@@ -15,6 +16,7 @@ const ProteggiRotta = ({ children }: { children: React.ReactNode }) => {
 function App() {
   return (
     <BrowserRouter>
+      <SplashScreen />
       <Routes>
         <Route path="/onboarding" element={<Onboarding />} />
         

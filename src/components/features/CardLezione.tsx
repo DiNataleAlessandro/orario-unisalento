@@ -29,16 +29,28 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
   const [noteText, setNoteText] = useState(() => {
     return localStorage.getItem(`nota_${cleanSubjectName}`) || '';
   });
+  
+  const [materiaColor, setMateriaColor] = useState(() => {
+    return localStorage.getItem(`color_${cleanSubjectName}`) || '';
+  });
 
-  // Sincronizza il testo della nota quando cambia la materia (es. cambio giorno)
+  const palette = [
+    { id: 'gold', class: 'bg-[#c48e12]', border: 'border-[#c48e12]/50' },
+    { id: 'red', class: 'bg-red-500', border: 'border-red-500/50' },
+    { id: 'green', class: 'bg-green-500', border: 'border-green-500/50' },
+    { id: 'blue', class: 'bg-blue-500', border: 'border-blue-500/50' },
+    { id: 'purple', class: 'bg-purple-500', border: 'border-purple-500/50' },
+    { id: 'pink', class: 'bg-pink-500', border: 'border-pink-500/50' },
+    { id: 'orange', class: 'bg-orange-500', border: 'border-orange-500/50' },
+  ];
+
+  // Sincronizza il testo della nota e il colore quando cambia la materia
   useEffect(() => {
-    const savedNote = localStorage.getItem(`nota_${cleanSubjectName}`) || '';
-    if (noteText !== savedNote) {
-      setNoteText(savedNote);
-    }
+    setNoteText(localStorage.getItem(`nota_${cleanSubjectName}`) || '');
+    setMateriaColor(localStorage.getItem(`color_${cleanSubjectName}`) || '');
   }, [cleanSubjectName]);
 
-  // Salva la nota solo se è effettivamente cambiata rispetto al valore memorizzato
+  // Salva la nota
   useEffect(() => {
     const savedNote = localStorage.getItem(`nota_${cleanSubjectName}`) || '';
     if (noteText === savedNote) return;
@@ -49,6 +61,16 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
       localStorage.setItem(`nota_${cleanSubjectName}`, noteText);
     }
   }, [noteText, cleanSubjectName]);
+
+  // Salva il colore
+  const selectColor = (colorClass: string) => {
+    setMateriaColor(colorClass);
+    if (colorClass === '') {
+      localStorage.removeItem(`color_${cleanSubjectName}`);
+    } else {
+      localStorage.setItem(`color_${cleanSubjectName}`, colorClass);
+    }
+  };
 
   const professors = getProfessorsData(lezione.docente, lezione.mail_docente || '');
 
@@ -62,6 +84,7 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
   })();
 
   const hasNote = noteText.trim().length > 0;
+  const currentBorderColor = materiaColor || (isLive ? 'bg-[#c48e12]' : 'bg-[#333]');
 
   return (
     <>
@@ -70,7 +93,7 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
           ? 'bg-gradient-to-br from-[#2a2215] to-[#1a150c] border-[#c48e12]/30 shadow-xl' 
           : 'bg-[#212121] border-[#333]'
       }`}>
-        <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${isLive ? 'bg-[#c48e12]' : 'bg-[#333]'}`}></div>
+        <div className={`absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl ${currentBorderColor}`}></div>
         
         <div className="relative flex flex-col w-full pb-1">
           <div className="flex justify-between items-start pl-2">
@@ -81,7 +104,7 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
               <button 
                 onClick={() => setIsNoteOpen(!isNoteOpen)}
                 className={`absolute top-0 right-0 p-2 rounded-xl border transition-all active:scale-95 flex items-center justify-center ${
-                  hasNote 
+                  hasNote || materiaColor
                     ? 'bg-[#c48e12]/15 border-[#c48e12] text-[#c48e12] shadow-[0_0_12px_rgba(196,142,18,0.25)]' 
                     : 'bg-[#1a1a1a] border-[#333] text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
                 }`}
@@ -91,7 +114,8 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
                 </svg>
               </button>
           </div>
-
+          
+          {/* ... (rest of info) */}
           <div className={`pl-2 flex flex-col gap-1.5 mt-2 text-sm ${isLive ? 'text-[#e8d5a5]' : 'text-gray-400'}`}>
               <p className="flex items-center gap-2">
                 <span className={isLive ? 'opacity-80' : 'opacity-70'}>🕒</span> 
@@ -153,13 +177,39 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
 
         {isNoteOpen && (
           <div className="mt-3 pt-4 border-t border-[#333] animate-in fade-in slide-in-from-top-2 duration-200 pl-2">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-[10px] font-bold text-[#c48e12] uppercase tracking-widest">Appunti Personali</span>
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-[10px] font-bold text-[#c48e12] uppercase tracking-widest">Personalizzazione</span>
+            </div>
+            
+            <div className="flex flex-wrap gap-2.5 mb-5">
+               {palette.map((color) => (
+                 <button 
+                  key={color.id}
+                  onClick={() => selectColor(color.class)}
+                  className={`w-6 h-6 rounded-full border-2 transition-all active:scale-90 ${color.class} ${
+                    materiaColor === color.class ? 'border-white scale-110 shadow-lg' : color.border
+                  }`}
+                  title={color.id}
+                 />
+               ))}
+               <button 
+                  onClick={() => selectColor('')}
+                  className={`w-6 h-6 rounded-full border-2 border-dashed border-[#444] transition-all active:scale-90 flex items-center justify-center text-[10px] text-gray-500 font-bold ${
+                    materiaColor === '' ? 'border-white text-white' : ''
+                  }`}
+                  title="Default"
+               >
+                 ✕
+               </button>
+            </div>
+
+            <div className="mb-2">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Smart Notes</span>
             </div>
             <textarea
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
-              placeholder="Aggiungi una nota per questa materia (es. 'Portare PC', 'Cambio di Aula', ecc..)"
+              placeholder="Aggiungi una nota (es. 'Portare PC', 'Cambio di Aula', ecc..)"
               className="w-full bg-[#1a1a1a] text-gray-300 rounded-xl p-3 border border-[#444] text-sm focus:outline-none focus:border-[#c48e12] transition-colors resize-none placeholder-gray-600 shadow-inner"
               rows={3}
             />

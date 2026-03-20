@@ -1,15 +1,206 @@
 @import "tailwindcss";
 
 /* =========================================
-   OVERRIDE DEFINITIVO REACT-DAY-PICKER
+   SISTEMA DI TEMI (CSS VARIABLES)
+   ========================================= */
+
+:root {
+  /* DARK MODE (Default OLED #121212) */
+  --bg-app: #121212;
+  --bg-surface: #212121;
+  --bg-surface-alt: #1a1a1a;
+  --bg-surface-hover: #2a2a2a;
+  
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  
+  --border-primary: #333333;
+  --border-secondary: #444444;
+  
+  --accent-gold: #c48e12;
+}
+
+.light {
+  /* SOFT LIGHT MODE - Molto soft, contrasti ridotti */
+  --bg-app: #fcfcfc; 
+  --bg-surface: #ffffff;
+  --bg-surface-alt: #f3f4f6;
+  --bg-surface-hover: #f9fafb;
+  
+  --text-primary: #1f2937; 
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+  
+  --border-primary: #e5e7eb;
+  --border-secondary: #d1d5db;
+  
+  --accent-gold: #cc8500; /* Oro più caldo e vibrante, rimosso il tono "olivastro" */
+}
+
+/* =========================================
+   SUPPORTO TEMA LIGHT (Override Globali)
+   ========================================= */
+
+body {
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+}
+
+.light body, 
+.light .min-h-screen,
+.light .bg-\[\#121212\] {
+  background-color: var(--bg-app) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Intercettiamo tutte le box principali (Header, Card, Popup, Selettori) */
+.light header,
+.light .bg-\[\#212121\],
+.light .bg-black\/90,
+.light .bg-black\/80,
+.light .bg-black\/70,
+.light .bg-black\/80.backdrop-blur-sm,
+.light [role="dialog"] {
+  background-color: var(--bg-surface) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Elementi secondari (es. box connessione, input, badge, liste a discesa, bottoni secondari) */
+.light .bg-\[\#1a1a1a\],
+.light .bg-\[\#2a2a2a\],
+.light .bg-\[\#383838\],
+.light .bg-black\/20,
+.light input,
+.light textarea,
+.light select {
+  background-color: var(--bg-surface-alt) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Overrides per testi specifici */
+.light .text-white,
+.light .text-gray-100,
+.light .text-gray-200,
+.light .text-gray-300 {
+  color: var(--text-primary) !important;
+}
+
+.light .text-gray-400,
+.light .text-gray-500,
+.light .text-gray-600 {
+  color: var(--text-secondary) !important;
+}
+
+/* SVG Icons - Molte icone hanno hardcoded text-white o simili */
+.light svg.text-white,
+.light svg.text-gray-300,
+.light svg.text-gray-400,
+.light svg.text-gray-500 {
+  color: var(--text-secondary) !important;
+}
+
+/* Placeholder degli input */
+.light ::placeholder,
+.light .placeholder-gray-600 {
+  color: var(--text-muted) !important;
+  opacity: 1 !important;
+}
+
+.light .text-gray-600 {
+  color: var(--text-muted) !important;
+}
+
+/* Sfondi decorativi e bordi */
+.light .bg-\[\#333\],
+.light .bg-\[\#444\],
+.light .bg-\[\#222\] {
+  background-color: var(--border-primary) !important;
+}
+
+.light .border-\[\#333\],
+.light .border-\[\#444\],
+.light .border-\[\#555\],
+.light .border-gray-800,
+.light .border-t,
+.light .border-b,
+.light .border-r,
+.light .border-l {
+  border-color: var(--border-primary) !important;
+}
+
+/* Bottoni: Stati Hover, Active e Focus */
+.light .bg-\[\#1a1a1a\]:hover,
+.light .bg-\[\#2a2a2a\]:hover,
+.light .hover\:bg-\[\#2a2a2a\]:hover,
+.light .hover\:bg-\[\#333\]:hover,
+.light .hover\:bg-\[\#383838\]:hover {
+  background-color: var(--bg-surface-hover) !important;
+}
+
+.light button:active,
+.light .active\:scale-95:active {
+  background-color: var(--bg-surface-alt) !important;
+  opacity: 0.8 !important;
+}
+
+.light input:focus,
+.light textarea:focus {
+  border-color: var(--accent-gold) !important;
+  background-color: var(--bg-surface) !important;
+  box-shadow: 0 0 0 2px rgba(179, 130, 16, 0.1) !important;
+}
+
+/* Navigazione Bottom Bar */
+.light .fixed.bottom-0 {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  border-top: 1px solid var(--border-primary) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.03) !important;
+}
+
+.light .fixed.bottom-0 button.text-gray-500 {
+  color: var(--text-muted) !important;
+}
+
+.light .fixed.bottom-0 button.text-gray-500:hover {
+  color: var(--text-primary) !important;
+}
+
+/* Modali e Overlay */
+.light .bg-black\/90.backdrop-blur-sm,
+.light .bg-black\/80.backdrop-blur-sm,
+.light .bg-black\/70.backdrop-blur-sm {
+  background-color: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* Gradienti (Card Live e Materie) - Rendiamoli molto soft */
+.light .from-\[\#2a2215\].to-\[\#1a150c\],
+.light .from-\[\#2a2215\].to-\[\#212121\] {
+  background-image: linear-gradient(to bottom right, #fffdf5, #ffffff) !important;
+  border-color: rgba(179, 130, 16, 0.15) !important;
+}
+
+/* Shadows morbide */
+.light .shadow-lg,
+.light .shadow-xl,
+.light .shadow-2xl,
+.light .shadow-\[0_20px_50px_rgba\(0\,0\,0\,0\.5\)\] {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.03), 0 4px 6px -4px rgba(0, 0, 0, 0.01) !important;
+}
+
+/* =========================================
+   RESTAURO OVERRIDE DEFINITIVO REACT-DAY-PICKER
    ========================================= */
 
 /* Variabili di base e reset totale */
 body .rdp {
-  --rdp-accent-color: #c48e12 !important;
-  --rdp-background-color: #333333 !important;
-  --rdp-accent-color-dark: #c48e12 !important;
-  --rdp-background-color-dark: #333333 !important;
+  --rdp-accent-color: var(--accent-gold) !important;
+  --rdp-background-color: transparent !important;
   --rdp-outline: none !important;
   --rdp-outline-selected: none !important;
   margin: 0 !important;
@@ -17,14 +208,14 @@ body .rdp {
 
 /* 1. TITOLO (Mese e Anno) */
 body .rdp-caption_label {
-  color: #ffffff !important;
+  color: var(--text-primary) !important;
   font-weight: 900 !important;
   text-transform: capitalize !important;
 }
 
-/* 2. INTESTAZIONE GIORNI (lun, mar, mer...) - Usando la classe scovata! */
+/* 2. INTESTAZIONE GIORNI (lun, mar, mer...) */
 body .rdp-weekday {
-  color: #9ca3af !important;
+  color: var(--text-muted) !important;
   font-weight: bold !important;
   text-transform: lowercase !important;
   font-size: 0.85rem !important;
@@ -37,19 +228,19 @@ body .rdp-button_next,
 body .rdp-button_previous svg,
 body .rdp-button_next svg,
 body .rdp-chevron {
-  color: #c48e12 !important;
-  fill: #c48e12 !important;
-  stroke: #c48e12 !important; 
+  color: var(--accent-gold) !important;
+  fill: var(--accent-gold) !important;
+  stroke: var(--accent-gold) !important; 
 }
 
-/* 4. GIORNO SELEZIONATO VS OGGI (Distinzione visiva) */
+/* 4. GIORNO SELEZIONATO VS OGGI */
 
 /* OGGI: Solo bordo oro e testo oro (stile outline) */
 body .rdp-day_today .rdp-day_button,
 body .rdp-today .rdp-day_button {
   background-color: transparent !important;
-  color: #c48e12 !important;
-  border: 2px solid #c48e12 !important;
+  color: var(--accent-gold) !important;
+  border: 2px solid var(--accent-gold) !important;
   font-weight: 900 !important;
   border-radius: 50% !important;
 }
@@ -57,21 +248,26 @@ body .rdp-today .rdp-day_button {
 /* SELEZIONATO: Oro pieno (vince su tutto) */
 body .rdp-day_selected .rdp-day_button,
 body .rdp-selected .rdp-day_button {
-  background-color: #c48e12 !important;
-  color: #121212 !important;
-  border: 2px solid #c48e12 !important; /* Manteniamo il bordo per coerenza di dimensioni */
+  background-color: var(--accent-gold) !important;
+  color: #ffffff !important; /* Testo bianco su oro per contrasto */
+  border: 2px solid var(--accent-gold) !important;
   font-weight: 900 !important;
   border-radius: 50% !important;
-  box-shadow: 0 4px 15px rgba(196, 142, 18, 0.3) !important; /* Un leggero bagliore oro */
+  box-shadow: 0 4px 15px rgba(179, 130, 16, 0.3) !important;
 }
+
+.light body .rdp-day_selected .rdp-day_button {
+  color: #ffffff !important;
+}
+
 /* 5. NUMERI DEI GIORNI NORMALI */
 body .rdp-day_button {
-  color: #ffffff !important;
+  color: var(--text-primary) !important;
 }
 
 /* 6. HOVER SUI GIORNI NORMALI */
 body .rdp-day_button:hover:not(.rdp-day_selected .rdp-day_button):not(.rdp-selected .rdp-day_button):not(.rdp-day_today .rdp-day_button) {
-  background-color: #333333 !important;
+  background-color: var(--bg-surface-alt) !important;
   border-radius: 50% !important;
 }
 
@@ -85,11 +281,45 @@ body .rdp .rdp-day_button:active {
   box-shadow: none !important;
   -webkit-box-shadow: none !important;
   border: none !important;
-  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Ripristiniamo i bordi corretti per oggi/selezionato che avevamo appena settato */
+body .rdp-day_today .rdp-day_button,
+body .rdp-day_selected .rdp-day_button {
+  border: 2px solid var(--accent-gold) !important;
 }
 
 /* 8. RIMOZIONE PSEUDO-ELEMENTI RESIDUI */
 body .rdp-day_button::after, 
 body .rdp-day_button::before {
   display: none !important;
+}
+
+/* Home: Etichette Oggi/Domani e sezioni */
+.light .text-\[10px\].font-bold.text-gray-500.uppercase {
+  color: var(--text-muted) !important;
+}
+
+.light .bg-green-500.shadow-\[0_0_8px_rgba\(34\,197\,94\,0\.6\)\] {
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.3) !important;
+}
+
+/* Piano di Studi: Popup Backup */
+.light .bg-\[\#212121\] .bg-\[\#1a1a1a\].w-16.h-16 {
+  background-color: var(--bg-surface-alt) !important;
+  border-color: var(--border-primary) !important;
+}
+
+/* Aule: Legenda e Orari Espansi */
+.light .bg-\[\#1a1a1a\]\/50.pt-4 {
+  background-color: rgba(243, 244, 246, 0.5) !important;
+}
+
+.light .text-green-500\/60 {
+  color: #16a34a !important; /* Green 600 più leggibile su chiaro */
+}
+
+/* Calendario: Export ICS e Navigazione */
+.light .bg-\[\#2a2a2a\].p-4.rounded-2xl {
+  background-color: var(--bg-surface-alt) !important;
 }

@@ -25,8 +25,28 @@ export default function Home() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [showBlacklist, setShowBlacklist] = useState(false);
   const [blacklist, setBlacklist] = useState<string[]>(JSON.parse(localStorage.getItem('blacklist_materie') || '[]'));
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   const [oraAttuale, setOraAttuale] = useState(new Date());
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === 'system') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      root.classList.remove('light', 'dark');
+      root.classList.add(systemTheme);
+    } else {
+      root.classList.remove('light', 'dark');
+      root.classList.add(theme);
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    const timerId = setInterval(() => setOraAttuale(new Date()), 60000); 
+    return () => clearInterval(timerId);
+  }, []);
 
   const handleReset = () => {
     localStorage.clear();
@@ -118,15 +138,16 @@ export default function Home() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => setShowResetConfirm(true)} className="bg-[#1a1a1a] border border-[#333] p-3 rounded-xl hover:bg-[#2a2a2a] transition-colors text-gray-300 active:scale-95">
-            <svg viewBox="0 0 800 800" fill="none" stroke="currentColor" strokeWidth="73.33" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-              <g><path d="M550,550l150,-150" /><path d="M700,400l-150,-150" /></g>
-              <path d="M700,400l-450,-0" />
-              <path d="M250,100l-75,0c-41.144,0 -75,33.856 -75,75l0,450c0,41.144 33.856,75 75,75l75,0" />
+          <button onClick={() => setShowSettings(true)} className="bg-[#1a1a1a] border border-[#333] p-3 rounded-xl hover:bg-[#2a2a2a] transition-colors text-gray-300 active:scale-95">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </button>
         </div>
       </header>
+
+      {/* ... (rest of Home content) */}
 
       <div className="mb-4 flex items-center justify-between bg-[#1a1a1a] border border-[#333] p-3 rounded-xl shadow-inner">
         <div className="flex items-center gap-3">
@@ -376,32 +397,116 @@ export default function Home() {
         </div>
       )}
 
+      {showSettings && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex flex-col p-4 transition-opacity items-center justify-center" onClick={() => setShowSettings(false)}>
+          <div className="bg-[#212121] border border-[#333] p-8 rounded-[2rem] shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-black text-white tracking-tight">Impostazioni</h2>
+              <button onClick={() => setShowSettings(false)} className="text-gray-500 hover:text-white p-1">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-3">Aspetto e Tema</span>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { 
+                      id: 'dark', 
+                      label: 'Scuro', 
+                      icon: (
+                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                        </svg>
+                      )
+                    },
+                    { 
+                      id: 'light', 
+                      label: 'Chiaro', 
+                      icon: (
+                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="5" />
+                          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                        </svg>
+                      )
+                    },
+                    { 
+                      id: 'system', 
+                      label: 'Dispositivo', 
+                      icon: (
+                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="6" y="2" width="12" height="20" rx="2" ry="2" />
+                          <path d="M12 18h.01" />
+                          <path d="M10 5h4" />
+                        </svg>
+                      )
+                    }
+                  ].map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => setTheme(t.id)}
+                      className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all ${
+                        theme === t.id 
+                          ? 'bg-[#c48e12]/10 border-[#c48e12] text-[#c48e12]' 
+                          : 'bg-[#1a1a1a] border-[#333] text-gray-400 hover:bg-[#2a2a2a]'
+                      }`}
+                    >
+                      <span className="flex items-center justify-center">{t.icon}</span>
+                      <span className="text-[10px] font-bold uppercase">{t.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-[#333]">
+                <button 
+                  onClick={() => {
+                    setShowSettings(false);
+                    // Usiamo un piccolo ritardo per evitare sovrapposizioni di popup
+                    setTimeout(() => setShowResetConfirm(true), 100);
+                  }}
+                  className="w-full py-4 rounded-xl font-black text-red-500 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+                >
+                  <svg viewBox="0 0 800 800" fill="none" stroke="currentColor" strokeWidth="60" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                    <g><path d="M550,550l150,-150" /><path d="M700,400l-150,-150" /></g>
+                    <path d="M700,400l-450,-0" />
+                    <path d="M250,100l-75,0c-41.144,0 -75,33.856 -75,75l0,450c0,41.144 33.856,75 75,75l75,0" />
+                  </svg>
+                  Esci e Cambia Corso
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showResetConfirm && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex flex-col p-4 transition-opacity items-center justify-center" onClick={() => setShowResetConfirm(false)}>
-          <div className="bg-[#212121] border border-[#333] p-8 rounded-[2rem] shadow-2xl w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
-            <div className="bg-[#1a1a1a] border border-[#333] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-              <svg viewBox="0 0 800 800" fill="none" stroke="currentColor" strokeWidth="73.33" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-[#c48e12]">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[110] flex flex-col p-4 transition-opacity items-center justify-center" onClick={() => setShowResetConfirm(false)}>
+          <div className="bg-[#212121] border border-[#333] p-8 rounded-[2.5rem] shadow-2xl w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
+            <div className="bg-red-500/10 border border-red-500/20 w-20 h-20 rounded-[1.75rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
+              <svg viewBox="0 0 800 800" fill="none" stroke="currentColor" strokeWidth="60" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 text-red-500">
                 <g><path d="M550,550l150,-150" /><path d="M700,400l-150,-150" /></g>
                 <path d="M700,400l-450,-0" />
                 <path d="M250,100l-75,0c-41.144,0 -75,33.856 -75,75l0,450c0,41.144 33.856,75 75,75l75,0" />
               </svg>
             </div>
-            <h2 className="text-xl font-black text-white mb-2 tracking-tight">Cambiare Corso?</h2>
-            <p className="text-sm text-gray-400 mb-8 font-medium">
-              Verrai riportato all'onboarding iniziale. Tutte le tue impostazioni, gli esami extra e le materie nascoste verranno persi.
+            <h2 className="text-2xl font-black text-white mb-2 tracking-tight">Cambiare Corso?</h2>
+            <p className="text-[13px] text-gray-400 mb-8 font-medium leading-relaxed">
+              Verrai riportato all'onboarding. Tutte le tue <span className="text-white font-bold">note, materie extra e filtri</span> andranno persi se non hai salvato il codice di backup.
             </p>
-            <div className="flex gap-3">
-              <button 
-                onClick={() => setShowResetConfirm(false)}
-                className="flex-1 py-3.5 rounded-xl font-bold text-white bg-[#333] hover:bg-[#444] active:scale-95 transition-all"
-              >
-                Annulla
-              </button>
+            <div className="flex flex-col gap-3">
               <button 
                 onClick={handleReset}
-                className="flex-1 py-3.5 rounded-xl font-black text-[#121212] bg-[#c48e12] hover:bg-[#d89e17] active:scale-95 transition-all shadow-lg shadow-[#c48e12]/20"
+                className="w-full py-4.5 rounded-[1.25rem] font-black text-[#121212] bg-red-500 hover:bg-red-600 active:scale-95 transition-all shadow-lg shadow-red-500/20 uppercase tracking-widest text-sm"
               >
-                Conferma
+                Sì, Resetta Tutto
+              </button>
+              <button 
+                onClick={() => setShowResetConfirm(false)}
+                className="w-full py-4 rounded-[1.25rem] font-bold text-gray-400 bg-transparent hover:text-white transition-colors active:scale-95 text-sm"
+              >
+                Annulla
               </button>
             </div>
           </div>

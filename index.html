@@ -11,10 +11,34 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="NextLesson" />
-    <meta name="theme-color" content="#121212" />
+    <meta name="theme-color" content="#121212" id="theme-color-meta" />
+    <script>
+      (function() {
+        const theme = localStorage.getItem('theme') || 'dark';
+        const root = document.documentElement;
+        if (theme === 'system') {
+          const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          root.classList.add(isDark ? 'dark' : 'light');
+        } else {
+          root.classList.add(theme);
+        }
+        
+        // Aggiorna il colore della barra di stato
+        const isLight = root.classList.contains('light');
+        document.getElementById('theme-color-meta').setAttribute('content', isLight ? '#fcfcfc' : '#121212');
+      })();
+    </script>
     <title>NextLesson UniSalento</title>
   </head>
-  <body class="bg-[#121212] overflow-y-scroll overflow-x-hidden">
+  <body class="overflow-y-scroll overflow-x-hidden" style="background-color: #121212;">
+    <script>
+      // Sincronizza immediatamente il colore di sfondo del body per evitare flash
+      (function() {
+        const theme = localStorage.getItem('theme') || 'dark';
+        const isLight = theme === 'light' || (theme === 'system' && !window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (isLight) document.body.style.backgroundColor = '#fcfcfc';
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
