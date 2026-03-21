@@ -138,7 +138,7 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
               <button 
                 onClick={() => setIsNoteOpen(!isNoteOpen)}
                 className={`absolute top-0 right-0 p-2 rounded-xl border transition-all active:scale-95 flex items-center justify-center ${
-                  hasNote || materiaColor
+                  hasNote
                     ? 'bg-[#c48e12]/15 border-[#c48e12] text-[#c48e12] shadow-[0_0_12px_rgba(196,142,18,0.25)]' 
                     : 'bg-[#1a1a1a] border-[#333] text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
                 }`}

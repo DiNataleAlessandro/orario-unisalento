@@ -54,7 +54,13 @@ export const useLessons = ({ corsoCodice, annoCodice, refreshCount }: UseLessons
       try {
         setInCaricamento(true);
         setErrore(null);
-        const isForced = refreshCount > 0; 
+
+        // Auto-refresh se i dati sono più vecchi di 12 ore
+        const lastUpdateTs = localStorage.getItem('ultimoAggiornamentoTimestamp');
+        const twelveHoursInMs = 12 * 60 * 60 * 1000;
+        const isOldData = lastUpdateTs ? (Date.now() - Number(lastUpdateTs) > twelveHoursInMs) : true;
+
+        const isForced = refreshCount > 0 || isOldData; 
         const dataRiferimento = new Date(); 
 
         const nextWeekDate = new Date(dataRiferimento);
@@ -134,6 +140,7 @@ export const useLessons = ({ corsoCodice, annoCodice, refreshCount }: UseLessons
           if (isForced || !ultimoAggiornamento) {
             const now = new Date().toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
             localStorage.setItem('ultimoAggiornamento', now);
+            localStorage.setItem('ultimoAggiornamentoTimestamp', Date.now().toString());
             setUltimoAggiornamento(now);
           }
         } else {
