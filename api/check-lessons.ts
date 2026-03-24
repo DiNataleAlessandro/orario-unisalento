@@ -230,10 +230,23 @@ export default async function handler(req, res) {
 
             if (!schedule?.celle) continue;
 
+            const isMainCourse = course.codice === corsi.corso.codice && course.anno === corsi.corso.annoCodice;
+
             for (const cell of schedule.celle) {
               if (!isValidLesson(cell)) continue;
 
-              const cleanMateria = cell.nome_insegnamento.replace(/<[^>]+>/g, '').trim();
+              const cleanMateria = cell.nome_insegnamento.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
+              
+              // Se è un corso extra (diverso dal principale), notifica solo se la materia è tra quelle scelte
+              if (!isMainCourse) {
+                const isRequestedExtra = corsi.materieExtra?.some(m => 
+                  m.materiaNome === cleanMateria && 
+                  m.corsoCodice === course.codice && 
+                  m.annoCodice === course.anno
+                );
+                if (!isRequestedExtra) continue;
+              }
+
               if (corsi.blacklist?.includes(cleanMateria)) continue;
 
               const [startTimeStr] = cell.orario.split(' - ');
