@@ -117,14 +117,15 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
 
   const hasNote = noteText.trim().length > 0;
   const isAnnullata = lezione.isAnnullata;
-  const currentBorderColor = isAnnullata ? 'bg-red-500' : (materiaColor || (isLive ? 'bg-[#c48e12]' : 'bg-[#333]'));
+  const isActuallyLive = isLive && !isAnnullata;
+  const currentBorderColor = isAnnullata ? 'bg-red-500' : (materiaColor || (isActuallyLive ? 'bg-[#c48e12]' : 'bg-[#333]'));
 
   return (
     <>
       <div className={`p-5 rounded-2xl shadow-lg flex flex-col relative overflow-hidden border transition-transform hover:scale-[1.02] ${
         isAnnullata
           ? 'bg-[#1a1515] border-red-500/20 opacity-80'
-          : isLive 
+          : isActuallyLive 
             ? 'bg-gradient-to-br from-[#2a2215] to-[#1a150c] border-[#c48e12]/30 shadow-xl' 
             : 'bg-[#212121] border-[#333]'
       }`}>
@@ -133,43 +134,45 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
         <div className="relative flex flex-col w-full pb-1">
           <div className="flex justify-between items-start pl-2">
               <div className="flex flex-col gap-1 pr-14">
-                <h2 className={`font-bold leading-tight ${isLive ? 'text-xl' : 'text-lg'} ${isAnnullata ? 'text-red-400 line-through' : 'text-white'}`}>
+                <h2 className={`font-bold leading-tight ${isActuallyLive ? 'text-xl' : 'text-lg'} ${isAnnullata ? 'text-red-400/60 line-through' : 'text-white'}`}>
                   {cleanSubjectName}
                 </h2>
-                {isAnnullata && (
-                  <span className="text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                    Lezione Annullata
-                  </span>
-                )}
               </div>
               
-              <button 
-                onClick={() => setIsNoteOpen(!isNoteOpen)}
-                className={`absolute top-0 right-0 p-2 rounded-xl border transition-all active:scale-95 flex items-center justify-center ${
-                  hasNote
-                    ? 'bg-[#c48e12]/15 border-[#c48e12] text-[#c48e12] shadow-[0_0_12px_rgba(196,142,18,0.25)]' 
-                    : 'bg-[#1a1a1a] border-[#333] text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
-                }`}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="currentColor" className="w-5 h-5">
-                  <path d="M738.1 166.4H285.9c-66.3 0-120 53.7-120 120v452.2c0 66.3 53.7 120 120 120h452.2c66.3 0 120-53.7 120-120V286.4c0-66.3-53.7-120-120-120zM352.3 80c26.5 0 48 21.5 48 48v86.4c0 26.5-21.5 48-48 48s-48-21.5-48-48V128c0-26.5 21.5-48 48-48zm160 0c26.5 0 48 21.5 48 48v86.4c0 26.5-21.5 48-48 48s-48-21.5-48-48V128c0-26.5 21.5-48 48-48zm160 0c26.5 0 48 21.5 48 48v86.4c0 26.5-21.5 48-48 48s-48-21.5-48-48V128c0-26.5 21.5-48 48-48zM706.1 418.4H317.9c-26.5 0-48-21.5-48-48s21.5-48 48-48h388.2c26.5 0 48 21.5 48 48s-21.5 48-48 48zM608.1 590.4H317.9c-26.5 0-48-21.5-48-48s21.5-48 48-48h290.2c26.5 0 48 21.5 48 48s-21.5 48-48 48z" />
-                </svg>
-              </button>
+              <div className="absolute top-0 right-0 flex items-center gap-2">
+                {isAnnullata && (
+                  <div className="bg-red-500/10 border border-red-500/30 px-2 py-1 rounded-lg flex items-center gap-1.5 shadow-[0_0_10px_rgba(239,68,68,0.1)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                    <span className="text-[9px] font-black text-red-500 uppercase tracking-widest">Annullata</span>
+                  </div>
+                )}
+                <button 
+                  onClick={() => setIsNoteOpen(!isNoteOpen)}
+                  className={`p-2 rounded-xl border transition-all active:scale-95 flex items-center justify-center ${
+                    hasNote
+                      ? 'bg-[#c48e12]/15 border-[#c48e12] text-[#c48e12] shadow-[0_0_12px_rgba(196,142,18,0.25)]' 
+                      : 'bg-[#1a1a1a] border-[#333] text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
+                  }`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="currentColor" className="w-5 h-5">
+                    <path d="M738.1 166.4H285.9c-66.3 0-120 53.7-120 120v452.2c0 66.3 53.7 120 120 120h452.2c66.3 0 120-53.7 120-120V286.4c0-66.3-53.7-120-120-120zM352.3 80c26.5 0 48 21.5 48 48v86.4c0 26.5-21.5 48-48 48s-48-21.5-48-48V128c0-26.5 21.5-48 48-48zm160 0c26.5 0 48 21.5 48 48v86.4c0 26.5-21.5 48-48 48s-48-21.5-48-48V128c0-26.5 21.5-48 48-48zm160 0c26.5 0 48 21.5 48 48v86.4c0 26.5-21.5 48-48 48s-48-21.5-48-48V128c0-26.5 21.5-48 48-48zM706.1 418.4H317.9c-26.5 0-48-21.5-48-48s21.5-48 48-48h388.2c26.5 0 48 21.5 48 48s-21.5 48-48 48zM608.1 590.4H317.9c-26.5 0-48-21.5-48-48s21.5-48 48-48h290.2c26.5 0 48 21.5 48 48s-21.5 48-48 48z" />
+                  </svg>
+                </button>
+              </div>
           </div>
           
-          <div className={`pl-2 flex flex-col gap-1.5 mt-2 text-sm ${isLive ? 'text-[#e8d5a5]' : 'text-gray-400'}`}>
+          <div className={`pl-2 flex flex-col gap-1.5 mt-2 text-sm ${isActuallyLive ? 'text-[#e8d5a5]' : 'text-gray-400'}`}>
               <p className="flex items-center gap-2">
-                <span className={isLive ? 'opacity-80' : 'opacity-70'}>🕒</span> 
-                <span className={`font-medium ${isLive ? 'text-[#c48e12] font-bold' : 'text-gray-200'}`}>{lezione.orario}</span>
+                <span className={isActuallyLive ? 'opacity-80' : 'opacity-70'}>🕒</span> 
+                <span className={`font-medium ${isActuallyLive ? 'text-[#c48e12] font-bold' : 'text-gray-200'}`}>{lezione.orario}</span>
               </p>
               <p className="flex items-center gap-2">
-                <span className={isLive ? 'opacity-80' : 'opacity-70'}>📍</span> 
+                <span className={isActuallyLive ? 'opacity-80' : 'opacity-70'}>📍</span> 
                 {coords ? (
                   <button 
                     onClick={() => setLocationModal({ name: sedeName, ...coords })}
                     className={`font-medium text-left underline decoration-2 underline-offset-4 transition-colors ${
-                      isLive 
+                      isActuallyLive 
                         ? 'text-[#c48e12] hover:text-white decoration-[#c48e12]/30 hover:decoration-white' 
                         : 'text-gray-200 hover:text-white decoration-white/20 hover:decoration-white'
                     }`}
