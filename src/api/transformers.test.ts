@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseDocenteEmail, getProfessorsData, cleanHtmlTags, formatSubjectName, toTitleCase } from './transformers';
+import { parseDocenteEmail, getProfessorsData, cleanHtmlTags, formatSubjectName, toTitleCase, isAnnullata } from './transformers';
 
 describe('transformers', () => {
   describe('parseDocenteEmail', () => {
@@ -79,6 +79,35 @@ describe('transformers', () => {
 
     it('should trim and handle multiple spaces', () => {
       expect(formatSubjectName('  Analisi    Matematica  ')).toBe('ANALISI MATEMATICA');
+    });
+  });
+
+  describe('isAnnullata', () => {
+    it('should return true if annullata flag is "1"', () => {
+      expect(isAnnullata({ annullata: '1' })).toBe(true);
+    });
+
+    it('should return true if is_annullata flag is "1"', () => {
+      expect(isAnnullata({ is_annullata: '1' })).toBe(true);
+    });
+
+    it('should return true if Annullato flag is "1"', () => {
+      expect(isAnnullata({ Annullato: '1' })).toBe(true);
+    });
+
+    it('should return true if stato is "annullata"', () => {
+      expect(isAnnullata({ stato: 'annullata' })).toBe(true);
+      expect(isAnnullata({ stato: 'ANNULLATA' })).toBe(true);
+    });
+
+    it('should return true if name contains (annullata)', () => {
+      expect(isAnnullata({ nome_insegnamento: 'Analisi (annullata)' })).toBe(true);
+      expect(isAnnullata({ nome_insegnamento: 'Analisi (ANNULLATO)' })).toBe(true);
+    });
+
+    it('should return false if not annullata', () => {
+      expect(isAnnullata({ nome_insegnamento: 'Analisi' })).toBe(false);
+      expect(isAnnullata({ stato: 'attiva' })).toBe(false);
     });
   });
 });

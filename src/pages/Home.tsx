@@ -87,7 +87,7 @@ export default function Home() {
   const filteredLessons = lezioni.filter(l => !blacklist.includes(cleanHtmlTags(l.nome_insegnamento)));
 
   const liveLessons = filteredLessons.filter(lezione => {
-    if (!lezione.inizioDateObj || !lezione.fineDateObj) return false;
+    if (!lezione.inizioDateObj || !lezione.fineDateObj || lezione.isAnnullata) return false;
     return lezione.inizioDateObj <= oraAttuale && lezione.fineDateObj > oraAttuale;
   });
 

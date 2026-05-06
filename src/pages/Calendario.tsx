@@ -7,7 +7,7 @@ import 'react-day-picker/dist/style.css';
 import CardLezione from '@/components/features/CardLezione';
 import type { Lezione } from '@/types/lezione';
 import { formatDateForAPI } from '@/utils/date';
-import { cleanHtmlTags, isValidLesson } from '@/api/transformers';
+import { cleanHtmlTags, isValidLesson, isAnnullata } from '@/api/transformers';
 import BottomNavbar from '@/components/common/BottomNavbar';
 
 const parseDataString = (dStr: string) => {
@@ -153,7 +153,7 @@ export default function Calendario() {
                 const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
                 
                 const cleanMail = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
-                return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
+                return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail, isAnnullata: isAnnullata(lezione) };
               } catch (e) {
                 return null;
               }
@@ -277,7 +277,7 @@ export default function Calendario() {
             const fineDateObj = new Date(Number(annoStr), Number(mese) - 1, Number(giorno), Number(oraFine), Number(minFine));
             
             const cleanMail = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
-            return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
+            return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail, isAnnullata: isAnnullata(lezione) };
           } catch (err) {
             return null;
           }
@@ -315,7 +315,7 @@ export default function Calendario() {
       let icsContent = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//NextLesson UniSalento//IT\r\n";
 
       lezioniUniche.forEach(lezione => {
-        if (!lezione.inizioDateObj || !lezione.fineDateObj) return;
+        if (!lezione.inizioDateObj || !lezione.fineDateObj || lezione.isAnnullata) return;
 
         const start = lezione.inizioDateObj.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
         const end = lezione.fineDateObj.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
