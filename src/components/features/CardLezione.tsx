@@ -140,12 +140,6 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
               </div>
               
               <div className="absolute top-0 right-0 flex items-center gap-2">
-                {isAnnullata && (
-                  <div className="bg-red-500/10 border border-red-500/30 px-2 py-1 rounded-lg flex items-center gap-1.5 shadow-[0_0_10px_rgba(239,68,68,0.1)]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                    <span className="text-[9px] font-black text-red-500 uppercase tracking-widest">Annullata</span>
-                  </div>
-                )}
                 <button 
                   onClick={() => setIsNoteOpen(!isNoteOpen)}
                   className={`p-2 rounded-xl border transition-all active:scale-95 flex items-center justify-center ${
@@ -215,22 +209,30 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
               )}
           </div>
 
-          {isExtra && !isSingleLesson && (
-            <div className="absolute bottom-0 right-0 flex items-center gap-1.5 opacity-50 pointer-events-none select-none">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-[#c48e12]">
-                <path fillRule="evenodd" d="M9 4.5a.75.75 0 01.721.544l.813 2.846a3.75 3.75 0 002.576 2.576l2.846.813a.75.75 0 010 1.442l-2.846.813a3.75 3.75 0 00-2.576 2.576l-.813 2.846a.75.75 0 01-1.442 0l-.813-2.846a3.75 3.75 0 00-2.576-2.576l-2.846-.813a.75.75 0 010-1.442l2.846-.813A3.75 3.75 0 007.466 7.89l.813-2.846A.75.75 0 019 4.5zM18 1.5a.75.75 0 01.728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 010 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 01-1.456 0l-.258-1.036a2.625 2.625 0 00-1.91-1.91l-1.036-.258a.75.75 0 010-1.456l1.036-.258a2.625 2.625 0 001.91-1.91l.258-1.036A.75.75 0 0118 1.5zM16.5 15a.75.75 0 01.712.513l.394 1.183c.15.447.5.799.948.948l1.183.395a.75.75 0 010 1.422l-1.183.395c-.447.15-.799.5-.948.948l-.395 1.183a.75.75 0 01-1.422 0l-.395-1.183a1.5 1.5 0 00-.948-.948l-1.183-.395a.75.75 0 010-1.422l1.183-.395c.447-.15.799-.5.948-.948l.395-1.183A.75.75 0 0116.5 15z" clipRule="evenodd" />
-              </svg>
-              <span className="text-[10px] font-bold text-[#c48e12] uppercase tracking-[0.2em] mt-[1px]">A SCELTA</span>
-            </div>
-          )}
-          {isSingleLesson && (
-            <div className="absolute bottom-0 right-0 flex items-center gap-1 opacity-50 pointer-events-none select-none">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-[#c48e12] mt-[1.5px]">
-                <path d="M10.75 4.75a1.25 1.25 0 00-2.5 0v4.5h-4.5a1.25 1.25 0 000 2.5h4.5v4.5a1.25 1.25 0 002.5 0v-4.5h4.5a1.25 1.25 0 000-2.5h-4.5v-4.5z" />
-              </svg>
-              <span className="text-[10px] font-bold text-[#c48e12] uppercase tracking-[0.2em] leading-none">Extra</span>
-            </div>
-          )}
+          <div className="absolute bottom-0 right-0 flex items-center gap-2">
+            {isAnnullata && (
+              <div className="flex items-center gap-1.5 opacity-80 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-md">
+                <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse"></span>
+                <span className="text-[9px] font-black text-red-500 uppercase tracking-widest mt-[0.5px]">Annullata</span>
+              </div>
+            )}
+            {isExtra && !isSingleLesson && (
+              <div className="flex items-center gap-1.5 opacity-50 pointer-events-none select-none">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-[#c48e12]">
+                  <path fillRule="evenodd" d="M9 4.5a.75.75 0 01.721.544l.813 2.846a3.75 3.75 0 002.576 2.576l2.846.813a.75.75 0 010 1.442l-2.846.813a3.75 3.75 0 00-2.576 2.576l-.813 2.846a.75.75 0 01-1.442 0l-.813-2.846a3.75 3.75 0 00-2.576-2.576l-2.846-.813a.75.75 0 010-1.442l2.846-.813A3.75 3.75 0 007.466 7.89l.813-2.846A.75.75 0 019 4.5zM18 1.5a.75.75 0 01.728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 010 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 01-1.456 0l-.258-1.036a2.625 2.625 0 00-1.91-1.91l-1.036-.258a.75.75 0 010-1.456l1.036-.258a2.625 2.625 0 001.91-1.91l.258-1.036A.75.75 0 0118 1.5zM16.5 15a.75.75 0 01.712.513l.394 1.183c.15.447.5.799.948.948l1.183.395a.75.75 0 010 1.422l-1.183.395c-.447.15-.799.5-.948.948l-.395 1.183a.75.75 0 01-1.422 0l-.395-1.183a1.5 1.5 0 00-.948-.948l-1.183-.395a.75.75 0 010-1.422l1.183-.395c.447-.15.799-.5.948-.948l.395-1.183A.75.75 0 0116.5 15z" clipRule="evenodd" />
+                </svg>
+                <span className="text-[10px] font-bold text-[#c48e12] uppercase tracking-[0.2em] mt-[1px]">A SCELTA</span>
+              </div>
+            )}
+            {isSingleLesson && (
+              <div className="flex items-center gap-1 opacity-50 pointer-events-none select-none">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-[#c48e12] mt-[1.5px]">
+                  <path d="M10.75 4.75a1.25 1.25 0 00-2.5 0v4.5h-4.5a1.25 1.25 0 000 2.5h4.5v4.5a1.25 1.25 0 002.5 0v-4.5h4.5a1.25 1.25 0 000-2.5h-4.5v-4.5z" />
+                </svg>
+                <span className="text-[10px] font-bold text-[#c48e12] uppercase tracking-[0.2em] leading-none">Extra</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {isNoteOpen && (
