@@ -116,23 +116,32 @@ export default function CardLezione({ lezione, isLive = false }: CardLezioneProp
   })();
 
   const hasNote = noteText.trim().length > 0;
-  const currentBorderColor = materiaColor || (isLive ? 'bg-[#c48e12]' : 'bg-[#333]');
+  const isAnnullata = lezione.isAnnullata;
+  const currentBorderColor = isAnnullata ? 'bg-red-500' : (materiaColor || (isLive ? 'bg-[#c48e12]' : 'bg-[#333]'));
 
   return (
     <>
       <div className={`p-5 rounded-2xl shadow-lg flex flex-col relative overflow-hidden border transition-transform hover:scale-[1.02] ${
-        isLive 
-          ? 'bg-gradient-to-br from-[#2a2215] to-[#1a150c] border-[#c48e12]/30 shadow-xl' 
-          : 'bg-[#212121] border-[#333]'
+        isAnnullata
+          ? 'bg-[#1a1515] border-red-500/20 opacity-80'
+          : isLive 
+            ? 'bg-gradient-to-br from-[#2a2215] to-[#1a150c] border-[#c48e12]/30 shadow-xl' 
+            : 'bg-[#212121] border-[#333]'
       }`}>
         <div className={`absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl ${currentBorderColor}`}></div>
         
         <div className="relative flex flex-col w-full pb-1">
           <div className="flex justify-between items-start pl-2">
               <div className="flex flex-col gap-1 pr-14">
-                <h2 className={`font-bold leading-tight ${isLive ? 'text-xl' : 'text-lg'} text-white`}>
+                <h2 className={`font-bold leading-tight ${isLive ? 'text-xl' : 'text-lg'} ${isAnnullata ? 'text-red-400 line-through' : 'text-white'}`}>
                   {cleanSubjectName}
                 </h2>
+                {isAnnullata && (
+                  <span className="text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                    Lezione Annullata
+                  </span>
+                )}
               </div>
               
               <button 

@@ -20,6 +20,7 @@ interface Evento {
   oraFine?: string;
   inizioDate?: Date;
   fineDate?: Date;
+  isAnnullata?: boolean;
 }
 
 interface Aula {
@@ -498,7 +499,9 @@ export default function Aule() {
                       const evColor = ev.stato === 'libera' ? '#22c55e' : getColoreEvento(ev.tipo);
                       return (
                         <div key={idx} className={`flex items-start gap-4 p-3.5 rounded-xl border transition-all ${
-                          ev.stato === 'libera' ? 'bg-transparent border-[#222] opacity-40' : 'bg-[#1a1a1a] border-[#333] shadow-sm'
+                          ev.isAnnullata ? 'bg-[#ef4444]/5 border-[#ef4444]/20' : 
+                          ev.stato === 'libera' ? 'bg-transparent border-[#222] opacity-40' : 
+                          'bg-[#1a1a1a] border-[#333] shadow-sm'
                         }`}>
                           <div className="text-[10px] font-black text-gray-500 w-20 shrink-0 border-r border-[#333] pr-3 flex flex-col items-center pt-1">
                             <span className="text-white text-[11px]">{ev.oraInizio}</span>
@@ -507,12 +510,12 @@ export default function Aule() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start gap-2">
-                              {ev.stato === 'occupata' && ev.tipo && (
+                              {(ev.stato === 'occupata' || ev.isAnnullata) && ev.tipo && (
                                 <div 
                                   className="text-[9px] font-black uppercase tracking-widest mb-1"
-                                  style={{ color: evColor }}
+                                  style={{ color: ev.isAnnullata ? '#ef4444' : evColor }}
                                 >
-                                  {ev.tipo}
+                                  {ev.isAnnullata ? 'ANNULLATA' : ev.tipo}
                                 </div>
                               )}
                               {ev.stato === 'occupata' && (
@@ -540,10 +543,14 @@ export default function Aule() {
                                 </button>
                               )}
                             </div>
-                            <div className={`text-[12px] font-bold leading-snug ${ev.stato === 'libera' ? 'text-green-500/60 italic font-medium' : 'text-gray-200'}`}>
+                            <div className={`text-[12px] font-bold leading-snug ${
+                              ev.isAnnullata ? 'text-[#ef4444] line-through' :
+                              ev.stato === 'libera' ? 'text-green-500/60 italic font-medium' : 
+                              'text-gray-200'
+                            }`}>
                               {ev.testo}
                             </div>
-                            {ev.stato === 'occupata' && ev.corso && (
+                            {(ev.stato === 'occupata' || ev.isAnnullata) && ev.corso && (
                               <p className="text-[9px] text-gray-500 font-bold mt-1 uppercase tracking-tight line-clamp-none whitespace-pre-wrap">
                                 {ev.corso}
                               </p>

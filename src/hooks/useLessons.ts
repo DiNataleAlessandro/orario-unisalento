@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Lezione } from '@/types/lezione';
 import { fetchSingleWeek } from '@/api/unisalento';
-import { cleanHtmlTags, isValidLesson } from '@/api/transformers';
+import { cleanHtmlTags, isValidLesson, isAnnullata } from '@/api/transformers';
 
 interface UseLessonsProps {
   corsoCodice: string;
@@ -121,7 +121,9 @@ export const useLessons = ({ corsoCodice, annoCodice, refreshCount }: UseLessons
 
                 const cleanMail = lezione.mail_docente ? lezione.mail_docente.split(',').map((m: string) => m.trim()).filter(Boolean).join(',') : '';
 
-                return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail };
+                const cancelled = isAnnullata(lezione);
+
+                return { ...lezione, inizioDateObj, fineDateObj, mail_docente: cleanMail, isAnnullata: cancelled };
               } catch (e) {
                 console.error("Errore nel parsing della lezione:", lezione, e);
                 return null;

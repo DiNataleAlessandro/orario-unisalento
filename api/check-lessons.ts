@@ -98,6 +98,19 @@ function isValidLesson(cell) {
   );
 }
 
+function isAnnullata(cell) {
+  if (!cell) return false;
+  const name = (cell.nome_insegnamento || cell.name || cell.nome || '').replace(/<[^>]+>/g, '').toLowerCase();
+  return (
+    cell.annullata === '1' || 
+    cell.is_annullata === '1' || 
+    cell.Annullato === '1' ||
+    String(cell.stato || cell.stato_lezione).toLowerCase() === 'annullata' ||
+    name.includes('(annullata)') ||
+    name.includes('(annullato)')
+  );
+}
+
 export default async function handler(req, res) {
   const protocol = req.headers['x-forwarded-proto'] || 'http';
   const fullUrl = new URL(req.url!, `${protocol}://${req.headers.host}`);
@@ -166,6 +179,7 @@ export default async function handler(req, res) {
           const singleLessons = corsi.lezioniSingolePrenotate || [];
           for (const single of singleLessons) {
             if (single.data !== todayStr || !isValidLesson(single)) continue;
+            if (isAnnullata(single)) continue; // Skip cancelled lessons
 
             const [startTimeStr] = single.orario.split(' - ');
             const [ore, min] = startTimeStr.split(':');
@@ -234,6 +248,7 @@ export default async function handler(req, res) {
 
             for (const cell of schedule.celle) {
               if (!isValidLesson(cell)) continue;
+              if (isAnnullata(cell)) continue; // Skip cancelled lessons
 
               const cleanMateria = cell.nome_insegnamento.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
               

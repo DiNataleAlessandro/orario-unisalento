@@ -58,15 +58,28 @@ export const formatSubjectName = (name: string): string => {
 
 export const isValidLesson = (lezione: any): boolean => {
   if (!lezione) return false;
-  const name = cleanHtmlTags(lezione.nome_insegnamento);
+  const name = cleanHtmlTags(lezione.nome_insegnamento || lezione.name || lezione.nome);
   return !!(
     name && 
     name.toLowerCase() !== 'undefined' && 
     name.trim() !== '' && 
-    lezione.orario && 
-    lezione.orario.includes(' - ') &&
-    lezione.data &&
-    lezione.data.includes('-') &&
-    lezione.nome_giorno
+    (lezione.orario || (lezione.timestamp_from && lezione.timestamp_to)) &&
+    (lezione.data || lezione.Giorno)
+  );
+};
+
+export const isAnnullata = (lezione: any): boolean => {
+  if (!lezione) return false;
+  
+  const name = cleanHtmlTags(lezione.nome_insegnamento || lezione.name || lezione.nome || '').toLowerCase();
+  const stato = String(lezione.stato || lezione.stato_lezione || '').toLowerCase();
+  
+  return (
+    lezione.annullata === '1' || 
+    lezione.is_annullata === '1' || 
+    lezione.Annullato === '1' ||
+    stato === 'annullata' ||
+    name.includes('(annullata)') ||
+    name.includes('(annullato)')
   );
 };

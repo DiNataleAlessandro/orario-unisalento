@@ -10,6 +10,7 @@ export interface Lezione {
   fineDateObj?: Date;
   mail_docente?: string;
   buildingName?: string;
+  isAnnullata?: boolean;
 }
 
 export interface ProfessorData {

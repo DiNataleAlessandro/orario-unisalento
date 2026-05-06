@@ -115,6 +115,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             anno = ''; 
           }
 
+          const isAnnullata = 
+            ev.annullata === '1' || 
+            ev.is_annullata === '1' || 
+            ev.Annullato === '1' ||
+            String(ev.stato || '').toLowerCase() === 'annullata' ||
+            String(ev.name || ev.nome || '').toLowerCase().includes('(annullata)') ||
+            String(ev.name || ev.nome || '').toLowerCase().includes('(annullato)');
+
           return {
             testo: ev.name || ev.nome || 'Evento senza nome',
             tipo: ev.tipo || ev.type || 'Evento',
@@ -122,7 +130,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             anno: anno,
             timestamp_from: ev.timestamp_from,
             timestamp_to: ev.timestamp_to,
-            stato: 'occupata'
+            stato: isAnnullata ? 'libera' : 'occupata',
+            isAnnullata: isAnnullata
           };
         });
 
