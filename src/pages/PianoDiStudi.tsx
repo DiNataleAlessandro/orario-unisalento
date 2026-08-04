@@ -60,7 +60,8 @@ export default function PianoDiStudi() {
         formData.append('view', 'easycourse');
         formData.append('form-type', 'corso');
         formData.append('include', 'corso');
-        formData.append('txtcurr', '1 - Percorso comune');
+        const txtcurr = annoObj.label.split(',')[0].trim();
+        formData.append('txtcurr', txtcurr);
         formData.append('anno', getAcademicYear(dataTarget)); 
         formData.append('corso', annoObj.codiceCorsoReale); 
         formData.append('anno2[]', annoObj.valore); 

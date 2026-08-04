@@ -7,9 +7,10 @@ export interface FetchWeekParams {
   corsoCodice: string;
   annoCodice: string;
   isForced?: boolean;
+  txtcurr?: string;
 }
 
-export const fetchSingleWeek = async ({ dataTarget, corsoCodice, annoCodice, isForced = false }: FetchWeekParams) => {
+export const fetchSingleWeek = async ({ dataTarget, corsoCodice, annoCodice, isForced = false, txtcurr }: FetchWeekParams) => {
   const dataStr = formatDateForAPI(dataTarget);
   const cacheKey = `orario_${corsoCodice}_${annoCodice}_${dataStr}`;
   const cachedData = localStorage.getItem(cacheKey); 
@@ -20,11 +21,17 @@ export const fetchSingleWeek = async ({ dataTarget, corsoCodice, annoCodice, isF
     return cachedData ? JSON.parse(cachedData) : { celle: [] };
   }
 
+  let finalTxtcurr = txtcurr;
+  if (!finalTxtcurr) {
+    const annoNome = localStorage.getItem('annoNome');
+    finalTxtcurr = annoNome ? annoNome.split(',')[0].trim() : '1 - Percorso comune';
+  }
+
   const formData = new URLSearchParams();
   formData.append('view', 'easycourse');
   formData.append('form-type', 'corso');
   formData.append('include', 'corso');
-  formData.append('txtcurr', '1 - Percorso comune');
+  formData.append('txtcurr', finalTxtcurr);
   formData.append('anno', getAcademicYear(dataTarget)); 
   formData.append('corso', corsoCodice); 
   formData.append('anno2[]', annoCodice); 

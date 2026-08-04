@@ -37,12 +37,12 @@ function getAcademicYear(dateStr) {
   return month >= 7 ? String(year) : String(year - 1);
 }
 
-async function fetchUniversitySchedule(corsoCodice, annoCodice, dateStr) {
+async function fetchUniversitySchedule(corsoCodice, annoCodice, dateStr, txtcurr = '1 - Percorso comune') {
   const formData = new URLSearchParams();
   formData.append('view', 'easycourse');
   formData.append('form-type', 'corso');
   formData.append('include', 'corso');
-  formData.append('txtcurr', '1 - Percorso comune');
+  formData.append('txtcurr', txtcurr);
   formData.append('anno', getAcademicYear(dateStr)); 
   formData.append('corso', corsoCodice);
   formData.append('anno2[]', annoCodice);
@@ -233,9 +233,10 @@ export default async function handler(req, res) {
           }
 
           // --- CONTROLLO CORSI REGOLARI ---
+          const defaultTxtcurr = corsi.corso.annoNome ? corsi.corso.annoNome.split(',')[0].trim() : '1 - Percorso comune';
           const coursesToCheck = [
-            { codice: corsi.corso.codice, anno: corsi.corso.annoCodice },
-            ...(corsi.materieExtra || []).map(m => ({ codice: m.corsoCodice, anno: m.annoCodice }))
+            { codice: corsi.corso.codice, anno: corsi.corso.annoCodice, txtcurr: defaultTxtcurr },
+            ...(corsi.materieExtra || []).map(m => ({ codice: m.corsoCodice, anno: m.annoCodice, txtcurr: '1 - Percorso comune' }))
           ];
 
           const uniqueCourses = Array.from(new Map(coursesToCheck.map(c => [`${c.codice}-${c.anno}`, c])).values());
@@ -245,7 +246,7 @@ export default async function handler(req, res) {
             let schedule = localScheduleCache.get(cacheId);
             
             if (!schedule) {
-              schedule = await fetchUniversitySchedule(course.codice, course.anno, todayStr);
+              schedule = await fetchUniversitySchedule(course.codice, course.anno, todayStr, course.txtcurr);
               localScheduleCache.set(cacheId, schedule);
             }
 

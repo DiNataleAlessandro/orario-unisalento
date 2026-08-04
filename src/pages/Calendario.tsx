@@ -99,7 +99,9 @@ export default function Calendario() {
                     formData.append('view', 'easycourse');
                     formData.append('form-type', 'corso');
                     formData.append('include', 'corso');
-                    formData.append('txtcurr', '1 - Percorso comune');
+                    const annoNome = localStorage.getItem('annoNome');
+                    const txtcurr = annoNome ? annoNome.split(',')[0].trim() : '1 - Percorso comune';
+                    formData.append('txtcurr', txtcurr);
                     formData.append('anno', getAcademicYear(dataSelezionata)); 
                     formData.append('corso', target.corsoCodice); 
                     formData.append('anno2[]', target.annoCodice); 
@@ -223,7 +225,9 @@ export default function Calendario() {
           formData.append('view', 'easycourse');
           formData.append('form-type', 'corso');
           formData.append('include', 'corso');
-          formData.append('txtcurr', '1 - Percorso comune');
+          const annoNome = localStorage.getItem('annoNome');
+          const txtcurr = annoNome ? annoNome.split(',')[0].trim() : '1 - Percorso comune';
+          formData.append('txtcurr', txtcurr);
           const [g, m, a] = targetDate.split('-');
           const targetDateObj = new Date(Number(a), Number(m) - 1, Number(g));
           formData.append('anno', getAcademicYear(targetDateObj));
