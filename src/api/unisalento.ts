@@ -1,4 +1,4 @@
-import { formatDateForAPI } from '../utils/date';
+import { formatDateForAPI, getAcademicYear } from '../utils/date';
 
 const URL_API = '/api-unisalento/PortaleStudenti/grid_call.php';
 
@@ -25,7 +25,7 @@ export const fetchSingleWeek = async ({ dataTarget, corsoCodice, annoCodice, isF
   formData.append('form-type', 'corso');
   formData.append('include', 'corso');
   formData.append('txtcurr', '1 - Percorso comune');
-  formData.append('anno', '2025'); 
+  formData.append('anno', getAcademicYear(dataTarget)); 
   formData.append('corso', corsoCodice); 
   formData.append('anno2[]', annoCodice); 
   formData.append('visualizzazione_orario', 'cal');

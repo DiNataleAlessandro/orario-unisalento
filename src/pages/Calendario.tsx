@@ -6,7 +6,7 @@ import { it } from 'date-fns/locale';
 import 'react-day-picker/dist/style.css';
 import CardLezione from '@/components/features/CardLezione';
 import type { Lezione } from '@/types/lezione';
-import { formatDateForAPI } from '@/utils/date';
+import { formatDateForAPI, getAcademicYear } from '@/utils/date';
 import { cleanHtmlTags, isValidLesson, isAnnullata } from '@/api/transformers';
 import BottomNavbar from '@/components/common/BottomNavbar';
 
@@ -100,7 +100,7 @@ export default function Calendario() {
                     formData.append('form-type', 'corso');
                     formData.append('include', 'corso');
                     formData.append('txtcurr', '1 - Percorso comune');
-                    formData.append('anno', '2025'); 
+                    formData.append('anno', getAcademicYear(dataSelezionata)); 
                     formData.append('corso', target.corsoCodice); 
                     formData.append('anno2[]', target.annoCodice); 
                     formData.append('visualizzazione_orario', 'cal');
@@ -224,7 +224,9 @@ export default function Calendario() {
           formData.append('form-type', 'corso');
           formData.append('include', 'corso');
           formData.append('txtcurr', '1 - Percorso comune');
-          formData.append('anno', '2025');
+          const [g, m, a] = targetDate.split('-');
+          const targetDateObj = new Date(Number(a), Number(m) - 1, Number(g));
+          formData.append('anno', getAcademicYear(targetDateObj));
           formData.append('corso', cCodice);
           formData.append('anno2[]', aCodice);
           formData.append('visualizzazione_orario', 'cal');

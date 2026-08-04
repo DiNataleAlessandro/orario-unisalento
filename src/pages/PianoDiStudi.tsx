@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCourses } from '@/hooks/useCourses';
-import { formatDateForAPI } from '@/utils/date';
+import { formatDateForAPI, getAcademicYear } from '@/utils/date';
 import { cleanHtmlTags, isValidLesson } from '@/api/transformers';
 import Select from '@/components/common/Select';
 import BottomNavbar from '@/components/common/BottomNavbar';
@@ -61,7 +61,7 @@ export default function PianoDiStudi() {
         formData.append('form-type', 'corso');
         formData.append('include', 'corso');
         formData.append('txtcurr', '1 - Percorso comune');
-        formData.append('anno', '2025'); 
+        formData.append('anno', getAcademicYear(dataTarget)); 
         formData.append('corso', annoObj.codiceCorsoReale); 
         formData.append('anno2[]', annoObj.valore); 
         formData.append('visualizzazione_orario', 'cal');

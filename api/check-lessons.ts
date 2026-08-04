@@ -30,13 +30,20 @@ webpush.setVapidDetails(
   VAPID_PRIVATE_KEY
 );
 
+function getAcademicYear(dateStr) {
+  const [g, m, a] = dateStr.split('-');
+  const month = Number(m) - 1;
+  const year = Number(a);
+  return month >= 7 ? String(year) : String(year - 1);
+}
+
 async function fetchUniversitySchedule(corsoCodice, annoCodice, dateStr) {
   const formData = new URLSearchParams();
   formData.append('view', 'easycourse');
   formData.append('form-type', 'corso');
   formData.append('include', 'corso');
   formData.append('txtcurr', '1 - Percorso comune');
-  formData.append('anno', '2025'); 
+  formData.append('anno', getAcademicYear(dateStr)); 
   formData.append('corso', corsoCodice);
   formData.append('anno2[]', annoCodice);
   formData.append('visualizzazione_orario', 'cal');
