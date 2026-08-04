@@ -4,6 +4,7 @@ export interface Anno {
   label: string;
   valore: string;
   codiceCorsoReale: string;
+  insegnamenti: string[];
 }
 
 export interface Corso {
@@ -48,12 +49,19 @@ export const useCourses = () => {
           (item.elenco_anni || []).forEach((annoNuovo: any) => {
             const annoEsistente = corsoEsistente.tutti_gli_anni.find(a => a.label === annoNuovo.label);
             
+            const insegnamentiPuliti = Array.isArray(annoNuovo.elenco_insegnamenti) 
+              ? annoNuovo.elenco_insegnamenti.map((ins: any) => ins.label)
+              : [];
+
             if (!annoEsistente) {
               corsoEsistente.tutti_gli_anni.push({
                 label: annoNuovo.label,
                 valore: annoNuovo.valore,
-                codiceCorsoReale: item.valore 
+                codiceCorsoReale: item.valore,
+                insegnamenti: insegnamentiPuliti
               });
+            } else if (annoEsistente.insegnamenti.length === 0 && insegnamentiPuliti.length > 0) {
+              annoEsistente.insegnamenti = insegnamentiPuliti;
             }
           });
         });

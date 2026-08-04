@@ -52,71 +52,16 @@ export default function PianoDiStudi() {
     setMaterieTrovate([]);
     setMaterieSpuntate([]);
 
-    try {
-      const urlAPI = '/api-unisalento/PortaleStudenti/grid_call.php';
-      
-      const fetchWeek = async (dataTarget: Date) => {
-        const formData = new URLSearchParams();
-        formData.append('view', 'easycourse');
-        formData.append('form-type', 'corso');
-        formData.append('include', 'corso');
-        const txtcurr = annoObj.label.split(',')[0].trim();
-        formData.append('txtcurr', txtcurr);
-        formData.append('anno', getAcademicYear(dataTarget)); 
-        formData.append('corso', annoObj.codiceCorsoReale); 
-        formData.append('anno2[]', annoObj.valore); 
-        formData.append('visualizzazione_orario', 'cal');
-        formData.append('date', formatDateForAPI(dataTarget)); 
-        formData.append('_lang', 'it');
-        formData.append('week_grid_type', '-1');
-        formData.append('col_cells', '0');
-        formData.append('empty_box', '0');
-        formData.append('only_grid', '0');
-        formData.append('highlighted_date', '0');
-        formData.append('all_events', '0');
-        formData.append('faculty_group', '0');
-
-        try {
-          const response = await fetch(urlAPI, { method: 'POST', body: formData, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' } });
-          
-          if (!response.ok) return { celle: [] };
-          
-          const text = await response.text();
-          try {
-            return JSON.parse(text);
-          } catch (parseError) {
-            return { celle: [] };
-          }
-        } catch (networkError) {
-          return { celle: [] };
-        }
-      };
-
-      const dataOggi = new Date();
-      const dataProssima = new Date(); dataProssima.setDate(dataProssima.getDate() + 7);
-
-      const [res1, res2] = await Promise.all([ fetchWeek(dataOggi), fetchWeek(dataProssima) ]);
-      
-      let allCells: any[] = [];
-      if (res1?.celle) allCells = [...allCells, ...res1.celle];
-      if (res2?.celle) allCells = [...allCells, ...res2.celle];
-
-      const uniqueSubjects = Array.from(new Set(
-        allCells
-          .filter(isValidLesson)
-          .map((c: any) => cleanHtmlTags(c.nome_insegnamento))
-      )).sort();
+    setTimeout(() => {
+      const uniqueSubjects = (annoObj.insegnamenti || []).sort();
       
       if (uniqueSubjects.length === 0) {
-        showToast("Nessuna materia trovata (orario non pubblicato).", "error");
+        showToast("Nessuna materia trovata (elenco non pubblicato).", "error");
       }
       
       setMaterieTrovate(uniqueSubjects);
-    } catch (e) {
-      showToast("📶 Errore di connessione. Riprova più tardi.", "error");
-    } finally {
       setInCaricamento(false);
-    }
+    }, 300); // Piccolo ritardo per feedback visivo
   };
 
   const toggleSpunta = (materia: string) => {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CardLezione from '@/components/features/CardLezione';
 import { useLessons } from '@/hooks/useLessons';
+import { useCourses } from '@/hooks/useCourses';
 import { useNotifications } from '@/hooks/useNotifications';
 import { formatDateForAPI } from '@/utils/date';
 import type { Lezione } from '@/types/lezione';
@@ -66,12 +67,22 @@ export default function Home() {
     };
   }, []);
 
+  const { corsi } = useCourses();
+
   useEffect(() => {
     const timerId = setInterval(() => setOraAttuale(new Date()), 60000); 
     return () => clearInterval(timerId);
   }, []);
 
-  const uniqueSubjects = Array.from(new Set(lezioni.map(l => cleanHtmlTags(l.nome_insegnamento)))).sort();
+  const uniqueSubjects = Array.from(new Set([
+    // Materie effettivamente in calendario (per coprire eventuali nomi anomali)
+    ...lezioni.map(l => cleanHtmlTags(l.nome_insegnamento)),
+    // Materie ufficiali del corso dal file JSON
+    ...(corsi.find(c => c.tutti_gli_anni.some(a => a.codiceCorsoReale === corsoCodice && a.valore === annoCodice))
+        ?.tutti_gli_anni.find(a => a.codiceCorsoReale === corsoCodice && a.valore === annoCodice)?.insegnamenti || []),
+    // Materie extra salvate
+    ...JSON.parse(localStorage.getItem('materieExtra') || '[]').map((m: any) => m.materiaNome)
+  ])).sort();
 
   const toggleBlacklistSubject = (materia: string) => {
     let newBlacklist = [...blacklist];
