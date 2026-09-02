@@ -127,21 +127,21 @@ export default function Stats() {
         <div className="space-y-6">
           
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-[#1a1a1a] border border-[#333] p-4 rounded-xl shadow-inner flex flex-col items-center justify-center">
+            <div className="bg-[#1a1a1a] border border-[#333] p-4 rounded-xl shadow-inner flex flex-col items-center justify-start h-full">
               <div className="text-3xl font-black text-white">{stats.totale_utenti}</div>
-              <div className="text-[10px] font-black text-[#c48e12] uppercase tracking-widest mt-1">Utenti Attivi</div>
+              <div className="text-[10px] font-black text-[#c48e12] uppercase tracking-widest mt-1 text-center">Utenti Totali</div>
             </div>
-            <div className="bg-[#1a1a1a] border border-[#333] p-4 rounded-xl shadow-inner flex flex-col items-center justify-center">
+            <div className="bg-[#1a1a1a] border border-[#333] p-4 rounded-xl shadow-inner flex flex-col items-center justify-start h-full">
               <div className="text-3xl font-black text-white">{stats.studentiConExtra}</div>
-              <div className="text-[10px] font-black text-green-500 uppercase tracking-widest mt-1">Usano Materie Extra</div>
+              <div className="text-[10px] font-black text-green-500 uppercase tracking-widest mt-1 text-center">Con Materie Extra</div>
             </div>
-            <div className="bg-[#1a1a1a] border border-[#333] p-4 rounded-xl shadow-inner flex flex-col items-center justify-center">
+            <div className="bg-[#1a1a1a] border border-[#333] p-4 rounded-xl shadow-inner flex flex-col items-center justify-start h-full">
               <div className="text-3xl font-black text-white">{stats.studentiConBlacklist}</div>
-              <div className="text-[10px] font-black text-red-400 uppercase tracking-widest mt-1 text-center">Usano Filtri/Blacklist</div>
+              <div className="text-[10px] font-black text-red-400 uppercase tracking-widest mt-1 text-center">Con Filtri Nascosti</div>
             </div>
-            <div className="bg-[#1a1a1a] border border-[#333] p-4 rounded-xl shadow-inner flex flex-col items-center justify-center">
+            <div className="bg-[#1a1a1a] border border-[#333] p-4 rounded-xl shadow-inner flex flex-col items-center justify-start h-full">
               <div className="text-3xl font-black text-white">{stats.studentiConLezioniSingole}</div>
-              <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest mt-1 text-center">Lezioni Fissate</div>
+              <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest mt-1 text-center">Con Lezioni Fissate</div>
             </div>
           </div>
 
