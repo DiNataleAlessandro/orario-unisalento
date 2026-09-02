@@ -49,7 +49,7 @@ export default function Stats() {
           let anno = '?';
 
           if (user.corso?.nome) {
-            corsoPuro = user.corso.nome.replace(' (Laurea)', '').replace(' (Laurea Magistrale)', '').replace(' (Laurea Magistrale Ciclo Unico 6 anni)', '').trim();
+            corsoPuro = user.corso.nome;
             anno = user.corso.annoNome || '?';
             
             const label = `${corsoPuro} - ${anno}`;
