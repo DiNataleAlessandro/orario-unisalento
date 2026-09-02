@@ -1,13 +1,6 @@
 import { createClient } from 'redis';
 
 export default async function handler(req, res) {
-  const { secret } = req.query;
-
-  // Usa la stessa sicurezza del broadcast
-  if (secret !== process.env.CRON_SECRET) {
-    return res.status(401).json({ error: 'Non autorizzato' });
-  }
-
   try {
     const client = createClient({ url: process.env.REDIS_URL });
     await client.connect();
