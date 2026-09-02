@@ -139,15 +139,17 @@ export default async function handler(req, res) {
     const windowEnd = addMinutes(now, 25);
     const todayStr = format(toZonedTime(now, TIMEZONE), 'dd-MM-yyyy');
 
-    const keys = await client.keys('*'); 
-    const notificationPromises = [];
+    const keys = await client.keys('*');
+    const allUserKeys = keys.filter(k => !k.startsWith('uni_cache:') && !k.startsWith('notified:'));
+    const CHUNK_SIZE = 50;
+    const summary = [];
     const localScheduleCache = new Map(); 
     const localRoomCache = new Map(); 
 
-    for (const key of keys) {
-      if (key.startsWith('uni_cache:') || key.startsWith('notified:')) continue;
-
-      const userJob = (async () => {
+    for (let i = 0; i < allUserKeys.length; i += CHUNK_SIZE) {
+      const chunk = allUserKeys.slice(i, i + CHUNK_SIZE);
+      
+      const chunkPromises = chunk.map(async (key) => {
         try {
           const dataStr = await client.get(key);
           if (!dataStr) return;
@@ -199,11 +201,14 @@ export default async function handler(req, res) {
 
             if (isAfter(lessonDate, windowStart) && !isAfter(lessonDate, windowEnd)) {
               if (single.buildingId) {
-                let roomData = localRoomCache.get(single.buildingId);
-                if (!roomData) {
-                  roomData = await fetchRoomSchedule(single.buildingId, todayStr);
-                  localRoomCache.set(single.buildingId, roomData);
+                // PREVENZIONE CACHE STAMPEDE: Salviamo la Promise
+                let roomDataPromise = localRoomCache.get(single.buildingId);
+                if (!roomDataPromise) {
+                  roomDataPromise = fetchRoomSchedule(single.buildingId, todayStr);
+                  localRoomCache.set(single.buildingId, roomDataPromise);
                 }
+                const roomData = await roomDataPromise;
+
                 const exists = roomData.events?.find(ev => 
                   String(ev.timestamp_from) === String(single.timestamp_from) && 
                   (ev.name === single.nome_insegnamento || ev.nome === single.nome_insegnamento)
@@ -243,12 +248,14 @@ export default async function handler(req, res) {
 
           for (const course of uniqueCourses) {
             const cacheId = `${course.codice}-${course.anno}`;
-            let schedule = localScheduleCache.get(cacheId);
             
-            if (!schedule) {
-              schedule = await fetchUniversitySchedule(course.codice, course.anno, todayStr, course.txtcurr);
-              localScheduleCache.set(cacheId, schedule);
+            // PREVENZIONE CACHE STAMPEDE: Salviamo la Promise
+            let schedulePromise = localScheduleCache.get(cacheId);
+            if (!schedulePromise) {
+              schedulePromise = fetchUniversitySchedule(course.codice, course.anno, todayStr, course.txtcurr);
+              localScheduleCache.set(cacheId, schedulePromise);
             }
+            const schedule = await schedulePromise;
 
             if (!schedule?.celle) continue;
 
@@ -306,17 +313,17 @@ export default async function handler(req, res) {
         } catch (err) {
           console.error(`Error processing user key ${key}:`, err);
         }
-      })();
-      notificationPromises.push(userJob);
+      });
+      
+      const chunkResults = await Promise.allSettled(chunkPromises);
+      summary.push(...chunkResults);
     }
-
-    const summary = await Promise.allSettled(notificationPromises);
     
     return res.status(200).json({
       success: true,
       mode: isTest ? 'test' : 'regular',
       timestamp: now.toISOString(),
-      notifications_attempted: keys.length,
+      notifications_attempted: allUserKeys.length,
       results_summary: summary.length
     });
 

@@ -45,22 +45,30 @@ export default async function handler(req, res) {
       tag: 'broadcast-nuovo-anno'
     });
 
-    for (const key of subscriptionKeys) {
-      try {
-        const dataStr = await client.get(key);
-        if (!dataStr) continue;
-        
-        const { subscription } = JSON.parse(dataStr);
-        if (!subscription || !subscription.endpoint) continue;
+    const CHUNK_SIZE = 50; // Inviamo a blocchi di 50 per evitare di sovraccaricare la rete o il servizio di push
+    for (let i = 0; i < subscriptionKeys.length; i += CHUNK_SIZE) {
+      const chunk = subscriptionKeys.slice(i, i + CHUNK_SIZE);
+      
+      const promises = chunk.map(async (key) => {
+        try {
+          const dataStr = await client.get(key);
+          if (!dataStr) return;
+          
+          const { subscription } = JSON.parse(dataStr);
+          if (!subscription || !subscription.endpoint) return;
 
-        await webpush.sendNotification(subscription, payload);
-        countSuccess++;
-      } catch (e) {
-        if (e.statusCode === 410 || e.statusCode === 404) {
-          await client.del(key);
+          await webpush.sendNotification(subscription, payload);
+          countSuccess++;
+        } catch (e) {
+          if (e.statusCode === 410 || e.statusCode === 404) {
+            await client.del(key); // Rimuove gli utenti che hanno revocato i permessi
+          }
+          countFail++;
         }
-        countFail++;
-      }
+      });
+
+      // Aspettiamo che tutto il blocco termini prima di passare al successivo
+      await Promise.allSettled(promises);
     }
 
     return res.status(200).json({ 
