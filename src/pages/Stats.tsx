@@ -52,7 +52,7 @@ export default function Stats() {
             corsoPuro = user.corso.nome;
             anno = user.corso.annoNome || '?';
             
-            const label = `${corsoPuro} - ${anno}`;
+            const label = `${corsoPuro}:::${anno}`;
             corsiMap[label] = (corsiMap[label] || 0) + 1;
           }
           
@@ -154,12 +154,17 @@ export default function Stats() {
                 <div className="flex-1 h-px bg-[#333] rounded-full"></div>
             </div>
             
-            <div className="bg-[#212121] rounded-2xl shadow-lg border border-[#333] p-4 space-y-4">
-              {Object.entries(stats.corsiMap).map(([corso, count]) => (
-                <div key={corso} className="flex flex-col gap-1.5">
-                  <div className="flex justify-between text-xs">
-                    <span className="font-bold text-gray-300 pr-2">{corso}</span>
-                    <span className="font-black text-[#c48e12]">{count}</span>
+            <div className="bg-[#212121] rounded-2xl shadow-lg border border-[#333] p-4 space-y-5">
+              {Object.entries(stats.corsiMap).map(([corsoLabel, count]) => {
+                const [corsoNome, annoNome] = corsoLabel.split(':::');
+                return (
+                <div key={corsoLabel} className="flex flex-col gap-2">
+                  <div className="flex justify-between items-start text-xs">
+                    <div className="flex flex-col min-w-0 flex-1 pr-3">
+                      <span className="font-bold text-gray-200 truncate" title={corsoNome}>{corsoNome}</span>
+                      <span className="text-[10px] text-gray-500 font-medium mt-[2px] truncate" title={annoNome}>{annoNome}</span>
+                    </div>
+                    <span className="font-black text-[#c48e12] shrink-0 mt-0.5">{count}</span>
                   </div>
                   <div className="w-full bg-[#1a1a1a] border border-[#333] rounded-full h-2.5 flex items-center p-[2px]">
                     <div 
@@ -168,7 +173,7 @@ export default function Stats() {
                     ></div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           </div>
 
@@ -200,17 +205,19 @@ export default function Stats() {
               <div className="divide-y divide-[#333]">
                 {filteredStudenti?.map((studente) => (
                   <div key={studente.id} className="p-4 hover:bg-[#2a2a2a] transition-colors">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="font-bold text-sm text-white flex items-center gap-2">
-                        <span className="bg-[#1a1a1a] border border-[#333] text-gray-400 text-[10px] px-2 py-0.5 rounded-lg font-mono">
-                          #{studente.id}
-                        </span>
-                        {studente.corsoPuro}
-                      </div>
-                      <span className="text-[10px] font-black uppercase bg-[#c48e12]/10 border border-[#c48e12]/40 text-[#c48e12] px-2 py-1 rounded-lg shrink-0 max-w-[50%] text-right truncate" title={studente.anno}>
-                        {studente.anno}
+                    <div className="flex flex-col gap-2 mb-2">
+                    <div className="font-bold text-sm text-white flex items-start gap-2">
+                      <span className="bg-[#1a1a1a] border border-[#333] text-gray-400 text-[10px] px-2 py-0.5 rounded-lg font-mono mt-[2px] shrink-0">
+                        #{studente.id}
                       </span>
+                      <div className="flex flex-col gap-1.5 items-start">
+                        <span className="leading-tight">{studente.corsoPuro}</span>
+                        <span className="text-[10px] font-black uppercase bg-[#c48e12]/10 border border-[#c48e12]/40 text-[#c48e12] px-2 py-1 rounded-lg text-left">
+                          {studente.anno}
+                        </span>
+                      </div>
                     </div>
+                  </div>
                     
                     <div className="flex gap-2 flex-wrap mt-2">
                       {studente.materieExtra.length > 0 && (
