@@ -161,10 +161,10 @@ export default function Stats() {
                     <span className="font-bold text-gray-300 pr-2">{corso}</span>
                     <span className="font-black text-[#c48e12]">{count}</span>
                   </div>
-                  <div className="w-full bg-[#1a1a1a] border border-[#333] rounded-full h-2">
+                  <div className="w-full bg-[#1a1a1a] border border-[#333] rounded-full h-2.5 flex items-center p-[2px]">
                     <div 
-                      className="bg-[#c48e12] h-1.5 rounded-full mt-[1px] ml-[1px] transition-all shadow-[0_0_8px_rgba(196,142,18,0.4)]" 
-                      style={{ width: `calc(${Math.max(2, (count / stats.totale_utenti) * 100)}% - 2px)` }}
+                      className="bg-[#c48e12] h-full rounded-full transition-all shadow-[0_0_8px_rgba(196,142,18,0.4)]" 
+                      style={{ width: `${Math.max(2, (count / stats.totale_utenti) * 100)}%` }}
                     ></div>
                   </div>
                 </div>
