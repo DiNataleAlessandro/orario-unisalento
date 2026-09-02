@@ -50,9 +50,9 @@ export default function Stats() {
 
           if (user.corso?.nome) {
             corsoPuro = user.corso.nome.replace(' (Laurea)', '').replace(' (Laurea Magistrale)', '').replace(' (Laurea Magistrale Ciclo Unico 6 anni)', '').trim();
-            anno = user.corso.annoNome?.split(' - ')[0] || '?';
+            anno = user.corso.annoNome || '?';
             
-            const label = `${corsoPuro} (Anno ${anno})`;
+            const label = `${corsoPuro} - ${anno}`;
             corsiMap[label] = (corsiMap[label] || 0) + 1;
           }
           
@@ -197,7 +197,7 @@ export default function Stats() {
                 </div>
               </div>
               
-              <div className="divide-y divide-[#333] max-h-[500px] overflow-y-auto">
+              <div className="divide-y divide-[#333]">
                 {filteredStudenti?.map((studente) => (
                   <div key={studente.id} className="p-4 hover:bg-[#2a2a2a] transition-colors">
                     <div className="flex items-center justify-between mb-2">
@@ -207,8 +207,8 @@ export default function Stats() {
                         </span>
                         {studente.corsoPuro}
                       </div>
-                      <span className="text-[10px] font-black uppercase bg-[#c48e12]/10 border border-[#c48e12]/40 text-[#c48e12] px-2 py-1 rounded-lg shrink-0">
-                        Anno {studente.anno}
+                      <span className="text-[10px] font-black uppercase bg-[#c48e12]/10 border border-[#c48e12]/40 text-[#c48e12] px-2 py-1 rounded-lg shrink-0 max-w-[50%] text-right truncate" title={studente.anno}>
+                        {studente.anno}
                       </span>
                     </div>
                     
